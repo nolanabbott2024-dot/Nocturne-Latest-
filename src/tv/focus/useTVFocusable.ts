@@ -1,4 +1,4 @@
-import { useFocusable } from "@noriginmedia/norigin-spatial-navigation-react";
+import { useFocusable } from "@noriginmedia/norigin-spatial-navigation";
 import { useNavigationStore } from "../../stores/navigationStore";
 
 function keepVerticalFocusVisible(layout:any){
