@@ -23,6 +23,7 @@ export function SettingsPage(){
  const settings=useSettingsStore();
  const patchSettings=useSettingsStore(s=>s.patch);
  const update=(patch:any)=>{patchSettings(patch);writeSettings({...readSettings(),...patch})};
+ const closeInstall=()=>{setInstallOpen(false);requestAnimationFrame(()=>{void setFocus("settings:install-addon")})};
  const verifyInstall=async()=>{
    let target=url.trim().replace(/^stremio:\/\//i,"https://");
    if(!/^https?:\/\//i.test(target)){setError("Enter a complete addon URL.");return}
@@ -30,7 +31,7 @@ export function SettingsPage(){
    setBusy(true);setError("");
    try{
      const addon=await loadAddon({transportUrl:target,enabled:true});
-     install(target,addon.manifest);setInstallOpen(false);setUrl("");
+     install(target,addon.manifest);closeInstall();setUrl("");
      requestAnimationFrame(()=>setFocus("settings:install-addon"));
    }catch(e:any){setError(e?.message||"Could not install this addon.")}
    finally{setBusy(false)}
@@ -50,11 +51,11 @@ export function SettingsPage(){
    <ToggleSetting id="preview-audio" label="Trailer Audio" value={settings.previewAudio!==false} onChange={(v:boolean)=>update({previewAudio:v})}/>
    <ToggleSetting id="motion" label="Reduced Motion" value={!!settings.reducedMotion} onChange={(v:boolean)=>update({reducedMotion:v})}/>
   </section>
-  <AnimatePresence>{installOpen&&<TVDialog id="install-addon-dialog" initialFocusKey="settings:addon-url" onClose={()=>setInstallOpen(false)}>
+  <AnimatePresence>{installOpen&&<TVDialog id="install-addon-dialog" initialFocusKey="settings:addon-url" onClose={closeInstall}>
     <h2>Install Add-on</h2><p className="dialog-copy">Paste a Stremio manifest URL. Nocturne will verify it before saving.</p>
     <FocusableInput focusKey="settings:addon-url" value={url} onChange={setUrl}/>
     {error&&<div className="dialog-error">{error}</div>}
-    <div className="dialog-actions"><DialogButton focusKey="settings:addon-install" label={busy?"Checking…":"Install"} onPress={verifyInstall}/><DialogButton focusKey="settings:addon-cancel" label="Cancel" onPress={()=>setInstallOpen(false)}/></div>
+    <div className="dialog-actions"><DialogButton focusKey="settings:addon-install" label={busy?"Checking…":"Install"} onPress={verifyInstall}/><DialogButton focusKey="settings:addon-cancel" label="Cancel" onPress={closeInstall}/></div>
   </TVDialog>}</AnimatePresence>
  </TVPage>
 }
