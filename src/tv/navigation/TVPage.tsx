@@ -18,7 +18,7 @@ export function TVPage({route,initialFocusKey,children}:PropsWithChildren<{route
     const restore=()=>{
       if(cancelled)return;
       if(wanted&&doesFocusableExist(wanted)){void setFocus(wanted);return}
-      if(wanted&&tries++<30){timer=window.setTimeout(restore,60);return}
+      if(wanted&&tries++<160){timer=window.setTimeout(restore,60);return}
       void setFocus(focusKey);
     };
     requestAnimationFrame(restore);
