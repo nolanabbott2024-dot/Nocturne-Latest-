@@ -8,9 +8,6 @@ import { useTVFocusable } from "../tv/focus/useTVFocusable";
 import { loadAddon } from "../data/stremio";
 import { useSettingsStore } from "../stores/settingsStore";
 
-function readSettings(){try{return JSON.parse(localStorage.getItem("settings")||"{}")}catch{return{}}}
-function writeSettings(next:any){localStorage.setItem("settings",JSON.stringify(next));window.dispatchEvent(new Event("nocturne-settings"))}
-
 export function SettingsPage(){
  const addons=useProviderStore(s=>s.addons);
  const install=useProviderStore(s=>s.install);
@@ -22,7 +19,7 @@ export function SettingsPage(){
  const [busy,setBusy]=useState(false);
  const settings=useSettingsStore();
  const patchSettings=useSettingsStore(s=>s.patch);
- const update=(patch:any)=>{patchSettings(patch);writeSettings({...readSettings(),...patch})};
+ const update=(patch:any)=>patchSettings(patch);
  const closeInstall=()=>{setInstallOpen(false);requestAnimationFrame(()=>{void setFocus("settings:install-addon")})};
  const verifyInstall=async()=>{
    let target=url.trim().replace(/^stremio:\/\//i,"https://");
