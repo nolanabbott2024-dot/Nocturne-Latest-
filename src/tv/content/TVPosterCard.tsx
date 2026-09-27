@@ -7,10 +7,11 @@ import { TrailerPreview } from "../playback/TrailerPreview";
 import { useSettingsStore } from "../../stores/settingsStore";
 
 export const TVPosterCard=memo(function TVPosterCard({
-  item,route,rowId,onOpen,onSettled,onSpatialFocus,onArrowPress
+  item,route,rowId,onOpen,onFocused,onSettled,onSpatialFocus,onArrowPress
 }:{
   item:MediaItem;route:string;rowId:string;
   onOpen:(m:MediaItem)=>void;
+  onFocused?:(m:MediaItem)=>void;
   onSettled?:(m:MediaItem)=>void;
   onSpatialFocus?:(layout:any)=>void;
   onArrowPress?:(direction:string)=>boolean|void;
@@ -22,7 +23,7 @@ export const TVPosterCard=memo(function TVPosterCard({
   const reducedMotion=useSettingsStore(s=>s.reducedMotion);
   const {ref,focused}=useTVFocusable({
     focusKey:key,route,rowId,onPress:()=>onOpen(item),
-    onFocus:(layout)=>onSpatialFocus?.(layout),
+    onFocus:(layout)=>{onFocused?.(item);onSpatialFocus?.(layout)},
     onArrowPress:(direction)=>onArrowPress?.(direction),
     onBlur:()=>{setTrailerReady(false);stopTrailer();}
   });
@@ -32,7 +33,7 @@ export const TVPosterCard=memo(function TVPosterCard({
     const metaTimer=window.setTimeout(()=>onSettled?.(item),420);
     const trailerTimer=window.setTimeout(()=>setTrailerReady(previews),1500);
     return()=>{window.clearTimeout(metaTimer);window.clearTimeout(trailerTimer)};
-  },[focused,item.id]);
+  },[focused,item.id,onSettled,previews]);
 
   const art=item.poster||item.background;
   return <motion.button ref={ref as any} className="tv-card"
