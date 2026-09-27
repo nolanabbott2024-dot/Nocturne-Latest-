@@ -2,6 +2,9 @@ import type { AddonDescriptor,Catalog,MediaItem } from "../types/tv";
 
 export type LoadedAddon={descriptor:AddonDescriptor;manifest:any;baseUrl:string;catalogs:Catalog[]};
 
+export const CINEMETA_BASE="https://v3-cinemeta.strem.io/";
+export function isCinemetaCatalog(c:Catalog){return c.baseUrl===CINEMETA_BASE||/cinemeta/i.test(c.addonId)||/cinemeta/i.test(c.addonName);}
+
 function baseOf(url:string){return url.slice(0,url.lastIndexOf("/")+1);}
 export async function fetchJson<T=any>(url:string,signal?:AbortSignal):Promise<T>{
   const r=await fetch(url,{signal,headers:{Accept:"application/json"}});
@@ -27,6 +30,33 @@ export async function loadCatalog(c:Catalog,extra:Record<string,string>={},signa
 export async function loadMeta(baseUrl:string,type:string,id:string,signal?:AbortSignal):Promise<MediaItem>{
   const o=await fetchJson<any>(`${baseUrl}meta/${encodeURIComponent(type)}/${encodeURIComponent(id)}.json`,signal);
   return normalizeItem(o.meta||{},type,baseUrl);
+}
+
+export async function loadMetaEnriched(seed:MediaItem,signal?:AbortSignal):Promise<MediaItem>{
+  let source:MediaItem=seed;
+  if(seed.sourceBase){
+    try{source=await loadMeta(seed.sourceBase,seed.type,seed.id,signal)}catch{}
+  }
+  if(seed.type!=="movie"&&seed.type!=="series")return source;
+  let meta:MediaItem|null=null;
+  try{meta=await loadMeta(CINEMETA_BASE,seed.type,seed.id,signal)}catch{}
+  if(!meta)return {...source,sourceBase:seed.sourceBase||source.sourceBase};
+  return {
+    ...source,
+    poster:meta.poster||source.poster,
+    background:meta.background||source.background||meta.poster,
+    logo:meta.logo||source.logo,
+    description:meta.description||source.description,
+    releaseInfo:meta.releaseInfo||source.releaseInfo,
+    runtime:meta.runtime||source.runtime,
+    contentRating:meta.contentRating||source.contentRating,
+    imdbRating:meta.imdbRating||source.imdbRating,
+    genres:meta.genres?.length?meta.genres:source.genres,
+    videos:meta.videos?.length?meta.videos:source.videos,
+    trailerUrl:meta.trailerUrl||source.trailerUrl,
+    trailerYtId:meta.trailerYtId||source.trailerYtId,
+    sourceBase:seed.sourceBase||source.sourceBase
+  };
 }
 export async function loadStreams(baseUrl:string,type:string,id:string,signal?:AbortSignal){
   const o=await fetchJson<any>(`${baseUrl}stream/${encodeURIComponent(type)}/${encodeURIComponent(id)}.json`,signal);
