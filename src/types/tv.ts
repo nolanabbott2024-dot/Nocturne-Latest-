@@ -1,3 +1,4 @@
+// Nocturne TV runtime contracts
 export type TVRemoteAction =
   | "up" | "down" | "left" | "right"
   | "select" | "back" | "playPause" | "menu";
