@@ -58,3 +58,5 @@ button:focus,button:focus-visible{outline:none!important}.app-shell{display:flex
 .source-loading{min-height:120px;display:flex;align-items:center;justify-content:center;gap:14px;color:var(--muted);font-weight:600}.source-loading span{width:22px;height:22px;border:3px solid rgba(255,255,255,.18);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
 
 .key-button.search-submit{grid-column:span 2;background:rgba(255,255,255,.16);font-weight:800}
+
+.trailer-youtube-poster{object-fit:cover;filter:brightness(.7)}.trailer-youtube-button{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);z-index:4;min-width:260px;height:52px;border-radius:999px;background:rgba(0,0,0,.68);font-weight:800;padding:0 24px}
