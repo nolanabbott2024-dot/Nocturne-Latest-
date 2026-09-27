@@ -1,30 +1,41 @@
-import { memo,useEffect,useMemo,useState } from "react";
+import { memo,useEffect,useState } from "react";
 import { motion } from "motion/react";
 import { useTVFocusable } from "../focus/useTVFocusable";
 import { usePlaybackStore } from "../../stores/playbackStore";
 import type { MediaItem } from "../../types/tv";
 import { TrailerPreview } from "../playback/TrailerPreview";
 
-export const TVPosterCard=memo(function TVPosterCard({item,route,rowId,onOpen,onSettled}:{item:MediaItem;route:string;rowId:string;onOpen:(m:MediaItem)=>void;onSettled?:(m:MediaItem)=>void}){
+export const TVPosterCard=memo(function TVPosterCard({
+  item,route,rowId,onOpen,onSettled,onSpatialFocus
+}:{
+  item:MediaItem;route:string;rowId:string;
+  onOpen:(m:MediaItem)=>void;
+  onSettled?:(m:MediaItem)=>void;
+  onSpatialFocus?:(layout:any)=>void;
+}){
   const key=`${route}:${rowId}:${item.type}:${item.id}`;
-  const [settled,setSettled]=useState(false);
+  const [trailerReady,setTrailerReady]=useState(false);
   const stopTrailer=usePlaybackStore(s=>s.stopTrailer);
   const {ref,focused}=useTVFocusable({
     focusKey:key,route,rowId,onPress:()=>onOpen(item),
-    onFocus:()=>{},onBlur:()=>{setSettled(false);stopTrailer();}
+    onFocus:(layout)=>onSpatialFocus?.(layout),
+    onBlur:()=>{setTrailerReady(false);stopTrailer();}
   });
+
   useEffect(()=>{
-    if(!focused){setSettled(false);return}
-    const t=setTimeout(()=>{setSettled(true);onSettled?.(item)},420);
-    return()=>clearTimeout(t);
+    if(!focused){setTrailerReady(false);return}
+    const metaTimer=window.setTimeout(()=>onSettled?.(item),420);
+    const trailerTimer=window.setTimeout(()=>setTrailerReady(true),1500);
+    return()=>{window.clearTimeout(metaTimer);window.clearTimeout(trailerTimer)};
   },[focused,item.id]);
+
   const art=item.poster||item.background;
   return <motion.button ref={ref as any} className="tv-card"
     animate={{scale:focused?1.072:1,y:focused?-7:0,filter:focused?"brightness(1.09)":"brightness(1)"}}
     transition={{type:"spring",stiffness:390,damping:31,mass:.7}}>
     <div className="card-media">
       {art&&<img src={art} loading="lazy" decoding="async"/>}
-      {settled&&focused&&<TrailerPreview item={item}/>}
+      {trailerReady&&focused&&<TrailerPreview item={item}/>}
       <div className="focus-ring"/>
     </div>
     <motion.div className="card-meta" animate={{opacity:focused?1:.72}}>
