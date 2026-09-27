@@ -1,5 +1,5 @@
-import { FocusContext,useFocusable } from "@noriginmedia/norigin-spatial-navigation-react";
-import { setFocus } from "@noriginmedia/norigin-spatial-navigation-core";
+import { FocusContext,useFocusable } from "@noriginmedia/norigin-spatial-navigation";
+import { setFocus } from "@noriginmedia/norigin-spatial-navigation";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useCallback,useRef } from "react";
 import type { MediaItem } from "../../types/tv";
