@@ -20,11 +20,20 @@ jobs:
       - run: npm install
       - run: npm run build
       - run: npx playwright install --with-deps chromium
-      - run: npm run test:tv
-      - name: Upload Playwright report
+      - name: Run TV tests
+        shell: bash
+        run: |
+          set +e
+          npm run test:tv 2>&1 | tee tv-test.log
+          code=${PIPESTATUS[0]}
+          exit $code
+      - name: Upload TV test evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: Nocturne-TV-playwright
-          path: playwright-report
+          path: |
+            playwright-report
+            test-results
+            tv-test.log
           if-no-files-found: ignore
