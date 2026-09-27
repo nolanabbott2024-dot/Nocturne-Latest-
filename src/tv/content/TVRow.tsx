@@ -12,7 +12,7 @@ function keepVerticallyComfortable(el:HTMLElement){
   if(r.top<top)page.scrollBy({top:r.top-top-24,behavior:"smooth"});
   else if(r.bottom>bottom)page.scrollBy({top:r.bottom-bottom+24,behavior:"smooth"});
 }
-export function TVRow({id,title,items,route,onOpen,onSettled}:{id:string;title:string;items:MediaItem[];route:string;onOpen:(m:MediaItem)=>void;onSettled?:(m:MediaItem)=>void}){
+export function TVRow({id,title,items,route,onOpen,onSettled,leftExitFocusKey}:{id:string;title:string;items:MediaItem[];route:string;onOpen:(m:MediaItem)=>void;onSettled?:(m:MediaItem)=>void}){
   const {ref,focusKey}=useFocusable({focusKey:`row:${route}:${id}`,trackChildren:true,saveLastFocusedChild:true});
   const scroller=useRef<HTMLDivElement|null>(null);
   const virtual=useVirtualizer({horizontal:true,count:items.length,getScrollElement:()=>scroller.current,estimateSize:()=>190,overscan:8});
