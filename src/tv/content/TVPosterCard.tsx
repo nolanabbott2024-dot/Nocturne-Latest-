@@ -6,12 +6,13 @@ import type { MediaItem } from "../../types/tv";
 import { TrailerPreview } from "../playback/TrailerPreview";
 
 export const TVPosterCard=memo(function TVPosterCard({
-  item,route,rowId,onOpen,onSettled,onSpatialFocus
+  item,route,rowId,onOpen,onSettled,onSpatialFocus,onArrowPress
 }:{
   item:MediaItem;route:string;rowId:string;
   onOpen:(m:MediaItem)=>void;
   onSettled?:(m:MediaItem)=>void;
   onSpatialFocus?:(layout:any)=>void;
+  onArrowPress?:(direction:string)=>boolean|void;
 }){
   const key=`${route}:${rowId}:${item.type}:${item.id}`;
   const [trailerReady,setTrailerReady]=useState(false);
@@ -33,11 +34,11 @@ export const TVPosterCard=memo(function TVPosterCard({
   return <motion.button ref={ref as any} className="tv-card"
     animate={{scale:focused?1.072:1,y:focused?-7:0,filter:focused?"brightness(1.09)":"brightness(1)"}}
     transition={{type:"spring",stiffness:390,damping:31,mass:.7}}>
-    <div className="card-media">
+    <motion.div className="card-media" layoutId={`media-${item.id}`}>
       {art&&<img src={art} loading="lazy" decoding="async"/>}
       {trailerReady&&focused&&<TrailerPreview item={item}/>}
       <div className="focus-ring"/>
-    </div>
+    </motion.div>
     <motion.div className="card-meta" animate={{opacity:focused?1:.72}}>
       <b>{item.name}</b><span>{item.releaseInfo||item.type}</span>
     </motion.div>
