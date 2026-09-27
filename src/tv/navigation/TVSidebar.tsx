@@ -1,4 +1,5 @@
-import { FocusContext,setFocus,useFocusable } from "@noriginmedia/norigin-spatial-navigation";
+import { FocusContext,useFocusable } from "@noriginmedia/norigin-spatial-navigation-react";
+import { setFocus } from "@noriginmedia/norigin-spatial-navigation-core";
 import { motion } from "motion/react";
 import { Home,Film,Tv,Compass,Search,Library,Settings } from "lucide-react";
 import { useNavigationStore } from "../../stores/navigationStore";
