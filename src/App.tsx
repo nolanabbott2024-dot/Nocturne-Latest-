@@ -1,5 +1,5 @@
 import { useCallback,useEffect,useRef,useState } from "react";
-import { setFocus } from "@noriginmedia/norigin-spatial-navigation";
+import { doesFocusableExist,setFocus } from "@noriginmedia/norigin-spatial-navigation";
 import { AnimatePresence } from "motion/react";
 import { TVSidebar } from "./tv/navigation/TVSidebar";
 import { CollectionPage } from "./pages/CollectionPage";
@@ -23,6 +23,15 @@ import { playNative } from "./platform/native";
 type Route={name:string;item?:MediaItem};
 type BrowserPlayer={src:string;title:string;headers?:Record<string,string>};
 
+function focusWhenAvailable(key:string){
+ let tries=0;
+ const attempt=()=>{
+   if(doesFocusableExist(key)){void setFocus(key);return}
+   if(tries++<60)window.setTimeout(attempt,25);
+ };
+ requestAnimationFrame(attempt);
+}
+
 export default function App(){
  const [route,setRoute]=useState<Route>({name:"home"});
  const [player,setPlayer]=useState<BrowserPlayer|null>(null);
@@ -36,7 +45,11 @@ export default function App(){
    return {route:route.name,focusKey:nav.focusedKey,scrollY:nav.scrollHistory[route.name]?.y||0};
  },[route.name]);
 
- const go=useCallback((name:string)=>{BackStack.push(snapshot());setRoute({name})},[snapshot]);
+ const go=useCallback((name:string)=>{
+   BackStack.push(snapshot());setRoute({name});
+   const target=name==="search"?"search-key:A":(name==="home"||name==="movies"||name==="shows")?`${name}:hero:play`:null;
+   if(target)focusWhenAvailable(target);
+ },[snapshot]);
  const open=useCallback((item:MediaItem)=>{BackStack.push(snapshot());setRoute({name:"details",item})},[snapshot]);
 
  const launchSource=useCallback((url:string,title:string,headers:Record<string,string>,item:MediaItem,videoId:string)=>{
