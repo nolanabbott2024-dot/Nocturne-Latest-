@@ -34,6 +34,7 @@ test.beforeEach(async({page})=>{
   await page.route("**/catalog/**",async route=>{
     const url=route.request().url();const type=url.includes("/series/")?"series":"movie";
     const metas=Array.from({length:60},(_,i)=>item((type==="series"?"show":"tt")+i,type));
+    metas[6]={...item((type==="series"?"showAlias":"ttAlias"),type),name:metas[5].name,releaseInfo:metas[5].releaseInfo};
     await route.fulfill({status:200,headers:cors,contentType:"application/json",body:JSON.stringify({metas})});
   });
   await page.route("**/meta/**",async route=>{
@@ -76,6 +77,8 @@ test("Search keyboard and results are explicit focus boundaries",async({page})=>
   await expect.poll(()=>focus(page)).toBe("sidebar:search");
   await page.keyboard.press("Enter");
   await expect.poll(()=>focus(page)).toBe("search-key:A");
+  await expect(page.locator(".key-button.search-submit")).toBeVisible();
+  await expect(page.locator(".key-button.search-submit")).toHaveText("Search");
   await page.keyboard.press("Enter");
   await page.waitForTimeout(500);
   for(let i=0;i<8;i++)await page.keyboard.press("ArrowRight");
@@ -128,6 +131,32 @@ test("Spotlight follows focus and Details actions reflect the active control",as
   await expect(page.locator("[data-tv-overlay='true'] .trailer-stage")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.locator(".trailer-stage")).toHaveCount(0);
+});
+
+test("TV series episodes are visible and Down from actions reaches the first episode",async({page})=>{
+  await page.keyboard.press("ArrowLeft");
+  await expect.poll(()=>focus(page)).toBe("sidebar:home");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowDown");
+  await expect.poll(()=>focus(page)).toBe("sidebar:shows");
+  await page.keyboard.press("Enter");
+  await expect.poll(()=>focus(page)).toBe("shows:hero:play");
+  await page.keyboard.press("ArrowDown");
+  await expect.poll(()=>focus(page)).toMatch(/^shows:[^:]+:series:/);
+  await page.keyboard.press("Enter");
+  await expect.poll(()=>focus(page)).toMatch(/^details:show\d+:action:play$/);
+  await page.keyboard.press("ArrowDown");
+  await expect.poll(()=>focus(page)).toMatch(/^details:show\d+:episode:show\d+:1:1$/);
+  await expect(page.locator(".episodes")).toBeVisible();
+  await expect(page.locator(".episode-card").first()).toContainText("Pilot");
+});
+
+test("Rows remove duplicate titles even when provider IDs differ",async({page})=>{
+  await page.keyboard.press("ArrowDown");
+  await page.waitForTimeout(300);
+  const names=await page.locator(".tv-row").first().locator(".card-meta b").allTextContents();
+  const normalized=names.map(x=>x.toLowerCase().replace(/[^a-z0-9]+/g," ").trim());
+  expect(new Set(normalized).size).toBe(normalized.length);
 });
 
 test("Large rails remain virtualized",async({page})=>{
