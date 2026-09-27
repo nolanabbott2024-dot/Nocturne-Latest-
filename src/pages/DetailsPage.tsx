@@ -6,7 +6,7 @@ import { TVEpisodeRail } from "../tv/detail/TVEpisodeRail";
 import { SourcePicker } from "../tv/playback/SourcePicker";
 import { useProviderStore } from "../stores/providerStore";
 import { loadMeta } from "../data/stremio";
-import { resolvePlayableSource, resolvePlayableSources, type PlayableSource } from "../data/playback";
+import { resolvePlayableStream, resolvePlayableSources, type PlayableSource } from "../data/playback";
 import { toggleWatchlist } from "../data/library";
 import type { MediaItem,Episode } from "../types/tv";
 
