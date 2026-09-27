@@ -7,6 +7,7 @@ import { TVRow } from "../tv/content/TVRow";
 import { useAddons,useCatalog } from "../data/queries";
 import type { MediaItem } from "../types/tv";
 import { useSearchStore } from "../stores/searchStore";
+import { useNavigationStore } from "../stores/navigationStore";
 
 const KEYS="ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890".split("");
 const COLS=9;
@@ -21,6 +22,13 @@ export function SearchPage({onOpen}:{onOpen:(m:MediaItem)=>void}){
  const catalogs=useMemo(()=>addons.flatMap(a=>a.catalogs).filter(c=>c.searchable).slice(0,6),[addons]);
  const {ref,focusKey}=useFocusable({focusKey:"search-keyboard",trackChildren:true,saveLastFocusedChild:true});
  const allKeys=[...KEYS,"⌫","Clear"];
+ useEffect(()=>{
+   const current=useNavigationStore.getState().focusedKey;
+   if(current?.startsWith("sidebar:")){
+     const timer=window.setTimeout(()=>{void setFocus(lastKeyboardKey||"search-key:A")},0);
+     return()=>window.clearTimeout(timer);
+   }
+ },[]);
  return <TVPage route="search" initialFocusKey="search-key:A">
   <header className="page-title"><h1>Search</h1><div className="search-value">{q||"Search movies, shows, people…"}</div></header>
   <FocusContext.Provider value={focusKey}>
