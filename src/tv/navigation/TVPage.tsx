@@ -1,6 +1,6 @@
 import { PropsWithChildren,useEffect,useRef } from "react";
-import { FocusContext,useFocusable } from "@noriginmedia/norigin-spatial-navigation-react";
-import { doesFocusableExist,setFocus } from "@noriginmedia/norigin-spatial-navigation-core";
+import { FocusContext,useFocusable } from "@noriginmedia/norigin-spatial-navigation";
+import { doesFocusableExist,setFocus } from "@noriginmedia/norigin-spatial-navigation";
 import { motion } from "motion/react";
 import { useNavigationStore } from "../../stores/navigationStore";
 
