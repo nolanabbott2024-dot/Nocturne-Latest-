@@ -1,115 +1,189 @@
 package com.nolanabbott.nocturne;
 
-import android.app.*;
-import android.content.*;
+import android.app.Activity;
+import android.content.Intent;
 import android.graphics.Color;
-import android.graphics.Rect;
-import android.graphics.drawable.GradientDrawable;
-import android.net.Uri;
-import android.os.*;
-import android.text.InputType;
-import android.view.*;
-import android.widget.*;
-import org.json.*;
-import java.util.*;
+import android.os.Bundle;
+import android.view.KeyEvent;
+import android.view.View;
+import android.webkit.JavascriptInterface;
+import android.webkit.WebChromeClient;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.util.LinkedHashSet;
+import java.util.Set;
+
+/**
+ * Android TV shell for the React/Norigin Nocturne interface.
+ *
+ * Navigation, focus, page state and previews live in the bundled React TV app.
+ * Mature playback stays native through PlayerActivity / Media3.
+ */
 public class MainActivity extends Activity {
-    private TvUi u; private LibraryStore store; private AddonRepository repo; private ImageLoader images;
-    private final Handler handler=new Handler(Looper.getMainLooper());
-    private final Deque<Route> history=new ArrayDeque<>();
-    private final Map<String,String> rowFocusHistory=new HashMap<>();
-    private final Map<String,String> pageFocusHistory=new HashMap<>();
-    private Runnable backdropDelay,heroDelay;
-    private String lastBackdropUrl,focusedKey;
-    private TextView heroTitleView,heroMetaView,heroDescView;
-    private ImageView heroLogoView;
-    private Route current=new Route("Home",null,"");
-    private LinearLayout page,content,nav; private ScrollView scroll; private FrameLayout root; private ImageView backdrop;
-    private int epoch,width; private boolean resumed,suppressAutoPick;
-    private TrailerView preview; private FrameLayout previewHost; private Runnable previewDelay;
-    private final Map<String,StremioClient.Item> visibleItems=new LinkedHashMap<>();
-    private static final int PLAY_REQUEST=20;
-    static final class Route {final String kind;final Object value;final String extra;String focusTag;int scrollY;Route(String k,Object v,String e){kind=k;value=v;extra=e;}}
-    @Override public void onCreate(Bundle state){super.onCreate(state);u=new TvUi(this);store=new LibraryStore(this);repo=new AddonRepository(store);images=new ImageLoader();width=Math.round(getResources().getDisplayMetrics().widthPixels/u.density);shell();render(new Route("Loading",null,""));repo.refresh((a,error)->{render(new Route("Home",null,""));if(error!=null)toast("Some addons could not update. See Settings → Add-ons.");});}
-    private void shell(){getWindow().setStatusBarColor(Color.BLACK);getWindow().setNavigationBarColor(Color.BLACK);root=new FrameLayout(this);root.setBackgroundColor(0xFF08090B);backdrop=new ImageView(this);backdrop.setScaleType(ImageView.ScaleType.CENTER_CROP);root.addView(backdrop,new FrameLayout.LayoutParams(-1,u.dp(490)));View shade=new View(this);shade.setBackground(new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,new int[]{0xEE08090B,0x6008090B,0x1508090B}));root.addView(shade,new FrameLayout.LayoutParams(-1,u.dp(490)));View fade=new View(this);fade.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0x0008090B,0x3308090B,0xFF08090B}));root.addView(fade,new FrameLayout.LayoutParams(-1,u.dp(500)));scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setClipToPadding(false);scroll.setVerticalScrollBarEnabled(false);page=u.column();u.pad(page,36,18,36,54);scroll.addView(page);root.addView(scroll,new FrameLayout.LayoutParams(-1,-1));scroll.setOnScrollChangeListener((v,x,y,ox,oy)->{backdrop.setTranslationY(-y*.55f);backdrop.setAlpha(Math.max(0,1-y/(float)u.dp(430)));});setContentView(root);root.getViewTreeObserver().addOnGlobalFocusChangeListener((oldFocus,newFocus)->{if(newFocus==null){handler.postDelayed(this::ensureFocusOwned,32);return;}Object tag=newFocus.getTag();if(tag instanceof String){focusedKey=(String)tag;if(!focusedKey.startsWith("nav-"))pageFocusHistory.put(current.kind,focusedKey);}});immersive();}
-    private void primary(String name){rememberPageFocus();history.clear();render(new Route(name,null,""));page.post(()->{String remembered=pageFocusHistory.get(name);View target=remembered==null?null:page.findViewWithTag(remembered);if(target!=null)target.requestFocus();else{View selected=page.findViewWithTag("nav-"+name);if(selected!=null)selected.requestFocus();}});}
-    private void open(String kind,Object value,String extra){rememberPageFocus();View focus=getCurrentFocus();if(focus!=null&&focus.getTag() instanceof String)current.focusTag=(String)focus.getTag();current.scrollY=scroll.getScrollY();history.push(current);render(new Route(kind,value,extra));}
-    private void render(Route route){current=route;epoch++;stopPreview();handler.removeCallbacksAndMessages(null);heroTitleView=null;heroMetaView=null;heroDescView=null;heroLogoView=null;page.removeAllViews();visibleItems.clear();backdrop.setImageDrawable(null);backdrop.setTag(null);backdrop.setAlpha(1);backdrop.setTranslationY(0);buildNav();content=u.column();content.setAlpha(0f);content.setTranslationY(u.dp(8));page.addView(content,u.lp(-1,-2,0,0,0,0));content.animate().alpha(1f).translationY(0).setDuration(store.device.getBoolean("reducedMotion",false)?0:180).setInterpolator(new android.view.animation.DecelerateInterpolator()).start();scroll.scrollTo(0,0);handler.postDelayed(this::ensureFocusOwned,80);
-        switch(route.kind){case "Loading":heading("Welcome to Nocturne","Updating your installed catalogs…");loading(content);break;case "Home":case "Movies":case "TV Shows":case "Sports":home(route.kind);break;case "Channels":channels();break;case "Library":library(route.extra);break;case "Search":search(route.extra);break;case "Details":details((StremioClient.Item)route.value);break;case "Catalog":catalog((StremioClient.Catalog)route.value,route.extra);break;case "Sources":sources((StremioClient.Item)route.value,route.extra);break;case "Settings":settings();break;case "Add-ons":addons();break;case "Addon":addon((StremioClient.Addon)route.value);break;case "Catalog Rows":catalogSettings();break;case "Playback":playbackSettings();break;case "Sources Settings":sourceSettings();break;case "Profiles":profiles();break;case "About":about();break;default:primary("Home");}}
-    private List<String> navigationTabs(){List<String> tabs=new ArrayList<>();tabs.add("Home");boolean movies=false,series=false,sports=false,searchable=false;for(StremioClient.Catalog cat:repo.catalogs()){movies|="movie".equals(cat.type);series|="series".equals(cat.type);String s=(cat.type+" "+cat.name).toLowerCase(Locale.US);sports|="tv".equals(cat.type)||s.contains("sport")||s.contains("live")||s.contains("channel");searchable|=cat.searchable;}if(movies)tabs.add("Movies");if(series)tabs.add("TV Shows");if(sports)tabs.add("Sports");if(!repo.addons.isEmpty())tabs.add("Channels");tabs.add("Library");if(searchable)tabs.add("Search");tabs.add("Settings");return tabs;}
-    private void buildNav(){HorizontalScrollView strip=new HorizontalScrollView(this);strip.setHorizontalScrollBarEnabled(false);strip.setClipToPadding(false);nav=u.row();u.pad(nav,6,5,6,5);nav.setBackground(u.glass(0xD0303237,28,false));for(String tab:navigationTabs()){boolean active=tab.equals(current.kind);TextView b=u.button(tab,active,()->primary(tab));b.setTextSize(12);u.pad(b,13,0,13,0);if(!active)b.setBackgroundColor(Color.TRANSPARENT);b.setOnFocusChangeListener((v,focus)->{b.setTextColor(focus||active?0xFF111114:Color.WHITE);b.setBackground(focus||active?u.glass(0xFFF2F2F4,23,focus):null);});b.setTag("nav-"+tab);nav.addView(b,u.lp(-2,42,1,0,1,0));}strip.addView(nav);LinearLayout header=u.row();header.setGravity(Gravity.CENTER);header.addView(strip,u.lp(-2,54,0,0,0,0));page.addView(header,u.lp(-1,64,0,0,0,8));}
-    private void heading(String title,String sub){content.addView(u.title(title,32),u.lp(-1,-2,0,16,0,0));if(sub!=null&&!sub.isEmpty())content.addView(u.note(sub));}
-    private void loading(LinearLayout target){target.addView(new ProgressBar(this),u.lp(38,38,4,22,0,22));}
-    private void action(LinearLayout parent,String text,boolean main,Runnable callback){parent.addView(u.button(text,main,callback),u.lp(-2,46,0,0,10,0));}
-    private void rowAction(String title,String summary,Runnable click){LinearLayout row=u.column();row.setFocusable(true);row.setClickable(true);row.setContentDescription(title);row.setTag("action-"+title);u.pad(row,22,16,22,16);row.setBackground(u.glass(0xDF202228,16,false));row.addView(u.title(title,17));if(summary!=null)row.addView(u.text(summary,13,0xFFBABCC5));row.setOnClickListener(v->click.run());row.setOnFocusChangeListener((v,focus)->v.setBackground(u.glass(focus?0xFF4B4E58:0xDF202228,16,focus)));content.addView(row,u.lp(-1,-2,0,5,0,5));}
-    private boolean matches(StremioClient.Catalog c,String section){if(section.equals("Movies"))return c.type.equals("movie");if(section.equals("TV Shows"))return c.type.equals("series");if(section.equals("Sports")){String s=(c.type+" "+c.name).toLowerCase(Locale.US);return s.contains("sport")||s.contains("live")||s.contains("channel")||c.type.equals("tv");}return true;}
-    private Map<String,String> defaults(StremioClient.Catalog c){Map<String,String>x=new LinkedHashMap<>();if(c.required.contains("genre")&&!c.genres.isEmpty())x.put("genre",c.genres.get(0));return x;}
-    private void home(String section){final int version=epoch;LinearLayout hero=heroPlaceholder(section);content.addView(hero,u.lp(-1,230,0,0,0,12));if(section.equals("Home")){storedRail("Continue Watching","continue","");storedRail("Watchlist","watchlist","");}List<StremioClient.Catalog> cats=new ArrayList<>();for(StremioClient.Catalog c:repo.catalogs())if(matches(c,section)&&!repo.hidden(c)&&!c.required.contains("search"))cats.add(c);if(cats.isEmpty()){content.addView(u.note(section.equals("Sports")?"Live sports appear here when an installed addon provides sports or live catalogs.":"No catalogs are available for this page."));rowAction("Manage Add-ons","Add or update your catalog providers",()->open("Add-ons",null,""));return;}final boolean[] featured={false};for(StremioClient.Catalog cat:cats){LinearLayout rail=rail(repo.name(cat),cat.addonName,()->open("Catalog",cat,""));loading(rail);repo.catalog(cat,defaults(cat),(items,error)->{if(version!=epoch)return;rail.removeAllViews();if(error!=null){rail.addView(u.button("Retry "+repo.name(cat),false,()->render(current)));return;}List<StremioClient.Item> allowed=filter(items);if(!featured[0]&&!allowed.isEmpty()){featured[0]=true;fillHero(hero,allowed.get(0));}for(int i=0;i<Math.min(20,allowed.size());i++)rail.addView(card(allowed.get(i)));if(allowed.isEmpty())rail.addView(u.note("No titles match this profile’s restrictions."));else{prefetchItems(allowed,0,6);restoreRailFocus(rail);}restoreFocus();});}}
-    private LinearLayout heroPlaceholder(String section){LinearLayout hero=u.column();hero.setGravity(Gravity.BOTTOM);u.pad(hero,0,26,0,18);hero.addView(u.text("NOCTURNE",13,0xFFD7D8DC));hero.addView(u.title(section.equals("Home")?"Your next great watch.":section,40));hero.addView(u.note("Fresh from your connected catalogs"));return hero;}
-    private void fillHero(LinearLayout hero,StremioClient.Item seed){final int version=epoch;hero.removeAllViews();u.pad(hero,0,0,0,12);hero.setGravity(Gravity.BOTTOM);images.load(seed.background!=null?seed.background:seed.poster,backdrop);LinearLayout copy=u.column();hero.addView(copy,u.lp(Math.min(width-72,510),-2,0,0,0,0));ImageView logo=new ImageView(this);logo.setScaleType(ImageView.ScaleType.FIT_START);logo.setAdjustViewBounds(true);TextView title=u.title(seed.name,40);copy.addView(logo,u.lp(300,76,0,0,0,7));copy.addView(title);TextView meta=u.text(meta(seed),12,0xFFE3E4E8);copy.addView(meta,u.lp(-1,-2,0,7,0,0));TextView desc=u.text(seed.description==null?"Explore this title and discover available ways to watch.":seed.description,14,0xFFE3E4E8);desc.setMaxLines(2);copy.addView(desc,u.lp(-1,-2,0,9,0,12));heroTitleView=title;heroMetaView=meta;heroDescView=desc;heroLogoView=logo;LinearLayout buttons=u.row();copy.addView(buttons);action(buttons,"▶  Watch",true,()->open("Details",seed,""));action(buttons,"＋  Watchlist",false,()->{store.toggle("watchlist",seed);toast(store.contains("watchlist",seed)?"Added to Watchlist":"Removed from Watchlist");});if(seed.logo!=null){images.load(seed.logo,logo,()->title.setVisibility(View.GONE));}else logo.setVisibility(View.GONE);repo.meta(seed,(full,error)->{if(version!=epoch)return;updateHero(full);});}
-    private LinearLayout rail(String title,String subtitle,Runnable more){LinearLayout section=u.column();u.pad(section,0,5,0,17);LinearLayout head=u.row();head.addView(u.title(title,21),new LinearLayout.LayoutParams(0,-2,1));if(more!=null)head.addView(u.button("See All  ›",false,more),u.lp(-2,38,8,0,0,0));section.addView(head);if(subtitle!=null&&!subtitle.isEmpty())section.addView(u.text(subtitle,11,0xFF9699A5),u.lp(-1,-2,0,2,0,0));HorizontalScrollView h=new HorizontalScrollView(this);h.setHorizontalScrollBarEnabled(false);h.setClipToPadding(false);h.setSmoothScrollingEnabled(true);u.pad(h,4,12,0,8);LinearLayout row=u.row();row.setGravity(Gravity.TOP);row.setTag("rail-"+title+"-"+(subtitle==null?"":subtitle));h.addView(row);section.addView(h);content.addView(section);return row;}
-    private List<StremioClient.Item> filter(List<StremioClient.Item> list){List<StremioClient.Item> out=new ArrayList<>();for(StremioClient.Item i:list)if(store.allowed(i))out.add(i);return out;}
-    private View card(StremioClient.Item item){visibleItems.put(LibraryStore.key(item),item);int w=Math.max(175,Math.min(235,(width-115)/4)),h=w*9/16;LinearLayout box=u.column();box.setFocusable(true);box.setClickable(true);box.setTag("card-"+item.id);box.setContentDescription(item.name);FrameLayout media=new FrameLayout(this);media.setBackground(u.glass(0xFF202228,12,false));media.setClipToOutline(true);ImageView art=new ImageView(this);art.setScaleType(ImageView.ScaleType.CENTER_CROP);media.addView(art,new FrameLayout.LayoutParams(-1,-1));images.load(item.background!=null?item.background:item.poster,art);if(item.logo!=null){ImageView logo=new ImageView(this);logo.setScaleType(ImageView.ScaleType.FIT_CENTER);FrameLayout.LayoutParams lp=new FrameLayout.LayoutParams(u.dp(w-40),u.dp(35),Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL);lp.bottomMargin=u.dp(10);media.addView(logo,lp);images.load(item.logo,logo);}box.addView(media,u.lp(w,h,0,0,0,0));TextView title=u.title(item.name,13);title.setMaxLines(1);box.addView(title,u.lp(w,-2,2,7,0,0));TextView sub=u.text((item.releaseInfo==null?"":item.releaseInfo+" · ")+(item.type.equals("series")?"Series":"movie".equals(item.type)?"Movie":item.type),11,0xFF9DA0AC);sub.setMaxLines(1);box.addView(sub,u.lp(w,-2,2,2,0,0));String video=store.lastVideo(item);long dur=store.duration(item.type,video),pos=store.position(item.type,video);if(dur>0&&pos>0){ProgressBar progress=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);progress.setMax(1000);progress.setProgress((int)Math.min(1000,pos*1000/dur));box.addView(progress,u.lp(w,3,0,5,0,0));}box.setOnClickListener(v->open("Details",item,""));box.setOnLongClickListener(v->{itemMenu(item);return true;});box.setOnFocusChangeListener((v,focus)->{boolean motion=!store.device.getBoolean("reducedMotion",false);v.animate().cancel();v.setElevation(u.dp(focus?16:0));v.animate().scaleX(focus&&motion?1.055f:1).scaleY(focus&&motion?1.055f:1).alpha(focus?1f:.96f).setDuration(focus?140:95).setInterpolator(new android.view.animation.DecelerateInterpolator()).withLayer().start();media.setForeground(focus?outline():null);if(focus){focusedKey=String.valueOf(v.getTag());pageFocusHistory.put(current.kind,focusedKey);rememberRailFocus(v);ensureRailFocusVisible(v);scheduleBackdrop(item,v);scheduleHero(item,v);prefetchNeighbors(v);schedulePreview(item,box,media,w,h);}else if(previewHost==media||previewDelay!=null)stopPreview();});box.setOnHoverListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_HOVER_ENTER){ensureRailFocusVisible(v);scheduleBackdrop(item,v);scheduleHero(item,v);prefetchNeighbors(v);schedulePreview(item,box,media,w,h);}else if(e.getAction()==MotionEvent.ACTION_HOVER_EXIT)stopPreview();return false;});box.setLayoutParams(u.lp(-2,-2,0,0,15,0));box.post(()->{if(box.hasFocus()&&previewHost!=media){focusedKey=String.valueOf(box.getTag());pageFocusHistory.put(current.kind,focusedKey);rememberRailFocus(box);scheduleBackdrop(item,box);scheduleHero(item,box);prefetchNeighbors(box);schedulePreview(item,box,media,w,h);}});return box;}
-    private GradientDrawable outline(){GradientDrawable d=new GradientDrawable();d.setColor(Color.TRANSPARENT);d.setCornerRadius(u.dp(12));d.setStroke(u.dp(2),Color.WHITE);return d;}
-    private void schedulePreview(StremioClient.Item item,View owner,FrameLayout media,int w,int h){stopPreview();if(!store.device.getBoolean("previews",true))return;int version=epoch;previewDelay=()->repo.meta(item,(full,error)->{if(version!=epoch||!resumed||!(owner.hasFocus()||owner.isHovered()))return;if(full.trailerUrl==null&&full.trailerYtId==null)return;previewHost=media;preview=new TrailerView(this,full,!store.device.getBoolean("previewAudio",true),this::stopPreview);media.addView(preview,new FrameLayout.LayoutParams(-1,-1));});handler.postDelayed(previewDelay,1500);}
-    private void stopPreview(){if(previewDelay!=null){handler.removeCallbacks(previewDelay);previewDelay=null;}if(preview!=null){preview.release();if(preview.getParent()!=null)((ViewGroup)preview.getParent()).removeView(preview);preview=null;}previewHost=null;}
-    private void rememberPageFocus(){View f=getCurrentFocus();if(f!=null&&f.getTag() instanceof String){focusedKey=(String)f.getTag();pageFocusHistory.put(current.kind,focusedKey);}}
-    private void ensureFocusOwned(){if(isFinishing()||root==null||getCurrentFocus()!=null)return;String tag=pageFocusHistory.get(current.kind);View target=tag==null?null:page.findViewWithTag(tag);if(target==null)target=firstFocusableContent();if(target==null)target=page.findViewWithTag("nav-"+current.kind);if(target==null&&nav!=null&&nav.getChildCount()>0)target=nav.getChildAt(0);if(target!=null)target.requestFocus();}
-    private View firstFocusableContent(){ArrayList<View> all=root.getFocusables(View.FOCUS_FORWARD);for(View v:all){Object tag=v.getTag();if(tag instanceof String&&!((String)tag).startsWith("nav-"))return v;}return null;}
-    private void restoreRailFocus(LinearLayout row){Object keyObj=row.getTag();if(!(keyObj instanceof String))return;String wanted=rowFocusHistory.get((String)keyObj);if(wanted==null)return;View target=row.findViewWithTag(wanted);if(target!=null&&pageFocusHistory.get(current.kind)!=null&&pageFocusHistory.get(current.kind).equals(wanted))target.requestFocus();}
-    private void prefetchItems(List<StremioClient.Item> items,int start,int count){for(int i=Math.max(0,start);i<Math.min(items.size(),start+count);i++){StremioClient.Item it=items.get(i);images.prefetch(it.background!=null?it.background:it.poster);if(it.logo!=null)images.prefetch(it.logo);}}
-    private void prefetchNeighbors(View focused){ViewParent p=focused.getParent();if(!(p instanceof LinearLayout))return;LinearLayout row=(LinearLayout)p;int at=row.indexOfChild(focused);for(int i=Math.max(0,at-1);i<=Math.min(row.getChildCount()-1,at+5);i++){View v=row.getChildAt(i);Object tag=v.getTag();if(!(tag instanceof String))continue;String id=((String)tag).replaceFirst("^card-","");StremioClient.Item item=visibleItems.get("movie:"+id);if(item==null)item=visibleItems.get("series:"+id);if(item==null)for(StremioClient.Item x:visibleItems.values())if(x.id.equals(id)){item=x;break;}if(item!=null){images.prefetch(item.background!=null?item.background:item.poster);if(item.logo!=null)images.prefetch(item.logo);}}}
-    private void updateHero(StremioClient.Item item){if(heroTitleView==null||item==null)return;heroTitleView.setText(item.name);heroMetaView.setText(meta(item));heroDescView.setText(item.description==null?"Explore this title and discover available ways to watch.":item.description);heroTitleView.setVisibility(View.VISIBLE);heroLogoView.setImageDrawable(null);if(item.logo!=null){heroLogoView.setVisibility(View.VISIBLE);images.load(item.logo,heroLogoView,()->heroTitleView.setVisibility(View.GONE));}else heroLogoView.setVisibility(View.GONE);}
-    private void scheduleHero(StremioClient.Item item,View owner){if(heroTitleView==null)return;if(heroDelay!=null)handler.removeCallbacks(heroDelay);int version=epoch;heroDelay=()->{if(version!=epoch||!(owner.hasFocus()||owner.isHovered()))return;updateHero(item);repo.meta(item,(full,error)->{if(version==epoch&&(owner.hasFocus()||owner.isHovered()))updateHero(full);});};handler.postDelayed(heroDelay,420);}
-    private String railKey(View view){View p=view;while(p!=null){Object tag=p.getTag();if(tag instanceof String&&((String)tag).startsWith("rail-"))return (String)tag;ViewParent parent=p.getParent();p=parent instanceof View?(View)parent:null;}return null;}
-    private HorizontalScrollView railScroller(View view){ViewParent p=view.getParent();while(p!=null){if(p instanceof HorizontalScrollView)return (HorizontalScrollView)p;p=p.getParent();}return null;}
-    private void rememberRailFocus(View view){String key=railKey(view);Object tag=view.getTag();if(key!=null&&tag instanceof String)rowFocusHistory.put(key,(String)tag);}
-    private void ensureRailFocusVisible(View view){HorizontalScrollView h=railScroller(view);if(h==null)return;View row=(View)view.getParent();int center=view.getLeft()+view.getWidth()/2;int left=h.getScrollX()+Math.round(h.getWidth()*.28f),right=h.getScrollX()+Math.round(h.getWidth()*.72f);if(center<left||center>right){int target=Math.max(0,center-h.getWidth()/2);h.smoothScrollTo(target,0);}}
-    private void scheduleBackdrop(StremioClient.Item item,View owner){if(backdropDelay!=null)handler.removeCallbacks(backdropDelay);String url=item.background!=null?item.background:item.poster;if(url==null||url.equals(lastBackdropUrl))return;int version=epoch;backdropDelay=()->{if(version!=epoch||!(owner.hasFocus()||owner.isHovered()))return;lastBackdropUrl=url;images.load(url,backdrop);};handler.postDelayed(backdropDelay,350);}
-    private boolean sameRail(View a,View b){String x=railKey(a),y=railKey(b);return x!=null&&x.equals(y);}
-    private View spatialTarget(View from,int key){if(from==null||root==null)return null;ArrayList<View> candidates=root.getFocusables(View.FOCUS_FORWARD);Rect a=new Rect();from.getGlobalVisibleRect(a);float ax=a.exactCenterX(),ay=a.exactCenterY(),best=Float.MAX_VALUE;View winner=null;for(View v:candidates){if(v==from||!v.isShown()||!v.isFocusable())continue;Rect b=new Rect();if(!v.getGlobalVisibleRect(b))continue;float dx=b.exactCenterX()-ax,dy=b.exactCenterY()-ay;boolean dir=key==KeyEvent.KEYCODE_DPAD_RIGHT?dx>4:key==KeyEvent.KEYCODE_DPAD_LEFT?dx<-4:key==KeyEvent.KEYCODE_DPAD_DOWN?dy>4:dy<-4;if(!dir)continue;float primary=(key==KeyEvent.KEYCODE_DPAD_LEFT||key==KeyEvent.KEYCODE_DPAD_RIGHT)?Math.abs(dx):Math.abs(dy);float secondary=(key==KeyEvent.KEYCODE_DPAD_LEFT||key==KeyEvent.KEYCODE_DPAD_RIGHT)?Math.abs(dy):Math.abs(dx);float score=primary+secondary*3.6f;if((key==KeyEvent.KEYCODE_DPAD_LEFT||key==KeyEvent.KEYCODE_DPAD_RIGHT)&&sameRail(from,v))score*=.32f;if((key==KeyEvent.KEYCODE_DPAD_UP||key==KeyEvent.KEYCODE_DPAD_DOWN)&&sameRail(from,v))score*=2.5f;if(score<best){best=score;winner=v;}}return winner;}
-    private void itemMenu(StremioClient.Item item){String[]options={store.contains("watchlist",item)?"Remove from Watchlist":"Add to Watchlist",store.contains("watched",item)?"Mark unwatched":"Mark watched","Remove from Continue Watching"};new AlertDialog.Builder(this,AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle(item.name).setItems(options,(d,n)->{if(n==0)store.toggle("watchlist",item);if(n==1)store.markWatched(item,!store.contains("watched",item));if(n==2)store.remove("continue",item);render(current);}).show();}
-    private void storedRail(String title,String list,String type){List<StremioClient.Item> all=filter(store.list(list));all.removeIf(i->!type.isEmpty()&&!i.type.equals(type));if(all.isEmpty())return;LinearLayout row=rail(title,null,null);for(StremioClient.Item item:all)row.addView(card(item));}
-    private void library(String selected){heading("Library","Saved for "+store.profiles().get(store.active()));LinearLayout filters=u.row();for(String name:new String[]{"All","Watchlist","Continue Watching","Watched","Movies","TV Shows"})action(filters,name,name.equals(selected)||selected.isEmpty()&&name.equals("All"),()->render(new Route("Library",null,name)));horizontal(filters);String type=selected.equals("Movies")?"movie":selected.equals("TV Shows")?"series":"";if(selected.isEmpty()||selected.equals("All")||!type.isEmpty()){storedRail("Continue Watching","continue",type);storedRail("Watchlist","watchlist",type);storedRail("Watched","watched",type);}else storedRail(selected,selected.equals("Watchlist")?"watchlist":selected.equals("Watched")?"watched":"continue","");if(visibleItems.isEmpty())content.addView(u.note("Your library is empty here. Open a title to save it or start watching."));rowAction("Manage Profiles","Switch libraries and viewing preferences",()->open("Profiles",null,""));}
-    private void channels(){heading("Channels","Explore the catalogs supplied by your installed addons.");if(repo.addons.isEmpty())rowAction("Install an Add-on","Connect a catalog to begin",()->open("Add-ons",null,""));for(StremioClient.Addon a:repo.addons){rowAction(a.name,a.catalogs.size()+" catalogs · "+String.join(" / ",a.types),()->open("Addon",a,""));for(StremioClient.Catalog c:a.catalogs)if(!c.required.contains("search"))rowAction("    "+repo.name(c),c.type,()->open("Catalog",c,""));}}
-    private void horizontal(LinearLayout row){HorizontalScrollView s=new HorizontalScrollView(this);s.setHorizontalScrollBarEnabled(false);u.pad(s,2,12,2,18);s.addView(row);content.addView(s);}
-    private void search(String q){heading("Search","Find a movie, show, or person across searchable catalogs.");LinearLayout bar=u.row();EditText input=new EditText(this);input.setText(q);input.setTextColor(Color.WHITE);input.setHintTextColor(0xFF999BA5);input.setHint("Movies, shows, cast and crew");input.setSingleLine(true);input.setBackground(u.glass(0xFF24262C,22,false));u.pad(input,18,0,18,0);bar.addView(input,new LinearLayout.LayoutParams(0,u.dp(52),1));Runnable submit=()->{String query=input.getText().toString().trim();if(!query.isEmpty()){saveSearch(query);render(new Route("Search",null,query));}};bar.addView(u.button("Search",true,submit),u.lp(110,52,12,0,0,0));content.addView(bar,u.lp(-1,-2,0,8,0,20));input.setOnEditorActionListener((v,a,e)->{submit.run();return true;});if(q.isEmpty()){try{JSONArray a=new JSONArray(store.profile().getString("searches","[]"));for(int i=0;i<a.length();i++){String term=a.getString(i);rowAction(term,"Recent search",()->render(new Route("Search",null,term)));}}catch(Exception ignored){}return;}int version=epoch,count=0;for(StremioClient.Catalog c:repo.catalogs())if(c.searchable){count++;LinearLayout row=rail(repo.name(c),c.addonName,null);loading(row);Map<String,String> extra=defaults(c);extra.put("search",q);repo.catalog(c,extra,(items,error)->{if(version!=epoch)return;row.removeAllViews();if(error!=null)row.addView(u.note("Search unavailable: "+error));else{List<StremioClient.Item> allowed=filter(items);for(StremioClient.Item item:allowed)row.addView(card(item));if(allowed.isEmpty())row.addView(u.note("No matches in this catalog."));}});}if(count==0)content.addView(u.note("Your installed addons do not declare search support."));}
-    private void saveSearch(String q){JSONArray out=new JSONArray();out.put(q);try{JSONArray a=new JSONArray(store.profile().getString("searches","[]"));for(int i=0;i<a.length()&&out.length()<8;i++)if(!q.equalsIgnoreCase(a.getString(i)))out.put(a.getString(i));}catch(Exception ignored){}store.profile().edit().putString("searches",out.toString()).apply();}
-    private void catalog(StremioClient.Catalog c,String genre){heading(repo.name(c),c.addonName+" · "+c.type);if(!c.genres.isEmpty()){LinearLayout genres=u.row();if(!c.required.contains("genre"))action(genres,"All",genre.isEmpty(),()->render(new Route("Catalog",c,"")));for(String g:c.genres)action(genres,g,g.equals(genre),()->render(new Route("Catalog",c,g)));horizontal(genres);}Map<String,String> extra=defaults(c);if(!genre.isEmpty())extra.put("genre",genre);LinearLayout grid=u.column();content.addView(grid);loadCatalogPage(c,extra,0,grid,epoch,new HashSet<>());}
-    private void loadCatalogPage(StremioClient.Catalog c,Map<String,String> filters,int skip,LinearLayout grid,int version,Set<String> seen){loading(grid);Map<String,String> extras=new LinkedHashMap<>(filters);if(skip>0)extras.put("skip",String.valueOf(skip));repo.catalog(c,extras,(items,error)->{if(version!=epoch)return;if(grid.getChildCount()>0&&grid.getChildAt(grid.getChildCount()-1) instanceof ProgressBar)grid.removeViewAt(grid.getChildCount()-1);if(error!=null){grid.addView(u.note(error));grid.addView(u.button("Retry",true,()->loadCatalogPage(c,filters,skip,grid,version,seen)));return;}LinearLayout row=null;int count=0;for(StremioClient.Item item:filter(items)){if(!seen.add(LibraryStore.key(item)))continue;if(count++%4==0){row=u.row();row.setGravity(Gravity.TOP);grid.addView(row,u.lp(-1,-2,0,12,0,10));}row.addView(card(item));}if(items.isEmpty()&&skip==0)grid.addView(u.note("No titles are available for these filters."));if(c.pageable&&!items.isEmpty()&&count>0){TextView more=u.button("Load More",false,()->{});more.setOnClickListener(v->{grid.removeView(more);loadCatalogPage(c,filters,skip+items.size(),grid,version,seen);});grid.addView(more,u.lp(180,48,0,16,0,16));}});}
-    private void details(StremioClient.Item seed){heading(seed.name,"Loading title details…");loading(content);int version=epoch;repo.meta(seed,(item,error)->{if(version!=epoch)return;if(!store.allowed(item)){content.removeAllViews();heading("Title restricted","This profile only allows rated family titles.");return;}content.removeAllViews();detailsLoaded(item,error);});}
-    private void detailsLoaded(StremioClient.Item item,String error){images.load(item.background!=null?item.background:item.poster,backdrop);LinearLayout hero=u.column();u.pad(hero,0,28,0,10);content.addView(hero);if(item.logo!=null){ImageView logo=new ImageView(this);logo.setScaleType(ImageView.ScaleType.FIT_START);TextView fallback=u.title(item.name,40);hero.addView(logo,u.lp(330,88,0,0,0,12));hero.addView(fallback);images.load(item.logo,logo,()->fallback.setVisibility(View.GONE));}else hero.addView(u.title(item.name,40));hero.addView(u.text(meta(item),14,0xFFE2E3E7),u.lp(-1,-2,0,6,0,12));TextView description=u.text(item.description==null?"No description is available from this catalog.":item.description,16,0xFFE0E1E6);description.setMaxWidth(u.dp(640));hero.addView(description,u.lp(-1,-2,0,0,0,20));LinearLayout actions=u.row();String resume=store.lastVideo(item);action(actions,store.position(item.type,resume)>0?"▶  Resume":"▶  Play",true,()->playTitle(item));action(actions,store.contains("watchlist",item)?"✓  Watchlist":"＋  Watchlist",false,()->{store.toggle("watchlist",item);render(current);});action(actions,"Trailer",false,()->trailer(item));action(actions,"More",false,()->itemMenu(item));horizontal(actions);actions.getChildAt(0).requestFocus();restoreFocus();if(error!=null)content.addView(u.note(error));
-        if(!item.videos.isEmpty()){content.addView(u.title("Episodes",23),u.lp(-1,-2,0,22,0,5));TreeSet<Integer> seasons=new TreeSet<>();for(StremioClient.Video v:item.videos)try{seasons.add(Integer.parseInt(v.season));}catch(Exception ignored){}LinearLayout seasonButtons=u.row(),episodes=u.column();for(Integer season:seasons)action(seasonButtons,"Season "+season,false,()->episodes(item,season,episodes));horizontal(seasonButtons);content.addView(episodes);if(!seasons.isEmpty())episodes(item,seasons.first(),episodes);}
-        if(item.cast!=null){content.addView(u.title("Cast & Crew",23),u.lp(-1,-2,0,22,0,8));LinearLayout people=u.row();for(String name:item.cast.split(","))action(people,name.trim(),false,()->open("Search",null,name.trim()));horizontal(people);}if(item.directors!=null)content.addView(u.note("Directed by "+item.directors));content.addView(u.title("About",23),u.lp(-1,-2,0,22,0,5));content.addView(u.note(item.name+"\n"+meta(item)+(item.runtime==null?"":" · "+item.runtime)));for(StremioClient.Catalog c:repo.catalogs())if(c.type.equals(item.type)&&!c.requiresExtra){int version=epoch;LinearLayout related=rail("More to Explore",c.addonName,null);repo.catalog(c,new LinkedHashMap<>(),(items,e)->{if(version!=epoch)return;for(StremioClient.Item x:filter(items))if(!x.id.equals(item.id)&&related.getChildCount()<12)related.addView(card(x));});break;}}
-    private void episodes(StremioClient.Item item,int season,LinearLayout target){target.removeAllViews();List<StremioClient.Video> list=new ArrayList<>();for(StremioClient.Video v:item.videos)if(v.season.equals(String.valueOf(season)))list.add(v);list.sort(Comparator.comparingInt(v->{try{return Integer.parseInt(v.episode);}catch(Exception e){return 0;}}));for(StremioClient.Video v:list){LinearLayout tile=u.row();tile.setFocusable(true);tile.setClickable(true);tile.setContentDescription("Episode "+v.episode+" "+v.title);u.pad(tile,12,10,12,10);tile.setBackground(u.glass(0xEB202228,14,false));ImageView thumb=new ImageView(this);thumb.setScaleType(ImageView.ScaleType.CENTER_CROP);images.load(v.thumbnail!=null?v.thumbnail:item.background,thumb);tile.addView(thumb,u.lp(150,84,0,0,18,0));LinearLayout text=u.column();text.addView(u.title("Episode "+v.episode+" · "+v.title,16));text.addView(u.note((v.released==null?"":v.released.substring(0,Math.min(10,v.released.length())))+(store.profile().getBoolean("watched_"+item.type+":"+v.id,false)?" · Watched":"")));tile.addView(text,new LinearLayout.LayoutParams(0,-2,1));tile.setOnClickListener(x->open("Sources",item,v.id));tile.setOnFocusChangeListener((x,has)->x.setBackground(u.glass(has?0xFF4B4E58:0xEB202228,14,has)));target.addView(tile,u.lp(-1,-2,0,4,0,4));}}
-    private void playTitle(StremioClient.Item item){String id=store.lastVideo(item);long duration=store.duration(item.type,id);if(item.type.equals("series")&&duration>0&&store.position(item.type,id)>=duration*.95){List<StremioClient.Video> videos=new ArrayList<>(item.videos);videos.sort(Comparator.comparingInt((StremioClient.Video v)->Integer.parseInt(v.season)).thenComparingInt(v->Integer.parseInt(v.episode)));for(int n=0;n<videos.size()-1;n++)if(videos.get(n).id.equals(id)){id=videos.get(n+1).id;break;}}if(item.type.equals("series")&&id.equals(item.id)){for(StremioClient.Video v:item.videos)if(!v.season.equals("0")&&!store.profile().getBoolean("watched_"+item.type+":"+v.id,false)){id=v.id;break;}if(id.equals(item.id)){toast("Choose an episode below, or install an addon that provides episodes.");return;}}open("Sources",item,id);}
-    private void trailer(StremioClient.Item item){if(item.trailerUrl==null&&item.trailerYtId==null){toast("This catalog did not supply a trailer.");return;}Dialog dialog=new Dialog(this,android.R.style.Theme_Material_NoActionBar);FrameLayout surface=new FrameLayout(this);TrailerView tv=new TrailerView(this,item,false,()->toast("This trailer could not be embedded. Try the YouTube app."));surface.addView(tv,new FrameLayout.LayoutParams(-1,-1));TextView close=u.button("Close Trailer",false,dialog::dismiss);FrameLayout.LayoutParams lp=new FrameLayout.LayoutParams(u.dp(160),u.dp(46),Gravity.TOP|Gravity.RIGHT);lp.setMargins(0,u.dp(16),u.dp(16),0);surface.addView(close,lp);dialog.setContentView(surface);dialog.setOnDismissListener(d->tv.release());dialog.show();dialog.getWindow().setLayout(-1,-1);close.requestFocus();}
-    private void sources(StremioClient.Item item,String id){heading("Ways to Watch",item.name+episodeLabel(item,id));loading(content);int version=epoch;repo.streams(item,id,(streams,error)->{if(version!=epoch)return;content.removeAllViews();heading("Ways to Watch",item.name+episodeLabel(item,id));List<StreamEngine.Info> list=StreamEngine.process(streams,store.device);if(list.isEmpty()){content.addView(u.note(error==null?"No sources match your preferences. Try another title, change filters, or update your addons.":error));rowAction("Manage Add-ons","Install or verify stream providers",()->open("Add-ons",null,""));rowAction("Source Preferences","Quality, file size and excluded words",()->open("Sources Settings",null,""));return;}if(store.device.getBoolean("autoPick",false)&&!suppressAutoPick){for(StreamEngine.Info info:list)if(info.stream.url!=null){launch(item,id,info.stream);return;}}for(StreamEngine.Info info:list)rowAction(info.stream.label(),info.label()+(info.stream.infoHash!=null?" · Requires torrent resolver":""),()->launch(item,id,info.stream));if(content.getChildCount()>2)content.getChildAt(2).requestFocus();restoreFocus();if(error!=null)content.addView(u.note("Some providers could not respond.\n"+error));});}
-    private void launch(StremioClient.Item item,String id,StremioClient.Stream stream){suppressAutoPick=false;stopPreview();if(stream.url==null){String url=stream.externalUrl!=null?stream.externalUrl:stream.ytId!=null?"https://www.youtube.com/watch?v="+stream.ytId:null;if(url==null){toast("This source requires a torrent resolver. Add a provider that supplies a playable URL.");return;}try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(url)));}catch(Exception e){toast("No app can open this source.");}return;}Intent intent=new Intent(this,PlayerActivity.class);intent.putExtra("url",stream.url);intent.putExtra("title",item.name+episodeLabel(item,id));intent.putExtra("itemJson",item.toJson().toString());intent.putExtra("videoId",id);intent.putExtra("profile",store.active());intent.putExtra("headers",new JSONObject(stream.headers).toString());intent.putExtra("manifests",new JSONArray(repo.urls()).toString());startActivityForResult(intent,PLAY_REQUEST);}
-    private String episodeLabel(StremioClient.Item i,String id){for(StremioClient.Video v:i.videos)if(v.id.equals(id))return " · S"+v.season+" E"+v.episode+" · "+v.title;return "";}
-    private void settings(){heading("Settings",store.profiles().get(store.active())+" · Nocturne TV");rowAction("Profiles","Separate Watchlists, history, and family viewing filters",()->open("Profiles",null,""));rowAction("Add-ons",repo.addons.size()+" installed · catalogs, metadata, streams and subtitles",()->open("Add-ons",null,""));rowAction("Catalog Rows","Show, hide, rename and reorder your catalog rows",()->open("Catalog Rows",null,""));rowAction("Playback & Appearance","Previews, subtitles, next episode, motion and seeking",()->open("Playback",null,""));rowAction("Source Preferences","Quality, maximum size, duplicates and automatic selection",()->open("Sources Settings",null,""));rowAction("Refresh Catalogs","Fetch the latest addon manifests and catalog content",()->{render(new Route("Loading",null,""));repo.refresh((a,e)->{render(new Route("Settings",null,""));toast(e==null?"Catalogs updated":"Some addons failed to update");});});rowAction("About & Privacy","Version, local data and supported features",()->open("About",null,""));}
-    private void addons(){heading("Add-ons","Install Stremio manifests directly on this device.");rowAction("＋ Install Add-on","Paste an https://…/manifest.json or stremio:// URL",this::installAddon);for(StremioClient.Addon a:repo.addons)rowAction(a.name,a.version+" · "+a.catalogs.size()+" catalogs · "+String.join(", ",a.resources),()->open("Addon",a,""));if(!repo.failures.isEmpty())content.addView(u.note("Update issues\n"+String.join("\n",repo.failures)));}
-    private void addon(StremioClient.Addon a){heading(a.name,a.description);content.addView(u.note("Version "+a.version+" · "+Uri.parse(a.manifestUrl).getHost()));for(String r:a.resources)rowAction(r.toUpperCase(Locale.US),repo.enabled(a,r)?"Enabled":"Disabled",()->{repo.enable(a,r,!repo.enabled(a,r));render(current);});for(StremioClient.Catalog c:a.catalogs)rowAction(repo.name(c),"Browse "+c.type+" catalog",()->open("Catalog",c,""));rowAction("Verify & Update","Fetch the current manifest",()->{toast("Checking addon…");repo.refresh((all,error)->{toast(error==null?"Addons updated":"Some providers did not respond");render(new Route("Add-ons",null,""));});});if(!a.manifestUrl.equals(StremioClient.CINEMETA))rowAction("Remove Add-on","Remove this provider from the device",()->confirm("Remove "+a.name+"?",()->{List<String> urls=repo.urls();urls.remove(a.manifestUrl);repo.saveUrls(urls);repo.refresh((all,e)->render(new Route("Add-ons",null,"")));}));}
-    private void installAddon(){edit("Install Add-on","Paste an addon URL or stremio:// link","",value->{String entered=value.trim().replaceFirst("^stremio://","https://");if(!entered.startsWith("https://")&&!entered.startsWith("http://")){toast("Enter a full addon URL");return;}final String input=entered;toast("Verifying manifest…");repo.io.execute(()->{try{StremioClient.Addon addon=StremioClient.loadAddonFlexible(input);final String target=addon.manifestUrl;runOnUiThread(()->{List<String> urls=repo.urls();if(!urls.contains(target))urls.add(target);repo.saveUrls(urls);repo.refresh((a,e)->{render(new Route("Add-ons",null,""));toast("Installed "+addon.name);});});}catch(Exception e){runOnUiThread(()->toast("Could not install: "+e.getMessage()));}});});}
-    private void catalogSettings(){heading("Catalog Rows","Rows and their names come from your addons. Provider rankings are never invented.");for(StremioClient.Catalog c:repo.catalogs())rowAction(repo.name(c),(repo.hidden(c)?"Hidden":"Visible")+" · "+c.addonName+" · "+c.type,()->catalogMenu(c));}
-    private void catalogMenu(StremioClient.Catalog c){String[] options={repo.hidden(c)?"Show row":"Hide row","Rename","Move Up","Move Down","Reset Name"};new AlertDialog.Builder(this,AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle(repo.name(c)).setItems(options,(d,n)->{if(n==0){Set<String> hidden=new HashSet<>(store.device.getStringSet("hiddenCatalogs",Collections.emptySet()));if(!hidden.add(AddonRepository.catalogKey(c)))hidden.remove(AddonRepository.catalogKey(c));store.device.edit().putStringSet("hiddenCatalogs",hidden).apply();}else if(n==1){edit("Row Name","Name",repo.name(c),name->{try{JSONObject names=new JSONObject(store.device.getString("catalogNames","{}"));names.put(AddonRepository.catalogKey(c),name);store.device.edit().putString("catalogNames",names.toString()).apply();render(current);}catch(Exception ignored){}});return;}else if(n==2||n==3){List<StremioClient.Catalog> ordered=repo.catalogs();int at=ordered.indexOf(c),to=at+(n==2?-1:1);if(to>=0&&to<ordered.size())Collections.swap(ordered,at,to);JSONArray order=new JSONArray();for(StremioClient.Catalog x:ordered)order.put(AddonRepository.catalogKey(x));store.device.edit().putString("catalogOrder",order.toString()).apply();}else try{JSONObject names=new JSONObject(store.device.getString("catalogNames","{}"));names.remove(AddonRepository.catalogKey(c));store.device.edit().putString("catalogNames",names.toString()).apply();}catch(Exception ignored){}render(current);}).show();}
-    private void toggle(String label,String key,boolean fallback){rowAction(label,store.device.getBoolean(key,fallback)?"On":"Off",()->{store.device.edit().putBoolean(key,!store.device.getBoolean(key,fallback)).apply();render(current);});}
-    private void playbackSettings(){heading("Playback & Appearance","Changes take effect the next time playback starts.");toggle("Autoplay Card Previews after 5 seconds","previews",true);toggle("Trailer Audio","previewAudio",true);toggle("Reduced Motion","reducedMotion",false);toggle("Play Next Episode Automatically","binge",true);rowAction("Preferred Subtitle Language",store.device.getString("subtitleLanguage","eng"),()->edit("Subtitle Language","eng, spa, fra…",store.device.getString("subtitleLanguage","eng"),v->{store.device.edit().putString("subtitleLanguage",v).apply();render(current);}));rowAction("Preferred Audio Language",store.device.getString("audioLanguage","eng"),()->edit("Audio Language","eng, spa, fra…",store.device.getString("audioLanguage","eng"),v->{store.device.edit().putString("audioLanguage",v).apply();render(current);}));rowAction("Seek Interval",store.device.getInt("seekSeconds",10)+" seconds",()->choose("Seek Interval",new String[]{"5","10","15","30"},n->{store.device.edit().putInt("seekSeconds",new int[]{5,10,15,30}[n]).apply();render(current);}));rowAction("Clear Search History","Only for the active profile",()->confirm("Clear recent searches?",()->{store.profile().edit().remove("searches").apply();toast("Search history cleared");}));}
-    private void sourceSettings(){heading("Source Preferences","Filter and sort the sources returned by your addons.");rowAction("Preferred Quality",store.device.getString("preferredQuality","Auto"),()->choose("Preferred Quality",new String[]{"Auto","2160p","1080p","720p"},n->{store.device.edit().putString("preferredQuality",new String[]{"Auto","2160p","1080p","720p"}[n]).apply();render(current);}));rowAction("Maximum File Size",store.device.getFloat("maxSizeGB",50)+" GB · 0 means unlimited",()->choose("Maximum Size",new String[]{"10 GB","25 GB","50 GB","100 GB","Unlimited"},n->{store.device.edit().putFloat("maxSizeGB",new float[]{10,25,50,100,0}[n]).apply();render(current);}));toggle("Merge Duplicate URLs","dedupe",true);toggle("Automatically Select Best Source","autoPick",false);rowAction("Excluded Keywords",store.device.getString("excludeKeywords","None"),()->edit("Excluded Keywords","CAM, telesync",store.device.getString("excludeKeywords",""),s->{store.device.edit().putString("excludeKeywords",s).apply();render(current);}));}
-    private void profiles(){heading("Profiles","Watchlists, progress and history stay on this device.");for(Map.Entry<String,String> p:store.profiles().entrySet())rowAction(p.getValue(),p.getKey().equals(store.active())?"Active profile":"Switch profile",()->{store.switchProfile(p.getKey());primary("Home");});rowAction("＋ Add Profile","Create a separate local library",()->edit("New Profile","Name","",name->{if(!name.trim().isEmpty()){store.addProfile(name.trim());render(current);}}));rowAction("Rename Current Profile",store.profiles().get(store.active()),()->edit("Profile Name","Name",store.profiles().get(store.active()),name->{store.renameProfile(name);render(current);}));rowAction("Family Titles Only",store.profile().getBoolean("familyOnly",false)?"On · only G, PG, TV-Y, TV-Y7, TV-G and TV-PG; unrated titles hidden":"Off",()->{store.profile().edit().putBoolean("familyOnly",!store.profile().getBoolean("familyOnly",false)).apply();render(current);});if(!store.active().equals("default"))rowAction("Delete Current Profile","Remove this profile’s local library and progress",()->confirm("Delete this profile and its library?",()->{store.removeProfile(store.active());render(current);}));}
-    private void about(){heading("Nocturne TV","4.0 · Native Android & Fire TV");content.addView(u.note("Catalogs, artwork, title logos, metadata, streams and subtitles are supplied by your installed Stremio addons. Profiles and viewing history are stored locally. Refresh Catalogs updates the manifests and rows.\n\nThis app does not include an Apple account, Apple purchases, Apple subscriptions, licensed sports feeds, AirPlay, SharePlay, or scene-level InSight data. Those services are not provided by Stremio addons.\n\nNo personal addon token is bundled. Add your own configuration in Settings → Add-ons. YouTube trailers use the official embedded player; an owner can disable embedding. Direct video sources use Android Media3. Torrent hashes require a resolver addon."));rowAction("Clear Current Profile History","Remove Continue Watching, Watched and saved playback positions",()->confirm("Clear this profile’s playback history?",()->{android.content.SharedPreferences.Editor e=store.profile().edit();for(String k:store.profile().getAll().keySet())if(k.startsWith("position_")||k.startsWith("duration_")||k.startsWith("last_")||k.startsWith("watched_")||k.equals("continue")||k.equals("watched"))e.remove(k);e.apply();toast("History cleared");}));}
-    interface TextResult{void value(String value);}interface Choice{void value(int n);}
-    private void edit(String title,String hint,String value,TextResult cb){EditText input=new EditText(this);input.setText(value);input.setHint(hint);input.setSingleLine(true);input.setInputType(InputType.TYPE_CLASS_TEXT);u.pad(input,20,12,20,12);new AlertDialog.Builder(this,AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle(title).setView(input).setPositiveButton("Save",(d,n)->cb.value(input.getText().toString().trim())).setNegativeButton("Cancel",null).show();}
-    private void choose(String title,String[] options,Choice cb){new AlertDialog.Builder(this,AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle(title).setItems(options,(d,n)->cb.value(n)).setNegativeButton("Cancel",null).show();}
-    private void confirm(String title,Runnable action){new AlertDialog.Builder(this,AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle(title).setPositiveButton("Confirm",(d,n)->action.run()).setNegativeButton("Cancel",null).show();}
-    private String meta(StremioClient.Item i){List<String> parts=new ArrayList<>();if(i.releaseInfo!=null)parts.add(i.releaseInfo);if(i.genres!=null)parts.add(i.genres);if(i.imdbRating!=null)parts.add("★ "+i.imdbRating);if(i.contentRating!=null)parts.add(i.contentRating);return String.join(" · ",parts);}
-    private void restoreFocus(){if(current.focusTag==null)return;View focus=page.findViewWithTag(current.focusTag);if(focus!=null){focus.requestFocus();scroll.scrollTo(0,current.scrollY);current.focusTag=null;}}
-    private void toast(String message){Toast.makeText(this,message,Toast.LENGTH_LONG).show();}
-    private void immersive(){getWindow().getDecorView().setSystemUiVisibility(5894|View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);}
-    @Override public void onBackPressed(){stopPreview();rememberPageFocus();if(!history.isEmpty())render(history.pop());else if(!current.kind.equals("Home"))primary("Home");else if(scroll.getScrollY()>0){scroll.smoothScrollTo(0,0);nav.getChildAt(0).requestFocus();}else super.onBackPressed();}
-    @Override public boolean onKeyDown(int key,KeyEvent event){if(key==KeyEvent.KEYCODE_MENU){open("Settings",null,"");return true;}View focused=getCurrentFocus();if((key==KeyEvent.KEYCODE_DPAD_LEFT||key==KeyEvent.KEYCODE_DPAD_RIGHT||key==KeyEvent.KEYCODE_DPAD_UP||key==KeyEvent.KEYCODE_DPAD_DOWN)&&!(focused instanceof EditText)){Object tag=focused==null?null:focused.getTag();if(key==KeyEvent.KEYCODE_DPAD_RIGHT&&tag instanceof String&&((String)tag).startsWith("nav-")){String remembered=pageFocusHistory.get(current.kind);View target=remembered==null?null:page.findViewWithTag(remembered);if(target==null)target=firstFocusableContent();if(target!=null){target.requestFocus();ensureRailFocusVisible(target);return true;}}if(key==KeyEvent.KEYCODE_DPAD_LEFT&&focused!=null&&railScroller(focused)!=null){ViewParent p=focused.getParent();if(p instanceof LinearLayout&&((LinearLayout)p).indexOfChild(focused)==0){View tab=page.findViewWithTag("nav-"+current.kind);if(tab!=null){tab.requestFocus();return true;}}}View next=spatialTarget(focused,key);if(next!=null){if(event.getRepeatCount()>=5&&(key==KeyEvent.KEYCODE_DPAD_LEFT||key==KeyEvent.KEYCODE_DPAD_RIGHT)&&sameRail(focused,next)){ViewParent p=next.getParent();if(p instanceof LinearLayout){LinearLayout row=(LinearLayout)p;int idx=row.indexOfChild(next)+(key==KeyEvent.KEYCODE_DPAD_RIGHT?Math.min(2,event.getRepeatCount()/5):-Math.min(2,event.getRepeatCount()/5));if(idx>=0&&idx<row.getChildCount()&&row.getChildAt(idx).isFocusable())next=row.getChildAt(idx);}}next.requestFocus();ensureRailFocusVisible(next);return true;}}return super.onKeyDown(key,event);}
-    @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(request==PLAY_REQUEST){if(result==RESULT_OK&&data!=null&&data.hasExtra("nextVideo")){try{open("Sources",StremioClient.Item.fromJson(new JSONObject(data.getStringExtra("itemJson"))),data.getStringExtra("nextVideo"));}catch(Exception ignored){}}else {suppressAutoPick=true;render(current);}}}
-    @Override protected void onResume(){super.onResume();resumed=true;immersive();}
-    @Override protected void onPause(){resumed=false;stopPreview();super.onPause();}
-    @Override protected void onDestroy(){handler.removeCallbacksAndMessages(null);stopPreview();repo.close();images.close();super.onDestroy();}
+    private WebView web;
+    private boolean seeded;
+
+    @Override public void onCreate(Bundle state) {
+        super.onCreate(state);
+        immersive();
+
+        web = new WebView(this);
+        web.setBackgroundColor(Color.BLACK);
+        web.setFocusable(true);
+        web.setFocusableInTouchMode(true);
+
+        WebSettings settings = web.getSettings();
+        settings.setJavaScriptEnabled(true);
+        settings.setDomStorageEnabled(true);
+        settings.setMediaPlaybackRequiresUserGesture(false);
+        settings.setAllowFileAccess(true);
+        settings.setAllowContentAccess(false);
+        settings.setLoadsImagesAutomatically(true);
+        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        settings.setJavaScriptCanOpenWindowsAutomatically(false);
+        if (android.os.Build.VERSION.SDK_INT >= 21) {
+            settings.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
+        }
+
+        web.addJavascriptInterface(new NativeBridge(), "NocturneNative");
+        web.setWebChromeClient(new WebChromeClient());
+        web.setWebViewClient(new WebViewClient() {
+            @Override public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                seedProvidersOnce();
+                view.requestFocus();
+            }
+        });
+
+        setContentView(web);
+        web.loadUrl("file:///android_asset/web/index.html");
+    }
+
+    private void seedProvidersOnce() {
+        if (seeded || web == null) return;
+        seeded = true;
+        try {
+            Set<String> urls = new LinkedHashSet<>();
+            urls.add(StremioClient.CINEMETA);
+            urls.add(StremioClient.DEFAULT_STREAM_ADDON);
+
+            LibraryStore store = new LibraryStore(this);
+            try {
+                JSONArray saved = new JSONArray(store.device.getString("manifests", "[]"));
+                for (int i = 0; i < saved.length(); i++) {
+                    String url = saved.optString(i, "");
+                    if (!url.isEmpty()) urls.add(url);
+                }
+            } catch (Exception ignored) { }
+
+            JSONArray descriptors = new JSONArray();
+            for (String url : urls) {
+                JSONObject d = new JSONObject();
+                d.put("transportUrl", url);
+                d.put("enabled", true);
+                descriptors.put(d);
+            }
+
+            String json = descriptors.toString();
+            String script =
+                "(function(){" +
+                "try{" +
+                "var current=localStorage.getItem('addonDescriptors');" +
+                "if(!current||current==='[]'){" +
+                "localStorage.setItem('addonDescriptors'," + JSONObject.quote(json) + ");" +
+                "location.reload();" +
+                "}" +
+                "}catch(e){}" +
+                "})();";
+            web.evaluateJavascript(script, null);
+        } catch (Exception ignored) { }
+    }
+
+    private final class NativeBridge {
+        @JavascriptInterface public void play(String url, String title) {
+            if (url == null || url.trim().isEmpty()) return;
+            runOnUiThread(() -> {
+                try {
+                    JSONObject item = new JSONObject();
+                    item.put("id", "web:" + Integer.toHexString((title == null ? url : title).hashCode()));
+                    item.put("type", "movie");
+                    item.put("name", title == null || title.isEmpty() ? "Nocturne" : title);
+
+                    Intent intent = new Intent(MainActivity.this, PlayerActivity.class);
+                    intent.putExtra("url", url);
+                    intent.putExtra("title", title == null ? "Nocturne" : title);
+                    intent.putExtra("itemJson", item.toString());
+                    intent.putExtra("videoId", item.getString("id"));
+                    intent.putExtra("profile", "default");
+                    intent.putExtra("headers", "{}");
+                    startActivity(intent);
+                } catch (Exception ignored) { }
+            });
+        }
+
+        @JavascriptInterface public void exit() {
+            runOnUiThread(MainActivity.this::finish);
+        }
+    }
+
+    @Override public void onBackPressed() {
+        if (web == null) {
+            super.onBackPressed();
+            return;
+        }
+        web.evaluateJavascript(
+            "window.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',code:'Escape',bubbles:true}));",
+            null
+        );
+    }
+
+    @Override public boolean dispatchKeyEvent(KeyEvent event) {
+        if (web != null && event.getAction() == KeyEvent.ACTION_DOWN) {
+            String key = null;
+            switch (event.getKeyCode()) {
+                case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE: key = "MediaPlayPause"; break;
+                case KeyEvent.KEYCODE_MENU: key = "ContextMenu"; break;
+            }
+            if (key != null) {
+                web.evaluateJavascript(
+                    "window.dispatchEvent(new KeyboardEvent('keydown',{key:" + JSONObject.quote(key) + ",bubbles:true}));",
+                    null
+                );
+                return true;
+            }
+        }
+        return super.dispatchKeyEvent(event);
+    }
+
+    @Override protected void onResume() {
+        super.onResume();
+        immersive();
+        if (web != null) web.onResume();
+    }
+
+    @Override protected void onPause() {
+        if (web != null) web.onPause();
+        super.onPause();
+    }
+
+    @Override protected void onDestroy() {
+        if (web != null) {
+            web.loadUrl("about:blank");
+            web.removeJavascriptInterface("NocturneNative");
+            web.destroy();
+            web = null;
+        }
+        super.onDestroy();
+    }
+
+    private void immersive() {
+        getWindow().getDecorView().setSystemUiVisibility(
+            5894 | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+        );
+    }
 }
