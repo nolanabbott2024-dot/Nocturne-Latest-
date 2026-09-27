@@ -1,5 +1,5 @@
 import { useEffect,useRef,useState } from "react";
-import { setFocus } from "@noriginmedia/norigin-spatial-navigation-core";
+import { setFocus } from "@noriginmedia/norigin-spatial-navigation";
 import { AnimatePresence } from "motion/react";
 import { TVSidebar } from "./tv/navigation/TVSidebar";
 import { CollectionPage } from "./pages/CollectionPage";
