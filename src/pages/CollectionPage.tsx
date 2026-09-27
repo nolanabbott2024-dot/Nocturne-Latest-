@@ -20,7 +20,7 @@ export function CollectionPage({
  useEffect(()=>{const sync=()=>setLibraryRevision(x=>x+1);window.addEventListener("nocturne-library-sync",sync);return()=>window.removeEventListener("nocturne-library-sync",sync)},[]);
  const catalogs=useMemo(()=>addons.flatMap(a=>a.catalogs).filter(c=>!type||c.type===type).slice(0,7),[addons,type]);
  const cont=useMemo(()=>route==="home"?continueWatching():[],[route,libraryRevision]);
- return <TVPage route={route}>
+ return <TVPage route={route} initialFocusKey={`${route}:hero:play`}>
    <Rows route={route} catalogs={catalogs} onOpen={onOpen} cont={cont} onResume={onResume}/>
  </TVPage>
 }
