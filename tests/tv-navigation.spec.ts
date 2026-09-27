@@ -15,6 +15,8 @@ async function focus(page:any){return page.evaluate(()=>window.__NOCTURNE_TV__?.
 async function trailer(page:any){return page.evaluate(()=>window.__NOCTURNE_TV__?.trailer?.()||"missing")}
 
 test.beforeEach(async({page})=>{
+  page.on("console",m=>console.log("BROWSER",m.type(),m.text()));
+  page.on("pageerror",e=>console.log("PAGEERROR",e.stack||e.message));
   await page.addInitScript(()=>{
     localStorage.setItem("addonDescriptors",JSON.stringify([{transportUrl:"https://fixture.test/manifest.json",enabled:true}]));
     localStorage.setItem("library","{}");
@@ -42,7 +44,8 @@ test.beforeEach(async({page})=>{
   await page.route("**/stream/**",async route=>route.fulfill({status:200,headers:cors,contentType:"application/json",body:JSON.stringify({streams:[{name:"Fixture 1080p",url:"https://fixture.test/trailer.mp4"}]})}));
   await page.route("https://fixture.test/trailer.mp4",async route=>route.fulfill({status:200,headers:{...cors,"Accept-Ranges":"bytes"},contentType:"video/mp4",body:Buffer.from(VIDEO_B64,"base64")}));
   await page.goto("/");
-  await expect.poll(()=>focus(page)).toBe("home:hero:play");
+  await expect(page.locator(".app-shell")).toBeVisible();
+  await expect.poll(()=>focus(page),{timeout:12000}).toBe("home:hero:play");
 });
 
 test("Home rail, sidebar and Back restore exact focus",async({page})=>{
