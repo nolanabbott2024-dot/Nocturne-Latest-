@@ -1,39 +1,51 @@
-import { useEffect,useRef } from "react";
+import { useEffect,useRef,useState } from "react";
 import Hls from "hls.js";
 import type { MediaItem } from "../../types/tv";
 import { usePlaybackStore } from "../../stores/playbackStore";
+import { useSettingsStore } from "../../stores/settingsStore";
 
 export function TrailerPreview({item}:{item:MediaItem}){
   const ref=useRef<HTMLVideoElement|null>(null);
+  const [failed,setFailed]=useState(false);
   const setState=usePlaybackStore(s=>s.setTrailerState);
-  const stopGlobal=usePlaybackStore(s=>s.stopTrailer);
+  const previewAudio=useSettingsStore(s=>s.previewAudio);
+  const src=item.trailerUrl;
+  const yt=item.trailerYtId;
+
   useEffect(()=>{
-    const src=item.trailerUrl,video=ref.current;
-    if(!src||!video)return;
-    let hls:Hls|null=null,cancelled=false,playTimer:number|undefined;
-    // A newly focused title always wins; any previous pending/active preview is logically cancelled.
-    stopGlobal();setState("preloading",item.id);
-    try{
-      if(src.includes(".m3u8")&&Hls.isSupported()){
-        hls=new Hls({enableWorker:true,lowLatencyMode:true,startLevel:-1});
-        hls.loadSource(src);hls.attachMedia(video);
-      }else{
-        video.preload="metadata";video.src=src;
+    setFailed(false);
+    if(!src)return;
+    const video=ref.current;if(!video)return;
+    let hls:Hls|null=null;let cancelled=false;
+    setState("preloading",item.id);
+    const start=async()=>{
+      try{
+        if(src.includes(".m3u8")&&Hls.isSupported()){
+          hls=new Hls({enableWorker:true,lowLatencyMode:true});
+          hls.loadSource(src);hls.attachMedia(video);
+        }else video.src=src;
+        video.muted=!previewAudio;video.loop=true;video.playsInline=true;
+        await video.play();
+        if(!cancelled)setState("playing",item.id);
+      }catch{
+        if(!cancelled){setFailed(true);setState("idle",null)}
       }
-      video.muted=true;video.loop=true;video.playsInline=true;
-      playTimer=window.setTimeout(async()=>{
-        if(cancelled)return;
-        try{await video.play();if(!cancelled)setState("playing",item.id)}
-        catch{if(!cancelled)setState("idle",null)}
-      },850);
-    }catch{setState("idle",null)}
+    };
+    start();
     return()=>{
-      cancelled=true;if(playTimer)clearTimeout(playTimer);
-      setState("stopping",item.id);
+      cancelled=true;setState("stopping",item.id);
       video.pause();video.removeAttribute("src");video.load();hls?.destroy();
       setState("idle",null);
     };
-  },[item.id,item.trailerUrl]);
-  if(!item.trailerUrl)return null;
-  return <video ref={ref} className="trailer-preview" muted playsInline preload="metadata"/>;
+  },[item.id,src,previewAudio]);
+
+  if(failed)return null;
+  if(src)return <video ref={ref} className="trailer-preview" muted={!previewAudio} playsInline onError={()=>setFailed(true)}/>;
+  if(yt){
+    const mute=previewAudio?0:1;
+    return <iframe className="trailer-preview trailer-youtube"
+      src={`https://www.youtube.com/embed/${encodeURIComponent(yt)}?autoplay=1&controls=0&rel=0&playsinline=1&mute=${mute}`}
+      allow="autoplay; encrypted-media" title="Trailer preview"/>;
+  }
+  return null;
 }
