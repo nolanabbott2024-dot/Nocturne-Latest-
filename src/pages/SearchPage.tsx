@@ -1,6 +1,6 @@
 import { useEffect,useMemo,useState } from "react";
-import { FocusContext,useFocusable } from "@noriginmedia/norigin-spatial-navigation-react";
-import { setFocus } from "@noriginmedia/norigin-spatial-navigation-core";
+import { FocusContext,useFocusable } from "@noriginmedia/norigin-spatial-navigation";
+import { setFocus } from "@noriginmedia/norigin-spatial-navigation";
 import { motion } from "motion/react";
 import { TVPage } from "../tv/navigation/TVPage";
 import { TVRow } from "../tv/content/TVRow";
