@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useQueries,useQuery } from "@tanstack/react-query";
 import { useProviderStore } from "../stores/providerStore";
 import { loadAddon,loadCatalog } from "./stremio";
-import { buildPageRows } from "./catalogPlans";
+import { buildPrimaryRows,buildCuratedRows } from "./catalogPlans";
 import type { Catalog } from "../types/tv";
 
 export function useAddons(){
@@ -24,12 +24,22 @@ export function useCatalog(c:Catalog|undefined,extra:Record<string,string>={}){
   });
 }
 
-export function usePlannedRows(args:{route:string;type?:"movie"|"series";catalogs:Catalog[];netflixBase?:string}){
+export function usePrimaryRows(args:{route:string;type?:"movie"|"series";catalogs:Catalog[];netflixBase?:string}){
   const signature=useMemo(()=>args.catalogs.map(c=>`${c.baseUrl}|${c.type}|${c.id}`).join("::"),[args.catalogs]);
   return useQuery({
-    queryKey:["planned-rows",args.route,args.type||"mixed",args.netflixBase||"",signature],
-    queryFn:({signal})=>buildPageRows({...args,signal}),
+    queryKey:["primary-rows",args.route,args.type||"mixed",args.netflixBase||"",signature],
+    queryFn:({signal})=>buildPrimaryRows({...args,signal}),
     enabled:args.catalogs.length>0,
     staleTime:20*60_000,gcTime:60*60_000,retry:1
+  });
+}
+
+export function useCuratedRows(args:{route:string;type?:"movie"|"series";catalogs:Catalog[]}){
+  const signature=useMemo(()=>args.catalogs.map(c=>`${c.baseUrl}|${c.type}|${c.id}`).join("::"),[args.catalogs]);
+  return useQuery({
+    queryKey:["curated-rows",args.route,args.type||"mixed",signature],
+    queryFn:({signal})=>buildCuratedRows({...args,signal}),
+    enabled:args.route!=="home"&&args.catalogs.length>0,
+    staleTime:60*60_000,gcTime:2*60*60_000,retry:0
   });
 }
