@@ -1,11 +1,11 @@
 import { PropsWithChildren,useEffect,useRef } from "react";
 import { FocusContext,useFocusable } from "@noriginmedia/norigin-spatial-navigation-react";
-import { setFocus } from "@noriginmedia/norigin-spatial-navigation-core";
+import { doesFocusableExist,setFocus } from "@noriginmedia/norigin-spatial-navigation-core";
 import { motion } from "motion/react";
 import { useNavigationStore } from "../../stores/navigationStore";
 
-export function TVPage({route,children}:PropsWithChildren<{route:string}>){
-  const {ref,focusKey}=useFocusable({focusKey:`page:${route}`,trackChildren:true});
+export function TVPage({route,initialFocusKey,children}:PropsWithChildren<{route:string;initialFocusKey?:string}>){
+  const {ref,focusKey}=useFocusable({focusKey:`page:${route}`,trackChildren:true,saveLastFocusedChild:true});
   const remembered=useNavigationStore(s=>s.pageFocusHistory[route]);
   const scroll=useNavigationStore(s=>s.scrollHistory[route]);
   const saveScroll=useNavigationStore(s=>s.saveScroll);
@@ -13,11 +13,19 @@ export function TVPage({route,children}:PropsWithChildren<{route:string}>){
   useEffect(()=>{
     const el=node.current;if(!el)return;
     if(scroll)requestAnimationFrame(()=>el.scrollTo(scroll.x,scroll.y));
-    const id=requestAnimationFrame(()=>{try{setFocus(remembered||focusKey);}catch{}});
+    let cancelled=false,timer:number|undefined,tries=0;
+    const wanted=remembered||initialFocusKey;
+    const restore=()=>{
+      if(cancelled)return;
+      if(wanted&&doesFocusableExist(wanted)){void setFocus(wanted);return}
+      if(wanted&&tries++<30){timer=window.setTimeout(restore,60);return}
+      void setFocus(focusKey);
+    };
+    requestAnimationFrame(restore);
     const onScroll=()=>saveScroll(route,el.scrollLeft,el.scrollTop);
     el.addEventListener("scroll",onScroll,{passive:true});
-    return()=>{cancelAnimationFrame(id);el.removeEventListener("scroll",onScroll)};
-  },[route]);
+    return()=>{cancelled=true;if(timer)clearTimeout(timer);el.removeEventListener("scroll",onScroll)};
+  },[route,remembered,initialFocusKey,focusKey]);
   return <FocusContext.Provider value={focusKey}>
     <motion.main ref={(n)=>{(ref as any).current=n;node.current=n}} className="tv-page"
       initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-8}}
