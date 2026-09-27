@@ -1,10 +1,12 @@
+import { useMemo } from "react";
 import { useQueries,useQuery } from "@tanstack/react-query";
 import { useProviderStore } from "../stores/providerStore";
 import { loadAddon,loadCatalog } from "./stremio";
 import type { Catalog } from "../types/tv";
 
 export function useAddons(){
-  const addons=useProviderStore(s=>s.addons.filter(a=>a.enabled!==false));
+  const allAddons=useProviderStore(s=>s.addons);
+  const addons=useMemo(()=>allAddons.filter(a=>a.enabled!==false),[allAddons]);
   const queries=useQueries({queries:addons.map(d=>({
     queryKey:["addon",d.transportUrl],
     queryFn:({signal}:any)=>loadAddon(d,signal),
