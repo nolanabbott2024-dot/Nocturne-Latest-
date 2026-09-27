@@ -5,17 +5,21 @@ import { FocusBoundary } from "../focus/FocusBoundary";
 import { useTVFocusable } from "../focus/useTVFocusable";
 import type { PlayableSource } from "../../data/playback";
 
-export function SourcePicker({sources,route,onPick,onClose}:{sources:PlayableSource[];route:string;onPick:(s:PlayableSource)=>void;onClose:()=>void}){
+export function SourcePicker({sources,route,onPick,onClose,loading=false}:{sources:PlayableSource[];route:string;onPick:(s:PlayableSource)=>void;onClose:()=>void;loading?:boolean}){
   const first=`${route}:source:0`;
+  const closeKey=`${route}:source:close`;
+  const preferred=sources.length?first:closeKey;
   const close=()=>{onClose();requestAnimationFrame(()=>{void setFocus(`${route}:action:sources`)})};
   useEffect(()=>{
-    requestAnimationFrame(()=>{void setFocus(first)});
+    const id=requestAnimationFrame(()=>{void setFocus(preferred)});
     const back=()=>close();window.addEventListener("nocturne-overlay-back",back);
-    return()=>{window.removeEventListener("nocturne-overlay-back",back);requestAnimationFrame(()=>{void setFocus(`${route}:action:sources`)})}
-  },[first,route]);
+    return()=>{cancelAnimationFrame(id);window.removeEventListener("nocturne-overlay-back",back)}
+  },[preferred,route]);
   return <div data-tv-overlay="true" className="source-overlay">
-    <FocusBoundary id={`${route}:sources`} preferredChildFocusKey={first} trap>
-      <div className="source-sheet"><header><h2>Choose a Source</h2><p>{sources.length} playable sources</p></header>
+    <FocusBoundary id={`${route}:sources`} preferredChildFocusKey={preferred} trap>
+      <div className="source-sheet"><header><h2>Choose a Source</h2>
+        <p>{loading?"Finding playable sources…":sources.length?`${sources.length} playable sources`:"No playable sources found"}</p></header>
+        {loading&&!sources.length&&<div className="source-loading"><span/>Checking your streaming providers…</div>}
         <div className="source-list">{sources.map((s,i)=><SourceButton key={s.url+"-"+i} source={s} i={i} route={route} onPick={()=>onPick(s)}/>)}</div>
         <SourceClose route={route} onClose={close}/>
       </div>
