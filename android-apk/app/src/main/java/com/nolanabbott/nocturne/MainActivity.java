@@ -36,6 +36,9 @@ public class MainActivity extends Activity {
         web.setBackgroundColor(Color.BLACK);
         web.setFocusable(true);
         web.setFocusableInTouchMode(true);
+        if (android.os.Build.VERSION.SDK_INT >= 26) {
+            web.setDefaultFocusHighlightEnabled(false);
+        }
 
         WebSettings settings = web.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -168,20 +171,37 @@ public class MainActivity extends Activity {
     }
 
     @Override public boolean dispatchKeyEvent(KeyEvent event) {
-        if (web != null && event.getAction() == KeyEvent.ACTION_DOWN) {
-            String key = null;
-            switch (event.getKeyCode()) {
-                case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE: key = "MediaPlayPause"; break;
-                case KeyEvent.KEYCODE_MENU: key = "ContextMenu"; break;
-            }
-            if (key != null) {
-                web.evaluateJavascript(
-                    "window.dispatchEvent(new KeyboardEvent('keydown',{key:" + JSONObject.quote(key) + ",bubbles:true}));",
-                    null
-                );
+        if (web == null) return super.dispatchKeyEvent(event);
+
+        String key = null;
+        switch (event.getKeyCode()) {
+            case KeyEvent.KEYCODE_DPAD_UP: key = "ArrowUp"; break;
+            case KeyEvent.KEYCODE_DPAD_DOWN: key = "ArrowDown"; break;
+            case KeyEvent.KEYCODE_DPAD_LEFT: key = "ArrowLeft"; break;
+            case KeyEvent.KEYCODE_DPAD_RIGHT: key = "ArrowRight"; break;
+            case KeyEvent.KEYCODE_DPAD_CENTER:
+            case KeyEvent.KEYCODE_ENTER: key = "Enter"; break;
+            case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE: key = "MediaPlayPause"; break;
+            case KeyEvent.KEYCODE_MENU: key = "ContextMenu"; break;
+            case KeyEvent.KEYCODE_BACK:
+                if (event.getAction() == KeyEvent.ACTION_DOWN) onBackPressed();
                 return true;
-            }
         }
+
+        if (key != null) {
+            final String type = event.getAction() == KeyEvent.ACTION_UP ? "keyup" : "keydown";
+            final boolean repeat = event.getRepeatCount() > 0;
+            final String script =
+                "window.dispatchEvent(new KeyboardEvent(" + JSONObject.quote(type) + ",{" +
+                "key:" + JSONObject.quote(key) + "," +
+                "code:" + JSONObject.quote(key) + "," +
+                "repeat:" + repeat + "," +
+                "bubbles:true,cancelable:true" +
+                "}));";
+            web.evaluateJavascript(script, null);
+            return true;
+        }
+
         return super.dispatchKeyEvent(event);
     }
 
