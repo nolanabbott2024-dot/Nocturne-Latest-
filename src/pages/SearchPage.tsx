@@ -3,6 +3,7 @@ import { FocusContext,setFocus,useFocusable } from "@noriginmedia/norigin-spatia
 import { motion } from "motion/react";
 import { TVPage } from "../tv/navigation/TVPage";
 import { TVRow } from "../tv/content/TVRow";
+import { useTVFocusable } from "../tv/focus/useTVFocusable";
 import { useAddons,useCatalog } from "../data/queries";
 import { isCinemetaCatalog } from "../data/stremio";
 import type { MediaItem } from "../types/tv";
@@ -38,8 +39,8 @@ export function SearchPage({onOpen}:{onOpen:(m:MediaItem)=>void}){
  </TVPage>
 }
 function KeyButton({k,index,onPress,onFocus,onRight,autoFocus}:any){
- const {ref,focused,focusSelf}=useFocusable({
-   focusKey:"search-key:"+k,onEnterPress:onPress,onFocus,
+ const {ref,focused,focusSelf}=useTVFocusable({
+   focusKey:"search-key:"+k,route:"search",rowId:"search-keyboard",onPress,onFocus,
    onArrowPress:(direction:any)=>direction==="right"?onRight():true
  });
  useEffect(()=>{
