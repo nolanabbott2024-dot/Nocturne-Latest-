@@ -18,7 +18,7 @@ export function SearchPage({onOpen}:{onOpen:(m:MediaItem)=>void}){
  const catalogs=useMemo(()=>addons.flatMap(a=>a.catalogs).filter(c=>c.searchable).slice(0,6),[addons]);
  const {ref,focusKey}=useFocusable({focusKey:"search-keyboard",trackChildren:true,saveLastFocusedChild:true});
  const allKeys=[...KEYS,"⌫","Clear"];
- return <TVPage route="search">
+ return <TVPage route="search" initialFocusKey="search-key:A">
   <header className="page-title"><h1>Search</h1><div className="search-value">{q||"Search movies, shows, people…"}</div></header>
   <FocusContext.Provider value={focusKey}>
    <div ref={ref as any} className="tv-keyboard">
