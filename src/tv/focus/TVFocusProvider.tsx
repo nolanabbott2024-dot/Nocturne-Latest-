@@ -4,7 +4,7 @@ import { useNavigationStore } from "../../stores/navigationStore";
 
 let ready=false;
 if(!ready){
-  init({debug:false,visualDebug:false,nativeMode:false,throttle:0,throttleKeypresses:false,distanceCalculationMethod:"center"});
+  init({debug:false,visualDebug:false,throttle:0,throttleKeypresses:false,distanceCalculationMethod:"center"});
   ready=true;
 }
 
