@@ -272,6 +272,9 @@ body.sidebar-open #sidebar{transform:none;opacity:1}
   -webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
   mask-composite:exclude;z-index:4}
 .card.focused .thumb::after{opacity:1}
+.card-trailer{position:absolute;inset:0;z-index:3;background:#000;overflow:hidden;border-radius:inherit}
+.card-trailer iframe,.card-trailer video{position:absolute;inset:0;width:100%;height:100%;border:0;object-fit:cover;pointer-events:none}
+.card-trailer iframe{top:50%;left:50%;transform:translate(-50%,-50%);width:177.78%;height:100%}
 .art{position:absolute;inset:0}
 .art::after{content:"";position:absolute;inset:0;
   background:linear-gradient(to top,rgba(0,0,0,.82),rgba(0,0,0,.18) 48%,transparent 72%)}
@@ -1286,6 +1289,7 @@ const FM={
     e.classList.add("focused");
     if(e.classList.contains("glass"))e.classList.add("lit");
     this.cur=e;
+    HoverTrailer.focus(e);
     if(e.dataset.meta&&!document.body.classList.contains("in-detail")){
       const m=cachedMeta(e.dataset.meta); if(m) setBackdrop(m);
     }
@@ -1400,7 +1404,11 @@ function card(m,kind,row,col,o={}){
   const cap=el("div","cap");
   cap.innerHTML=`<div class="cap-t">${esc(m.name)}</div><div class="cap-s">${esc(o.sub||[m.releaseInfo,m.type==="series"?"Series":"Film"].filter(Boolean).join(" · "))}</div>`;
   b.appendChild(cap);
-  b.onclick=()=>o.onOpen?o.onOpen():openDetail(m.type,m.id);
+  b.addEventListener("pointerenter",()=>HoverTrailer.enter(b,m));
+  b.addEventListener("pointerleave",()=>HoverTrailer.leave(b));
+  b.addEventListener("focus",()=>HoverTrailer.enter(b,m));
+  b.addEventListener("blur",()=>HoverTrailer.leave(b));
+  b.onclick=()=>{HoverTrailer.stop();o.onOpen?o.onOpen():openDetail(m.type,m.id)};
   return b;
 }
 function rail(title,items,kind,row,o={}){
@@ -1435,12 +1443,23 @@ function railError(title,msg,row){
    legacy `trailers` array. Bundled demo titles get a procedural
    stand-in so the motion design is visible with no network.
    ================================================================ */
+function youtubeId(value){
+  const raw=String(value||"").trim();
+  if(/^[\w-]{11}$/.test(raw)) return raw;
+  try{
+    const u=new URL(raw);
+    if(u.hostname==="youtu.be") return u.pathname.split("/").filter(Boolean)[0]||null;
+    if(/(^|\.)youtube(?:-nocookie)?\.com$/.test(u.hostname))
+      return u.searchParams.get("v")||u.pathname.match(/\/(?:embed|shorts)\/([\w-]{11})/)?.[1]||null;
+  }catch(e){}
+  return null;
+}
 function trailerOf(m){
   if(!m) return null;
   const streams=[...(m.trailerStreams||[]),...(m.trailers||[])];
   for(const s of streams){
-    if(s.ytId) return {kind:"yt", id:s.ytId};
-    if(s.source && (s.type==="Trailer"||!s.type)) return {kind:"yt", id:s.source};
+    const id=youtubeId(s.ytId||((s.type==="Trailer"||!s.type)&&s.source));
+    if(id) return {kind:"yt", id};
     if(s.url && /\.(mp4|webm|m3u8)(\?|$)/i.test(s.url)) return {kind:"url", url:s.url};
   }
   if(m._src==="atrium://demo/manifest.json") return {kind:"demo"};
@@ -1463,6 +1482,54 @@ async function ensureTrailer(m){
   return m;
 }
 
+function youtubeTrailerFrame(id,muted=true){
+  const f=el("iframe");
+  f.title="Trailer";
+  f.allow="autoplay; encrypted-media; picture-in-picture";
+  f.referrerPolicy="strict-origin-when-cross-origin";
+  f.setAttribute("frameborder","0");
+  const origin=location.protocol.startsWith("http")?`&origin=${encodeURIComponent(location.origin)}`:"";
+  f.src=`https://www.youtube.com/embed/${encodeURIComponent(id)}`
+      + `?autoplay=1&mute=${muted?1:0}&controls=0&loop=1&playsinline=1`
+      + `&playlist=${encodeURIComponent(id)}&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1${origin}`;
+  return f;
+}
+
+const HoverTrailer={
+  delay:5000,timer:null,button:null,meta:null,layer:null,
+  enter(button,meta){
+    if(this.button===button&&(this.timer||this.layer))return;
+    this.stop();this.button=button;this.meta=meta;
+    this.timer=setTimeout(()=>this.play(button,meta),this.delay);
+  },
+  leave(button){if(this.button===button)this.stop()},
+  focus(e){
+    if(e&&e.classList&&e.classList.contains("card")){
+      const m=cachedMeta(e.dataset.meta);if(m)this.enter(e,m);
+    }else this.stop();
+  },
+  async play(button,meta){
+    this.timer=null;
+    if(this.button!==button||!button.isConnected)return;
+    if(!button.matches(":hover")&&!button.classList.contains("focused")&&document.activeElement!==button)return this.stop();
+    await ensureTrailer(meta);
+    if(this.button!==button||!button.isConnected)return;
+    const t=trailerOf(meta);if(!t)return this.stop();
+    const layer=el("div","card-trailer");
+    if(t.kind==="yt") layer.appendChild(youtubeTrailerFrame(t.id,true));
+    else if(t.kind==="url"){
+      const v=el("video");v.src=t.url;v.autoplay=true;v.loop=true;v.playsInline=true;v.muted=true;
+      v.onerror=()=>this.stop();layer.appendChild(v);
+    }else return this.stop();
+    button.querySelector(".thumb")?.appendChild(layer);this.layer=layer;
+  },
+  stop(){
+    clearTimeout(this.timer);this.timer=null;
+    if(this.layer)this.layer.remove();
+    this.layer=null;this.button=null;this.meta=null;
+  }
+};
+
 const Spotlight={
   layer:null, meta:null, muted:true, timer:null,
   active(){ return !!this.layer; },
@@ -1483,13 +1550,7 @@ const Spotlight={
     const layer=el("div","sl-layer");
 
     if(t.kind==="yt"){
-      const f=el("iframe");
-      f.allow="autoplay; encrypted-media";
-      f.setAttribute("frameborder","0");
-      f.src=`https://www.youtube-nocookie.com/embed/${encodeURIComponent(t.id)}`
-          + `?autoplay=1&mute=${this.muted?1:0}&controls=0&loop=1&playsinline=1`
-          + `&playlist=${encodeURIComponent(t.id)}&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1`;
-      layer.appendChild(f);
+      layer.appendChild(youtubeTrailerFrame(t.id,this.muted));
     }else if(t.kind==="url"){
       const v=el("video");
       v.src=t.url; v.autoplay=true; v.loop=true; v.playsInline=true;
