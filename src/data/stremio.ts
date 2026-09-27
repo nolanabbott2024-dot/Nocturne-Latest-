@@ -6,13 +6,22 @@ export const CINEMETA_BASE="https://v3-cinemeta.strem.io/";
 export function isCinemetaCatalog(c:Catalog){return c.baseUrl===CINEMETA_BASE||/cinemeta/i.test(c.addonId)||/cinemeta/i.test(c.addonName);}
 
 function baseOf(url:string){return url.slice(0,url.lastIndexOf("/")+1);}
-export async function fetchJson<T=any>(url:string,signal?:AbortSignal):Promise<T>{
+const jsonCache=new Map<string,{expires:number;value:any}>();
+export async function fetchJson<T=any>(url:string,signal?:AbortSignal,ttlMs=0):Promise<T>{
+  if(ttlMs>0){
+    const hit=jsonCache.get(url);
+    if(hit&&hit.expires>Date.now())return hit.value as T;
+    if(hit)jsonCache.delete(url);
+  }
   const r=await fetch(url,{signal,headers:{Accept:"application/json"}});
   if(!r.ok)throw new Error(`HTTP ${r.status}`);
-  return r.json();
+  const value=await r.json() as T;
+  if(ttlMs>0)jsonCache.set(url,{expires:Date.now()+ttlMs,value});
+  return value;
 }
+export function clearStremioCache(){jsonCache.clear()}
 export async function loadAddon(d:AddonDescriptor,signal?:AbortSignal):Promise<LoadedAddon>{
-  const manifest=d.manifest||await fetchJson(d.transportUrl,signal);
+  const manifest=d.manifest||await fetchJson(d.transportUrl,signal,15*60_000);
   const baseUrl=baseOf(d.transportUrl);
   const catalogs=(manifest.catalogs||[]).map((c:any)=>({
     addonId:manifest.id,addonName:manifest.name,baseUrl,id:c.id,type:c.type,name:c.name||c.id,
@@ -24,11 +33,11 @@ export async function loadAddon(d:AddonDescriptor,signal?:AbortSignal):Promise<L
 export async function loadCatalog(c:Catalog,extra:Record<string,string>={},signal?:AbortSignal):Promise<MediaItem[]>{
   const encoded=Object.entries(extra).map(([k,v])=>`${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join("&");
   const suffix=encoded?`/${encoded}`:"";
-  const o=await fetchJson<any>(`${c.baseUrl}catalog/${encodeURIComponent(c.type)}/${encodeURIComponent(c.id)}${suffix}.json`,signal);
+  const o=await fetchJson<any>(`${c.baseUrl}catalog/${encodeURIComponent(c.type)}/${encodeURIComponent(c.id)}${suffix}.json`,signal,10*60_000);
   return (o.metas||[]).map((m:any)=>normalizeItem(m,c.type,c.baseUrl));
 }
 export async function loadMeta(baseUrl:string,type:string,id:string,signal?:AbortSignal):Promise<MediaItem>{
-  const o=await fetchJson<any>(`${baseUrl}meta/${encodeURIComponent(type)}/${encodeURIComponent(id)}.json`,signal);
+  const o=await fetchJson<any>(`${baseUrl}meta/${encodeURIComponent(type)}/${encodeURIComponent(id)}.json`,signal,30*60_000);
   return normalizeItem(o.meta||{},type,baseUrl);
 }
 
