@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import { TVPage } from "../tv/navigation/TVPage";
 import { TVRow } from "../tv/content/TVRow";
 import { useAddons,useCatalog } from "../data/queries";
+import { isCinemetaCatalog } from "../data/stremio";
 import type { MediaItem } from "../types/tv";
 import { useSearchStore } from "../stores/searchStore";
 import { useNavigationStore } from "../stores/navigationStore";
@@ -20,7 +21,7 @@ export function SearchPage({onOpen}:{onOpen:(m:MediaItem)=>void}){
  const [firstResultKey,setFirstResultKey]=useState<string|null>(null);
  const enteringFromSidebar=useMemo(()=>useNavigationStore.getState().focusedKey?.startsWith("sidebar:")===true,[]);
  const addons=useAddons();
- const catalogs=useMemo(()=>addons.flatMap(a=>a.catalogs).filter(c=>c.searchable).slice(0,6),[addons]);
+ const catalogs=useMemo(()=>addons.flatMap(a=>a.catalogs).filter(c=>!isCinemetaCatalog(c)&&c.searchable).slice(0,6),[addons]);
  const {ref,focusKey}=useFocusable({focusKey:"search-keyboard",trackChildren:true,saveLastFocusedChild:true});
  const allKeys=[...KEYS,"⌫","Clear"];
  return <TVPage route="search" initialFocusKey="search-key:A">
