@@ -25,7 +25,7 @@ export function TVSidebar({route,onRoute}:{route:string;onRoute:(r:string)=>void
 }
 function SidebarItem({id,label,active,route,Icon,onPress,onFocus,onRight}:any){
   const {ref,focused}=useTVFocusable({
-    focusKey:`sidebar:${id}`,route,rowId:"sidebar",onPress,onFocus,
+    focusKey:`sidebar:${id}`,route:"sidebar",rowId:"sidebar",onPress,onFocus,
     onArrowPress:(dir)=>{if(dir==="right"){onRight();return false}return true}
   });
   return <motion.button ref={ref as any} className={"sidebar-item "+(active?"active":"")}
