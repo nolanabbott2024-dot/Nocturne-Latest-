@@ -34,7 +34,11 @@ export function useTVFocusable(opts:{
       return result===undefined?true:result;
     },
     onFocus:(layout:any,details:any)=>{
-      setFocusState(opts.focusKey,opts.route,opts.rowId);
+      // Sidebar focus belongs to the global navigation group, not to the page's
+      // content restoration slot. Otherwise entering a destination restores
+      // "sidebar:<route>" instead of the page's logical content target.
+      const memoryRoute=opts.rowId==="sidebar"?undefined:opts.route;
+      setFocusState(opts.focusKey,memoryRoute,opts.rowId);
       keepVerticalFocusVisible(layout);
       opts.onFocus?.(layout,details);
     },
