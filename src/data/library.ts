@@ -13,7 +13,7 @@ export type LibraryEntry={
 function rawLibrary():Record<string,any>{
   try{return JSON.parse(localStorage.getItem("library")||"{}")}catch{return{}}
 }
-function save(raw:Record<string,any>){localStorage.setItem("library",JSON.stringify(raw))}
+function save(raw:Record<string,any>){localStorage.setItem("library",JSON.stringify(raw));window.dispatchEvent(new CustomEvent("nocturne-library-sync"))}
 
 export function libraryEntries():LibraryEntry[]{
   return Object.values(rawLibrary()).filter((x:any)=>!x.removed).map((x:any)=>{
@@ -38,6 +38,7 @@ export function continueWatching(){
 export function watchlist(){
   return libraryEntries().filter(x=>x.inWatchlist);
 }
+export function isWatchlisted(id:string){const x=rawLibrary()[id];return !!x&&!x.removed&&!x.temp}
 export function toggleWatchlist(item:MediaItem){
   const raw=rawLibrary();const old=raw[item.id];
   if(old&&!old.removed&&!old.temp){
@@ -51,4 +52,5 @@ export function toggleWatchlist(item:MediaItem){
     };
   }
   save(raw);
+  return isWatchlisted(item.id);
 }
