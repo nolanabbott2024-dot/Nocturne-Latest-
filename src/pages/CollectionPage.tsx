@@ -37,7 +37,10 @@ function Rows({route,rows,onOpen,onPlay,cont,onResume}:{
 }){
  const hero=useContentStore(s=>s.heroByRoute[route]); const setHero=useContentStore(s=>s.setHero);
  const metaAbort=useRef<AbortController|null>(null);
- const focusHero=useCallback((item:MediaItem)=>{setHero(route,item)},[route,setHero]);
+ const focusHero=useCallback((item:MediaItem)=>{
+   const current=useContentStore.getState().heroByRoute[route];
+   setHero(route,{...item,background:current?.background||item.background});
+ },[route,setHero]);
  const settleHero=useCallback((item:MediaItem)=>{
    setHero(route,item);
    metaAbort.current?.abort();
