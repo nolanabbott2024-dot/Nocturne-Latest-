@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { setFocus } from "@noriginmedia/norigin-spatial-navigation-core";
+import { setFocus } from "@noriginmedia/norigin-spatial-navigation";
 import { motion } from "motion/react";
 import { FocusBoundary } from "../focus/FocusBoundary";
 
