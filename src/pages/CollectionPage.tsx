@@ -48,7 +48,11 @@ function Rows({route,catalogs,onOpen,cont,onResume}:{
 }
 function CatalogRow({c,route,onOpen,onSettled,first}:any){
  const q=useCatalog(c); const items=q.data||[];
- if(first&&items.length&&!useContentStore.getState().heroByRoute[route])useContentStore.getState().setHero(route,items[0]);
+ useEffect(()=>{
+   if(first&&items.length&&!useContentStore.getState().heroByRoute[route]){
+     useContentStore.getState().setHero(route,items[0]);
+   }
+ },[first,items.length,items[0]?.id,route]);
  if(q.isError)return null;
  if(!items.length)return null;
  if(first)return <TVTop10Row id={`top10-${c.addonId}-${c.id}`} title={route==="movies"?"Top 10 Movies":route==="shows"?"Top 10 Shows":"Top 10 Now"} items={items} route={route} onOpen={onOpen} onSettled={onSettled}/>;
