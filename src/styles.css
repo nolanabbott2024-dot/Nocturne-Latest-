@@ -49,3 +49,8 @@ button:focus,button:focus-visible{outline:none!important}.app-shell{display:flex
 .source-sheet header p{color:var(--muted);margin-top:0}.source-list{display:flex;flex-direction:column;gap:7px;margin:18px 0}
 .source-button{display:flex;justify-content:space-between;align-items:center;min-height:64px;padding:0 18px;border-radius:16px;background:rgba(255,255,255,.055);text-align:left}.source-button span{color:var(--muted);font-size:13px}
 .focus-boundary{display:contents}
+
+.trailer-overlay{position:fixed;inset:0;z-index:520;background:rgba(0,0,0,.9);display:grid;place-items:center}
+.trailer-stage{position:relative;width:min(1100px,88vw);aspect-ratio:16/9;border-radius:24px;overflow:hidden;background:#000;box-shadow:0 30px 100px rgba(0,0,0,.8)}
+.trailer-stage .trailer-preview{position:absolute;inset:0;width:100%;height:100%;border:0;object-fit:cover}
+.trailer-close{position:absolute;right:20px;top:20px;z-index:4;min-width:104px;height:46px;border-radius:999px;background:rgba(0,0,0,.62);font-weight:700;padding:0 18px}
