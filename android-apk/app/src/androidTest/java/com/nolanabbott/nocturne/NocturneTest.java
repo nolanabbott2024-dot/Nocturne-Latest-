@@ -110,7 +110,24 @@ public class NocturneTest {
             SystemClock.sleep(350);
             String moved=js(web,"window.__NOCTURNE_TV__.focus()");
             assertNotNull(moved);
-            assertNotEquals("D-pad must move Norigin focus",initial,moved);
+            assertNotEquals("Down must move from hero into content",initial,moved);
+
+            key(android.view.KeyEvent.KEYCODE_DPAD_RIGHT);
+            SystemClock.sleep(220);
+            String right=js(web,"window.__NOCTURNE_TV__.focus()");
+            assertNotNull(right);
+            assertNotEquals("Right must advance horizontally",moved,right);
+
+            key(android.view.KeyEvent.KEYCODE_DPAD_LEFT);
+            SystemClock.sleep(220);
+            String left=js(web,"window.__NOCTURNE_TV__.focus()");
+            assertEquals("Left must return to the previous card",moved,left);
+
+            key(android.view.KeyEvent.KEYCODE_DPAD_UP);
+            SystemClock.sleep(300);
+            String up=js(web,"window.__NOCTURNE_TV__.focus()");
+            assertNotNull(up);
+            assertTrue("Up must move toward hero controls, not farther down",up.contains(":hero:")||up.startsWith("home:hero:"));
             shot("02-react-tv-dpad");
 
             Instrumentation.ActivityMonitor monitor=ins.addMonitor(PlayerActivity.class.getName(),null,false);
