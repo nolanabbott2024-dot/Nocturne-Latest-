@@ -42,6 +42,8 @@ public class MainActivity extends Activity {
         settings.setDomStorageEnabled(true);
         settings.setMediaPlaybackRequiresUserGesture(false);
         settings.setAllowFileAccess(true);
+        settings.setAllowFileAccessFromFileURLs(true);
+        settings.setAllowUniversalAccessFromFileURLs(true);
         settings.setAllowContentAccess(false);
         settings.setLoadsImagesAutomatically(true);
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
@@ -105,7 +107,7 @@ public class MainActivity extends Activity {
     }
 
     private final class NativeBridge {
-        @JavascriptInterface public void play(String url, String title) {
+        @JavascriptInterface public void play(String url, String title, String headersJson) {
             if (url == null || url.trim().isEmpty()) return;
             runOnUiThread(() -> {
                 try {
@@ -120,7 +122,7 @@ public class MainActivity extends Activity {
                     intent.putExtra("itemJson", item.toString());
                     intent.putExtra("videoId", item.getString("id"));
                     intent.putExtra("profile", "default");
-                    intent.putExtra("headers", "{}");
+                    intent.putExtra("headers", headersJson == null || headersJson.isEmpty() ? "{}" : headersJson);
                     startActivity(intent);
                 } catch (Exception ignored) { }
             });
