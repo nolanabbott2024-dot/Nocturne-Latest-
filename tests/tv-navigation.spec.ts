@@ -50,7 +50,7 @@ test.beforeEach(async({page})=>{
 
 test("Home rail, sidebar and Back restore exact focus",async({page})=>{
   await page.keyboard.press("ArrowDown");
-  await expect.poll(()=>focus(page)).toMatch(/^home:top10-/);
+  await expect.poll(()=>focus(page)).toMatch(/^home:[^:]+:(movie|series):/);
   const first=await focus(page);
   await page.keyboard.press("ArrowRight");
   const second=await focus(page);
@@ -88,12 +88,46 @@ test("Search keyboard and results are explicit focus boundaries",async({page})=>
 
 test("Trailer waits for dwell and cancels immediately on navigation",async({page})=>{
   await page.keyboard.press("ArrowDown");
-  await expect.poll(()=>focus(page)).toMatch(/^home:top10-/);
+  await expect.poll(()=>focus(page)).toMatch(/^home:[^:]+:(movie|series):/);
   expect(await trailer(page)).toBe("idle");
   await page.waitForTimeout(2600);
   await expect.poll(()=>trailer(page)).toBe("playing");
   await page.keyboard.press("ArrowRight");
   await expect.poll(()=>trailer(page)).toBe("idle");
+});
+
+
+test("Spotlight follows focus and Details actions reflect the active control",async({page})=>{
+  await page.keyboard.press("ArrowDown");
+  const first=await focus(page);
+  await expect.poll(()=>focus(page)).toMatch(/^home:[^:]+:(movie|series):/);
+  const firstName=await page.locator(".hero-copy h1").textContent();
+
+  await page.keyboard.press("ArrowRight");
+  const second=await focus(page);
+  expect(second).not.toBe(first);
+  await expect.poll(async()=>page.locator(".hero-copy h1").textContent()).not.toBe(firstName);
+
+  await page.keyboard.press("Enter");
+  await expect.poll(()=>focus(page)).toMatch(/^details:.*:action:play$/);
+
+  await page.keyboard.press("ArrowRight");
+  await expect.poll(()=>focus(page)).toMatch(/:action:watchlist$/);
+  const playBg=await page.locator(".detail-action").nth(0).evaluate(el=>getComputedStyle(el).backgroundColor);
+  const watchBg=await page.locator(".detail-action").nth(1).evaluate(el=>getComputedStyle(el).backgroundColor);
+  expect(watchBg).not.toBe(playBg);
+
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".detail-action").nth(1)).toContainText("In Watchlist");
+
+  await page.keyboard.press("ArrowRight");
+  await expect.poll(()=>focus(page)).toMatch(/:action:sources$/);
+  await page.keyboard.press("ArrowRight");
+  await expect.poll(()=>focus(page)).toMatch(/:action:trailer$/);
+  await page.keyboard.press("Enter");
+  await expect(page.locator("[data-tv-overlay='true'] .trailer-stage")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".trailer-stage")).toHaveCount(0);
 });
 
 test("Large rails remain virtualized",async({page})=>{
