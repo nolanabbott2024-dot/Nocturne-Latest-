@@ -35,22 +35,22 @@ export function usePrimaryRows(args:{route:string;type?:"movie"|"series";catalog
 }
 
 
-export function useProviderRows(args:{route:string;type?:"movie"|"series";catalogs:Catalog[]}){
+export function useProviderRows(args:{route:string;type?:"movie"|"series";catalogs:Catalog[];enabled?:boolean}){
   const signature=useMemo(()=>args.catalogs.map(c=>`${c.baseUrl}|${c.type}|${c.id}`).join("::"),[args.catalogs]);
   return useQuery({
     queryKey:["provider-rows",args.route,args.type||"mixed",signature],
     queryFn:({signal})=>buildProviderRows({...args,signal}),
-    enabled:args.route!=="home"&&args.catalogs.length>0,
+    enabled:args.enabled!==false&&args.route!=="home"&&args.catalogs.length>0,
     staleTime:20*60_000,gcTime:60*60_000,retry:0
   });
 }
 
-export function useCuratedRows(args:{route:string;type?:"movie"|"series";catalogs:Catalog[]}){
+export function useCuratedRows(args:{route:string;type?:"movie"|"series";catalogs:Catalog[];enabled?:boolean}){
   const signature=useMemo(()=>args.catalogs.map(c=>`${c.baseUrl}|${c.type}|${c.id}`).join("::"),[args.catalogs]);
   return useQuery({
     queryKey:["curated-rows",args.route,args.type||"mixed",signature],
     queryFn:({signal})=>buildCuratedRows({...args,signal}),
-    enabled:args.route!=="home"&&args.catalogs.length>0,
+    enabled:args.enabled!==false&&args.route!=="home"&&args.catalogs.length>0,
     staleTime:60*60_000,gcTime:2*60*60_000,retry:0
   });
 }
