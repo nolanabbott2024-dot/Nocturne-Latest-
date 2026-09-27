@@ -6,14 +6,17 @@ import { TVPage } from "../tv/navigation/TVPage";
 import { TVRow } from "../tv/content/TVRow";
 import { useAddons,useCatalog } from "../data/queries";
 import type { MediaItem } from "../types/tv";
+import { useSearchStore } from "../stores/searchStore";
 
 const KEYS="ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890".split("");
 const COLS=9;
 
 export function SearchPage({onOpen}:{onOpen:(m:MediaItem)=>void}){
- const [q,setQ]=useState("");
+ const q=useSearchStore(s=>s.query);
+ const setQ=useSearchStore(s=>s.setQuery);
+ const lastKeyboardKey=useSearchStore(s=>s.lastKeyboardKey);
+ const setLastKeyboardKey=useSearchStore(s=>s.setLastKeyboardKey);
  const [firstResultKey,setFirstResultKey]=useState<string|null>(null);
- const [lastKeyboardKey,setLastKeyboardKey]=useState("search-key:A");
  const addons=useAddons();
  const catalogs=useMemo(()=>addons.flatMap(a=>a.catalogs).filter(c=>c.searchable).slice(0,6),[addons]);
  const {ref,focusKey}=useFocusable({focusKey:"search-keyboard",trackChildren:true,saveLastFocusedChild:true});
@@ -24,7 +27,7 @@ export function SearchPage({onOpen}:{onOpen:(m:MediaItem)=>void}){
    <div ref={ref as any} className="tv-keyboard">
     {allKeys.map((k,index)=><KeyButton key={k} k={k} index={index}
       onFocus={()=>setLastKeyboardKey("search-key:"+k)}
-      onPress={()=>k==="⌫"?setQ(x=>x.slice(0,-1)):k==="Clear"?setQ(""):setQ(x=>x+k)}
+      onPress={()=>k==="⌫"?setQ(q.slice(0,-1)):k==="Clear"?setQ(""):setQ(q+k)}
       onRight={()=>{if(index%COLS===COLS-1&&firstResultKey){setFocus(firstResultKey);return false}return true}}/>)}
    </div>
   </FocusContext.Provider>
