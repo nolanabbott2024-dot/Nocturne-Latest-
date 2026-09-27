@@ -4,6 +4,7 @@ declare global {
     NocturneNative?: {
       play(url:string,title:string,headersJson?:string,itemJson?:string,videoId?:string):void;
       exit?():void;
+      openExternal?(url:string):void;
     };
   }
 }
@@ -13,5 +14,9 @@ export function playNative(url:string,title:string,headers:Record<string,string>
     return true;
   }
   return false;
+}
+export function openExternal(url:string){
+  if(window.NocturneNative?.openExternal){window.NocturneNative.openExternal(url);return}
+  window.open(url,"_blank","noopener,noreferrer");
 }
 export {};
