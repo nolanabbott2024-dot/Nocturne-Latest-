@@ -9,7 +9,7 @@ declare global {
 
 let ready=false;
 if(!ready){
-  init({debug:false,visualDebug:false,throttle:0,throttleKeypresses:false,distanceCalculationMethod:"center",shouldFocusDOMNode:true,domNodeFocusOptions:{preventScroll:true}});
+  init({debug:false,visualDebug:false,throttle:0,throttleKeypresses:false,distanceCalculationMethod:"center",shouldFocusDOMNode:false,focusOnPresetKey:true});
   ready=true;
 }
 
