@@ -5,7 +5,7 @@ import { TVRow } from "../tv/content/TVRow";
 import { TVTop10Row } from "../tv/content/TVTop10Row";
 import { TVContinueRow } from "../tv/content/TVContinueRow";
 import { useAddons,useCatalog } from "../data/queries";
-import { loadMeta } from "../data/stremio";
+import { isCinemetaCatalog,loadMetaEnriched } from "../data/stremio";
 import { continueWatching,type LibraryEntry } from "../data/library";
 import type { Catalog,MediaItem } from "../types/tv";
 import { useContentStore } from "../stores/contentStore";
@@ -18,7 +18,7 @@ export function CollectionPage({
  const addons=useAddons();
  const [libraryRevision,setLibraryRevision]=useState(0);
  useEffect(()=>{const sync=()=>setLibraryRevision(x=>x+1);window.addEventListener("nocturne-library-sync",sync);return()=>window.removeEventListener("nocturne-library-sync",sync)},[]);
- const catalogs=useMemo(()=>addons.flatMap(a=>a.catalogs).filter(c=>!type||c.type===type).slice(0,7),[addons,type]);
+ const catalogs=useMemo(()=>addons.flatMap(a=>a.catalogs).filter(c=>!isCinemetaCatalog(c)&&(!type||c.type===type)).slice(0,7),[addons,type]);
  const cont=useMemo(()=>route==="home"?continueWatching():[],[route,libraryRevision]);
  return <TVPage route={route} initialFocusKey={`${route}:hero:play`}>
    <Rows route={route} catalogs={catalogs} onOpen={onOpen} cont={cont} onResume={onResume}/>
@@ -34,9 +34,8 @@ function Rows({route,catalogs,onOpen,cont,onResume}:{
  const settleHero=(item:MediaItem)=>{
    setHero(route,item);
    metaAbort.current?.abort();
-   if(!item.sourceBase)return;
    const controller=new AbortController();metaAbort.current=controller;
-   loadMeta(item.sourceBase,item.type,item.id,controller.signal).then(full=>setHero(route,full)).catch(()=>{});
+   loadMetaEnriched(item,controller.signal).then(full=>setHero(route,full)).catch(()=>{});
  };
  return <>
    <TVHero item={hero} route={route} onPlay={()=>hero&&onOpen(hero)} onMore={()=>hero&&onOpen(hero)}/>
