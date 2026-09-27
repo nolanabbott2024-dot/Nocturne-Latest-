@@ -1,13 +1,14 @@
-import { useEffect,useState } from "react";
+import { useCallback,useEffect,useState } from "react";
 import { AnimatePresence } from "motion/react";
 import { TVPage } from "../tv/navigation/TVPage";
 import { TVDetailsHero } from "../tv/detail/TVDetailsHero";
 import { TVEpisodeRail } from "../tv/detail/TVEpisodeRail";
 import { SourcePicker } from "../tv/playback/SourcePicker";
+import { DetailsTrailerOverlay } from "../tv/playback/DetailsTrailerOverlay";
 import { useProviderStore } from "../stores/providerStore";
 import { loadMetaEnriched } from "../data/stremio";
 import { resolvePlayableStream, resolvePlayableSources, type PlayableSource } from "../data/playback";
-import { toggleWatchlist } from "../data/library";
+import { isWatchlisted,toggleWatchlist } from "../data/library";
 import type { MediaItem,Episode } from "../types/tv";
 
 export function DetailsPage({seed,onBack,onPlay}:{
@@ -16,40 +17,53 @@ export function DetailsPage({seed,onBack,onPlay}:{
 }){
  const [item,setItem]=useState(seed);
  const [busy,setBusy]=useState(false);
+ const [watchlisted,setWatchlisted]=useState(()=>isWatchlisted(seed.id));
  const [sources,setSources]=useState<{items:PlayableSource[];videoId:string}|null>(null);
+ const [trailerOpen,setTrailerOpen]=useState(false);
  const addons=useProviderStore(s=>s.addons);
  const route="details:"+item.id;
 
  useEffect(()=>{
-   const c=new AbortController();
-   loadMetaEnriched(seed,c.signal).then(setItem).catch(()=>{});
-   return()=>c.abort();
+   const controller=new AbortController();
+   loadMetaEnriched(seed,controller.signal).then(full=>setItem(full)).catch(()=>{});
+   return()=>controller.abort();
  },[seed.id,seed.sourceBase,seed.type]);
 
- const playSource=(source:PlayableSource,videoId:string)=>{
+ useEffect(()=>setWatchlisted(isWatchlisted(item.id)),[item.id]);
+
+ const playSource=useCallback((source:PlayableSource,videoId:string)=>{
    setSources(null);
    onPlay(source.url,item.name,source.headers||{},item,videoId);
- };
- const play=async(id=item.id)=>{
+ },[item,onPlay]);
+
+ const play=useCallback(async(id=item.id)=>{
    if(busy)return;setBusy(true);
-   const c=new AbortController();
+   const controller=new AbortController();
    try{
-     const source=await resolvePlayableStream(item,id,addons,c.signal);
+     const source=await resolvePlayableStream(item,id,addons,controller.signal);
      if(source)playSource(source,id);
    }finally{setBusy(false)}
- };
- const chooseSources=async(id=item.id)=>{
-   if(busy)return;setBusy(true);
-   const c=new AbortController();
-   try{setSources({items:await resolvePlayableSources(item,id,addons,c.signal),videoId:id})}
-   finally{setBusy(false)}
- };
+ },[busy,item,addons,playSource]);
 
- return <TVPage route={route}>
+ const chooseSources=useCallback(async(id=item.id)=>{
+   if(busy)return;setBusy(true);
+   const controller=new AbortController();
+   try{
+     const playable=await resolvePlayableSources(item,id,addons,controller.signal);
+     if(playable.length)setSources({items:playable,videoId:id});
+   }finally{setBusy(false)}
+ },[busy,item,addons]);
+
+ const toggle=useCallback(()=>setWatchlisted(toggleWatchlist(item)),[item]);
+
+ return <TVPage route={route} initialFocusKey={`${route}:action:play`}>
    <TVDetailsHero item={item} route={route}
-     onPlay={()=>play()} onWatchlist={()=>toggleWatchlist(item)}
-     onTrailer={()=>{}} onSources={()=>chooseSources()}/>
+     onPlay={()=>play()} onWatchlist={toggle} watchlisted={watchlisted}
+     onTrailer={()=>setTrailerOpen(true)} onSources={()=>chooseSources()}/>
    <TVEpisodeRail item={item} route={route} onPlay={(ep:Episode)=>play(ep.id)}/>
-   <AnimatePresence>{sources&&<SourcePicker sources={sources.items} route={route} onPick={s=>playSource(s,sources.videoId)} onClose={()=>setSources(null)}/>}</AnimatePresence>
+   <AnimatePresence>
+     {sources&&<SourcePicker sources={sources.items} route={route} onPick={s=>playSource(s,sources.videoId)} onClose={()=>setSources(null)}/>}
+     {trailerOpen&&<DetailsTrailerOverlay item={item} route={route} onClose={()=>setTrailerOpen(false)}/>}
+   </AnimatePresence>
  </TVPage>
 }
