@@ -12,21 +12,28 @@ function keepVerticallyComfortable(el:HTMLElement){
   if(r.top<top)page.scrollBy({top:r.top-top-24,behavior:"smooth"});
   else if(r.bottom>bottom)page.scrollBy({top:r.bottom-bottom+24,behavior:"smooth"});
 }
-export function TVRow({id,title,items,route,onOpen,onSettled,leftExitFocusKey}:{id:string;title:string;items:MediaItem[];route:string;onOpen:(m:MediaItem)=>void;onSettled?:(m:MediaItem)=>void}){
+export function TVRow({id,title,items,route,onOpen,onSettled}:{id:string;title:string;items:MediaItem[];route:string;onOpen:(m:MediaItem)=>void;onSettled?:(m:MediaItem)=>void}){
   const {ref,focusKey}=useFocusable({focusKey:`row:${route}:${id}`,trackChildren:true,saveLastFocusedChild:true});
   const scroller=useRef<HTMLDivElement|null>(null);
   const virtual=useVirtualizer({horizontal:true,count:items.length,getScrollElement:()=>scroller.current,estimateSize:()=>190,overscan:8});
-  const onCardFocus=useCallback((el:HTMLElement,_item:MediaItem,index:number)=>{
+  const onSpatialFocus=useCallback((layout:any,index:number)=>{
     const s=scroller.current;if(!s)return;
-    const r=el.getBoundingClientRect(),sr=s.getBoundingClientRect();
-    const center=r.left+r.width/2;
-    const left=sr.left+sr.width*SAFE_LEFT,right=sr.left+sr.width*SAFE_RIGHT;
-    if(center<left||center>right){
-      const desired=sr.left+sr.width*.5;
-      s.scrollBy({left:center-desired,behavior:"smooth"});
+    const el=(layout?.node||layout?.layout?.node) as HTMLElement|undefined;
+    if(el){
+      const r=el.getBoundingClientRect(),sr=s.getBoundingClientRect();
+      const center=r.left+r.width/2;
+      const left=sr.left+sr.width*SAFE_LEFT,right=sr.left+sr.width*SAFE_RIGHT;
+      if(center<left||center>right){
+        const desired=sr.left+sr.width*.5;
+        s.scrollBy({left:center-desired,behavior:"smooth"});
+      }
+      keepVerticallyComfortable(el);
+    }else if(typeof layout?.x==="number"){
+      const center=layout.x+(layout.width||190)/2;
+      const left=s.scrollLeft+s.clientWidth*SAFE_LEFT,right=s.scrollLeft+s.clientWidth*SAFE_RIGHT;
+      if(center<left||center>right)s.scrollTo({left:Math.max(0,center-s.clientWidth*.5),behavior:"smooth"});
     }
-    keepVerticallyComfortable(el);
-    // Pre-warm only the adjacent virtual window; never the entire catalog.
+    // Keep only the current neighborhood hot; overscan handles adjacent cards.
     virtual.scrollToIndex(index,{align:"auto"});
   },[virtual]);
   return <FocusContext.Provider value={focusKey}>
@@ -35,7 +42,7 @@ export function TVRow({id,title,items,route,onOpen,onSettled,leftExitFocusKey}:{
       <div className="tv-row-scroll" ref={scroller}>
         <div className="tv-row-inner" style={{width:virtual.getTotalSize(),height:320,position:"relative"}}>
           {virtual.getVirtualItems().map(v=><div key={items[v.index].id} style={{position:"absolute",left:v.start,top:0,width:v.size,paddingRight:18}}>
-            <TVPosterCard item={items[v.index]} route={route} rowId={id} index={v.index} onOpen={onOpen} onSettled={onSettled} onCardFocus={onCardFocus}/>
+            <TVPosterCard item={items[v.index]} route={route} rowId={id} onOpen={onOpen} onSettled={onSettled} onSpatialFocus={(layout)=>onSpatialFocus(layout,v.index)}/>
           </div>)}
         </div>
       </div>
