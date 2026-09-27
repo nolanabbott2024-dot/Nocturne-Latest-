@@ -7,9 +7,9 @@ import { useHorizontalRail } from "../navigation/useHorizontalRail";
 
 function focusKey(route:string,rowId:string,item:MediaItem){return `${route}:${rowId}:${item.type}:${item.id}`}
 
-export function TVRow({id,title,items,route,onOpen,onSettled,leftExitFocusKey}:{
+export function TVRow({id,title,items,route,onOpen,onFocused,onSettled,leftExitFocusKey}:{
   id:string;title:string;items:MediaItem[];route:string;
-  onOpen:(m:MediaItem)=>void;onSettled?:(m:MediaItem)=>void;leftExitFocusKey?:string
+  onOpen:(m:MediaItem)=>void;onFocused?:(m:MediaItem)=>void;onSettled?:(m:MediaItem)=>void;leftExitFocusKey?:string
 }){
   const {ref,focusKey:rowFocusKey}=useFocusable({focusKey:`row:${route}:${id}`,trackChildren:true,saveLastFocusedChild:true});
   const scroller=useRef<HTMLDivElement|null>(null);
@@ -31,7 +31,7 @@ export function TVRow({id,title,items,route,onOpen,onSettled,leftExitFocusKey}:{
       <div className="tv-row-scroll" ref={scroller}>
         <div className="tv-row-inner" style={{width:virtual.getTotalSize(),height:320,position:"relative"}}>
           {virtual.getVirtualItems().map(v=><div key={items[v.index].id} style={{position:"absolute",left:v.start,top:0,width:v.size,paddingRight:18}}>
-            <TVPosterCard item={items[v.index]} route={route} rowId={id} onOpen={onOpen} onSettled={onSettled}
+            <TVPosterCard item={items[v.index]} route={route} rowId={id} onOpen={onOpen} onFocused={onFocused} onSettled={onSettled}
               onSpatialFocus={rail.onFocus}
               onArrowPress={(direction)=>rail.onArrow(v.index,direction)}/>
           </div>)}
