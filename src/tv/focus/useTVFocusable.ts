@@ -6,16 +6,16 @@ export function useTVFocusable(opts:{
   route:string;
   rowId?:string;
   onPress?:()=>void;
-  onFocus?:()=>void;
+  onFocus?:(layout?:any,details?:any)=>void;
   onBlur?:()=>void;
 }){
   const setFocusState=useNavigationStore(s=>s.setFocus);
   return useFocusable({
     focusKey:opts.focusKey,
     onEnterPress:()=>opts.onPress?.(),
-    onFocus:()=>{
+    onFocus:(layout:any,details:any)=>{
       setFocusState(opts.focusKey,opts.route,opts.rowId);
-      opts.onFocus?.();
+      opts.onFocus?.(layout,details);
     },
     onBlur:()=>opts.onBlur?.()
   });
