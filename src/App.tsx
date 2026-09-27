@@ -1,4 +1,4 @@
-import { useEffect,useState } from "react";
+import { useEffect,useRef,useState } from "react";
 import { setFocus } from "@noriginmedia/norigin-spatial-navigation-core";
 import { AnimatePresence } from "motion/react";
 import { TVSidebar } from "./tv/navigation/TVSidebar";
@@ -8,7 +8,7 @@ import { SearchPage } from "./pages/SearchPage";
 import { LibraryPage } from "./pages/LibraryPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { DetailsPage } from "./pages/DetailsPage";
-import { TVVideo } from "./tv/playback/TVVideo";
+import { TVVideo,type TVVideoHandle } from "./tv/playback/TVVideo";
 import { PlayerControls } from "./tv/playback/PlayerControls";
 import { BackStack } from "./tv/navigation/BackStack";
 import { useNavigationStore } from "./stores/navigationStore";
@@ -24,6 +24,8 @@ export default function App(){
  const [route,setRoute]=useState<Route>({name:"home"});
  const [player,setPlayer]=useState<{src:string;title:string;headers?:Record<string,string>}|null>(null);
  const [controls,setControls]=useState(true);
+ const [browserPlaying,setBrowserPlaying]=useState(true);
+ const videoRef=useRef<TVVideoHandle|null>(null);
  const nav=useNavigationStore();
  const addons=useProviderStore(s=>s.addons);
  const go=(name:string)=>{BackStack.push({route:route.name,focusKey:nav.focusedKey,scrollY:nav.scrollHistory[route.name]?.y||0});setRoute({name})};
@@ -44,5 +46,5 @@ export default function App(){
    {route.name==="library"&&<LibraryPage key="library" onOpen={open}/>}
    {route.name==="settings"&&<SettingsPage key="settings"/>}
    {route.name==="details"&&route.item&&<DetailsPage key={route.item.id} seed={route.item} onBack={back} onPlay={(src,title,headers,item,videoId)=>{if(!playNative(src,title,headers||{},item,videoId))setPlayer({src,title,headers})}}/>}
- </AnimatePresence></div>{player&&<div className="player-layer" onMouseMove={()=>setControls(true)}><TVVideo src={player.src}/>{controls&&<><div className="player-title">{player.title}</div><PlayerControls route="player" playing onToggle={()=>{}} onBack10={()=>{}} onForward10={()=>{}}/></>}</div>}</div>
+ </AnimatePresence></div>{player&&<div className="player-layer" onMouseMove={()=>setControls(true)}><TVVideo ref={videoRef} src={player.src} headers={player.headers} onPlayingChange={setBrowserPlaying}/>{controls&&<><div className="player-title">{player.title}</div><PlayerControls route="player" playing={browserPlaying} onToggle={()=>setBrowserPlaying(videoRef.current?.toggle()??browserPlaying)} onBack10={()=>videoRef.current?.seekBy(-10)} onForward10={()=>videoRef.current?.seekBy(10)}/></>}</div>}</div>
 }
