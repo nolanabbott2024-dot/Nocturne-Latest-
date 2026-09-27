@@ -1,0 +1,1 @@
+export function FocusGlow(){return <span className="focus-glow" aria-hidden/>}
