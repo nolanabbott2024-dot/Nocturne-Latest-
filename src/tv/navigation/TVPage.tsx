@@ -1,6 +1,5 @@
 import { PropsWithChildren,useEffect,useRef } from "react";
-import { FocusContext,useFocusable } from "@noriginmedia/norigin-spatial-navigation";
-import { setFocus } from "@noriginmedia/norigin-spatial-navigation";
+import { FocusContext,useFocusable,setFocus,doesFocusableExist } from "@noriginmedia/norigin-spatial-navigation";
 import { motion } from "motion/react";
 import { useNavigationStore } from "../../stores/navigationStore";
 
@@ -14,10 +13,17 @@ export function TVPage({route,initialFocusKey,children}:PropsWithChildren<{route
     const el=node.current;if(!el)return;
     if(scroll)requestAnimationFrame(()=>el.scrollTo(scroll.x,scroll.y));
     const wanted=remembered||initialFocusKey||focusKey;
-    const id=requestAnimationFrame(()=>{void setFocus(wanted)});
+    let cancelled=false,timer:number|undefined,tries=0;
+    const restore=()=>{
+      if(cancelled)return;
+      if(doesFocusableExist(wanted)){void setFocus(wanted);return}
+      if(tries++<180){timer=window.setTimeout(restore,50);return}
+      void setFocus(focusKey);
+    };
+    const id=requestAnimationFrame(restore);
     const onScroll=()=>saveScroll(route,el.scrollLeft,el.scrollTop);
     el.addEventListener("scroll",onScroll,{passive:true});
-    return()=>{cancelAnimationFrame(id);el.removeEventListener("scroll",onScroll)};
+    return()=>{cancelled=true;cancelAnimationFrame(id);if(timer)clearTimeout(timer);el.removeEventListener("scroll",onScroll)};
   },[route,remembered,initialFocusKey,focusKey]);
   return <FocusContext.Provider value={focusKey}>
     <motion.main ref={(n)=>{(ref as any).current=n;node.current=n}} className="tv-page"
