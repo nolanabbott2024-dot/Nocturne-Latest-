@@ -1,4 +1,4 @@
-import { Play,Plus,Film } from "lucide-react";
+import { Play,Plus,Film,ListVideo } from "lucide-react";
 import { motion } from "motion/react";
 import { useTVFocusable } from "../focus/useTVFocusable";
 function Action({id,route,label,Icon,onPress,primary=false}:any){
@@ -8,6 +8,11 @@ function Action({id,route,label,Icon,onPress,primary=false}:any){
     <Icon size={20}/>{label}
   </motion.button>
 }
-export function TVActionBar({route,onPlay,onWatchlist,onTrailer}:{route:string;onPlay:()=>void;onWatchlist:()=>void;onTrailer:()=>void}){
-  return <div className="detail-actions"><Action id="play" route={route} label="Play" Icon={Play} onPress={onPlay} primary/><Action id="watchlist" route={route} label="Watchlist" Icon={Plus} onPress={onWatchlist}/><Action id="trailer" route={route} label="Trailer" Icon={Film} onPress={onTrailer}/></div>
+export function TVActionBar({route,onPlay,onWatchlist,onTrailer,onSources}:{route:string;onPlay:()=>void;onWatchlist:()=>void;onTrailer:()=>void;onSources:()=>void}){
+  return <div className="detail-actions">
+    <Action id="play" route={route} label="Play" Icon={Play} onPress={onPlay} primary/>
+    <Action id="watchlist" route={route} label="Watchlist" Icon={Plus} onPress={onWatchlist}/>
+    <Action id="sources" route={route} label="Sources" Icon={ListVideo} onPress={onSources}/>
+    <Action id="trailer" route={route} label="Trailer" Icon={Film} onPress={onTrailer}/>
+  </div>
 }
