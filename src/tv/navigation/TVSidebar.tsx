@@ -29,7 +29,11 @@ function SidebarItem({id,label,active,route,Icon,onPress,onFocus,onRight}:any){
     onArrowPress:(dir)=>{if(dir==="right"){onRight();return false}return true}
   });
   return <motion.button ref={ref as any} className={"sidebar-item "+(active?"active":"")}
-    animate={{scale:focused?1.04:1,backgroundColor:focused?"rgba(255,255,255,.96)":"rgba(255,255,255,0)"}}>
+    animate={{
+      scale:focused?1.04:1,
+      backgroundColor:focused?"rgba(255,255,255,.96)":"rgba(255,255,255,0)",
+      color:focused?"#08080a":"#ffffff"
+    }}>
     <Icon size={22}/><span>{label}</span>
   </motion.button>
 }
