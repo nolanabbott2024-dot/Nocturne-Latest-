@@ -13,6 +13,9 @@ import { BackStack } from "./tv/navigation/BackStack";
 import { useNavigationStore } from "./stores/navigationStore";
 import { installRemoteAdapter } from "./tv/navigation/remote";
 import type { MediaItem } from "./types/tv";
+import type { LibraryEntry } from "./data/library";
+import { resolvePlayableStream } from "./data/playback";
+import { useProviderStore } from "./stores/providerStore";
 import { playNative } from "./platform/native";
 
 type Route={name:string;item?:MediaItem};
@@ -21,12 +24,17 @@ export default function App(){
  const [player,setPlayer]=useState<{src:string;title:string}|null>(null);
  const [controls,setControls]=useState(true);
  const nav=useNavigationStore();
+ const addons=useProviderStore(s=>s.addons);
  const go=(name:string)=>{BackStack.push({route:route.name,focusKey:nav.focusedKey,scrollY:nav.scrollHistory[route.name]?.y||0});setRoute({name})};
  const open=(item:MediaItem)=>{BackStack.push({route:route.name,focusKey:nav.focusedKey,scrollY:nav.scrollHistory[route.name]?.y||0});setRoute({name:"details",item})};
+ const resume=async(e:LibraryEntry)=>{
+   const source=await resolvePlayableStream(e.item,e.videoId||e.item.id,addons);
+   if(source?.url){if(!playNative(source.url,e.item.name))setPlayer({src:source.url,title:e.item.name})}
+ };
  const back=()=>{if(player){if(controls){setControls(false);return}setPlayer(null);setControls(true);return}const snap=BackStack.pop();if(snap){setRoute({name:snap.route});setTimeout(()=>snap.focusKey&&useNavigationStore.getState().setFocus(snap.focusKey,snap.route),0)}};
  useEffect(()=>installRemoteAdapter((a)=>{if(a==="back")back();if(player&&a!=="back")setControls(true)}),[player,controls,route.name]);
  return <div className="app-shell"><TVSidebar route={route.name} onRoute={go}/><div className="app-content"><AnimatePresence mode="wait">
-   {route.name==="home"&&<CollectionPage key="home" route="home" onOpen={open}/>}
+   {route.name==="home"&&<CollectionPage key="home" route="home" onOpen={open} onResume={resume}/>}
    {route.name==="movies"&&<CollectionPage key="movies" route="movies" type="movie" onOpen={open}/>}
    {route.name==="shows"&&<CollectionPage key="shows" route="shows" type="series" onOpen={open}/>}
    {route.name==="discover"&&<DiscoverPage key="discover" onOpen={open}/>}
