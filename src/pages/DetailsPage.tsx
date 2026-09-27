@@ -11,11 +11,12 @@ import { toggleWatchlist } from "../data/library";
 import type { MediaItem,Episode } from "../types/tv";
 
 export function DetailsPage({seed,onBack,onPlay}:{
-  seed:MediaItem;onBack:()=>void;onPlay:(url:string,title:string,headers?:Record<string,string>)=>void
+  seed:MediaItem;onBack:()=>void;
+  onPlay:(url:string,title:string,headers:Record<string,string>,item:MediaItem,videoId:string)=>void
 }){
  const [item,setItem]=useState(seed);
  const [busy,setBusy]=useState(false);
- const [sources,setSources]=useState<PlayableSource[]|null>(null);
+ const [sources,setSources]=useState<{items:PlayableSource[];videoId:string}|null>(null);
  const addons=useProviderStore(s=>s.addons);
  const route="details:"+item.id;
 
@@ -26,22 +27,22 @@ export function DetailsPage({seed,onBack,onPlay}:{
    return()=>c.abort();
  },[seed.id,seed.sourceBase,seed.type]);
 
- const playSource=(source:PlayableSource)=>{
+ const playSource=(source:PlayableSource,videoId:string)=>{
    setSources(null);
-   onPlay(source.url,item.name,source.headers||{});
+   onPlay(source.url,item.name,source.headers||{},item,videoId);
  };
  const play=async(id=item.id)=>{
    if(busy)return;setBusy(true);
    const c=new AbortController();
    try{
      const source=await resolvePlayableStream(item,id,addons,c.signal);
-     if(source)playSource(source);
+     if(source)playSource(source,id);
    }finally{setBusy(false)}
  };
  const chooseSources=async(id=item.id)=>{
    if(busy)return;setBusy(true);
    const c=new AbortController();
-   try{setSources(await resolvePlayableSources(item,id,addons,c.signal))}
+   try{setSources({items:await resolvePlayableSources(item,id,addons,c.signal),videoId:id})}
    finally{setBusy(false)}
  };
 
@@ -50,6 +51,6 @@ export function DetailsPage({seed,onBack,onPlay}:{
      onPlay={()=>play()} onWatchlist={()=>toggleWatchlist(item)}
      onTrailer={()=>{}} onSources={()=>chooseSources()}/>
    <TVEpisodeRail item={item} route={route} onPlay={(ep:Episode)=>play(ep.id)}/>
-   <AnimatePresence>{sources&&<SourcePicker sources={sources} route={route} onPick={playSource} onClose={()=>setSources(null)}/>}</AnimatePresence>
+   <AnimatePresence>{sources&&<SourcePicker sources={sources.items} route={route} onPick={s=>playSource(s,sources.videoId)} onClose={()=>setSources(null)}/>}</AnimatePresence>
  </TVPage>
 }
