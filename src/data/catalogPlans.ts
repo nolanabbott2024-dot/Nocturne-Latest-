@@ -34,20 +34,29 @@ function roundRobin(groups:MediaItem[][],limit=70){
 function yearOf(x:MediaItem){const m=String(x.releaseInfo||"").match(/(19|20)\d{2}/);return m?Number(m[0]):0}
 function ratingOf(x:MediaItem){const n=Number(x.imdbRating);return Number.isFinite(n)?n:0}
 
+async function mapLimit<T,R>(items:T[],limit:number,work:(item:T)=>Promise<R>):Promise<R[]>{
+  const out=new Array<R>(items.length);let next=0;
+  const workers=Array.from({length:Math.min(limit,items.length)},async()=>{
+    while(true){
+      const i=next++;if(i>=items.length)return;
+      out[i]=await work(items[i]);
+    }
+  });
+  await Promise.all(workers);return out;
+}
 async function metas(ids:string[],signal?:AbortSignal){
-  const all=await Promise.all(ids.map(id=>loadMeta(CINEMETA_BASE,"movie",id,signal).catch(()=>null)));
+  const all=await mapLimit(ids,6,id=>loadMeta(CINEMETA_BASE,"movie",id,signal).catch(()=>null));
   return all.filter(Boolean) as MediaItem[];
 }
 async function enrich(items:MediaItem[],signal?:AbortSignal,limit=32){
   const base=uniq(items).slice(0,limit);
-  const all=await Promise.all(base.map(async x=>{
+  return mapLimit(base,6,async x=>{
     if(x.type!=="movie"&&x.type!=="series")return x;
     try{
       const m=await loadMeta(CINEMETA_BASE,x.type,x.id,signal);
       return {...x,...m,sourceBase:x.sourceBase};
     }catch{return x}
-  }));
-  return all;
+  });
 }
 
 export function dedupePlannedRows(rows:PlannedRow[],perRow=20){
