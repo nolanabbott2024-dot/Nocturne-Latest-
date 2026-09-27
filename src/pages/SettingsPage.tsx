@@ -6,6 +6,7 @@ import { TVDialog } from "../tv/feedback/TVDialog";
 import { useProviderStore } from "../stores/providerStore";
 import { useTVFocusable } from "../tv/focus/useTVFocusable";
 import { loadAddon } from "../data/stremio";
+import { useSettingsStore } from "../stores/settingsStore";
 
 function readSettings(){try{return JSON.parse(localStorage.getItem("settings")||"{}")}catch{return{}}}
 function writeSettings(next:any){localStorage.setItem("settings",JSON.stringify(next));window.dispatchEvent(new Event("nocturne-settings"))}
@@ -19,10 +20,9 @@ export function SettingsPage(){
  const [url,setUrl]=useState("");
  const [error,setError]=useState("");
  const [busy,setBusy]=useState(false);
- const [settings,setSettings]=useState(readSettings());
-
- useEffect(()=>{const fn=()=>setSettings(readSettings());window.addEventListener("nocturne-settings",fn);return()=>window.removeEventListener("nocturne-settings",fn)},[]);
- const update=(patch:any)=>{const next={...readSettings(),...patch};writeSettings(next);setSettings(next)};
+ const settings=useSettingsStore();
+ const patchSettings=useSettingsStore(s=>s.patch);
+ const update=(patch:any)=>{patchSettings(patch);writeSettings({...readSettings(),...patch})};
  const verifyInstall=async()=>{
    let target=url.trim().replace(/^stremio:\/\//i,"https://");
    if(!/^https?:\/\//i.test(target)){setError("Enter a complete addon URL.");return}
