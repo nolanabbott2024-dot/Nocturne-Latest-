@@ -13,7 +13,7 @@ export function CollectionPage({route,type,onOpen}:{route:string;type?:string;on
 }
 function Rows({route,catalogs,onOpen}:{route:string;catalogs:Catalog[];onOpen:(m:MediaItem)=>void}){
  const hero=useContentStore(s=>s.heroByRoute[route]); const setHero=useContentStore(s=>s.setHero);
- return <><TVHero item={hero} route={route} onPlay={()=>hero&&onOpen(hero)} onMore={()=>hero&&onOpen(hero)}/><div className="rows">{catalogs.map((c,i)=><CatalogRow key={c.baseUrl+c.id} c={c} route={route} onOpen={onOpen} onSettled={(m)=>setHero(route,m)} first={i===0}/>)}</div></>
+ return <><TVHero item={hero} route={route} onPlay={()=>hero&&onOpen(hero)} onMore={()=>hero&&onOpen(hero)}/><div className="rows">{catalogs.map((c,i)=><CatalogRow key={c.baseUrl+c.id} c={c} route={route} onOpen={onOpen} onSettled={(m:MediaItem)=>setHero(route,m)} first={i===0}/>)}</div></>
 }
 function CatalogRow({c,route,onOpen,onSettled,first}:any){
  const q=useCatalog(c); const items=q.data||[];
