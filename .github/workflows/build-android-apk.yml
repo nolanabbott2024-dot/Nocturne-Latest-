@@ -13,6 +13,10 @@ on:
       - "vite.config.ts"
       - ".github/workflows/build-android-apk.yml"
 
+concurrency:
+  group: nocturne-android-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
