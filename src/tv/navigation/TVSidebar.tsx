@@ -19,7 +19,7 @@ export function TVSidebar({route,onRoute}:{route:string;onRoute:(r:string)=>void
       {ITEMS.map(([id,label,Icon])=><SidebarItem key={id} id={id} label={label} active={route===id} route={route} Icon={Icon}
         onPress={()=>onRoute(id)}
         onFocus={()=>{const s=useNavigationStore.getState();const prior=s.previousFocusedKey;if(prior&&!prior.startsWith("sidebar:"))saveContent(prior)}}
-        onRight={()=>{const target=useNavigationStore.getState().contentFocusKey||contentFocus;if(target)void setFocus(target)}}/>)}
+        onRight={()=>{const target=useNavigationStore.getState().contentFocusKey||contentFocus;if(target)requestAnimationFrame(()=>void setFocus(target))}}/>)}
     </motion.aside>
   </FocusContext.Provider>
 }
