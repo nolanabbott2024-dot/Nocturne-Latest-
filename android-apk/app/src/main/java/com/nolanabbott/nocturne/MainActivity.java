@@ -59,6 +59,7 @@ public class MainActivity extends Activity {
     private ScrollView scroller;
     private StremioClient.Item featured;
     private String typeFilter;
+    private Runnable pendingPreview;
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -102,8 +103,8 @@ public class MainActivity extends Activity {
         addNav(nav, "TV Shows", () -> { typeFilter = "series"; buildHome(); });
         addNav(nav, "Sports", () -> { typeFilter = "__sports"; buildHome(); });
         addNav(nav, "Library", this::showLibrary);
-        addNav(nav, "⌕", this::showSearch);
-        addNav(nav, "⚙", this::showSettings);
+        addNav(nav, "⌕", this::showSearchPage);
+        addNav(nav, "⚙", this::showSettingsPage);
         return navScroll;
     }
 
@@ -161,6 +162,9 @@ public class MainActivity extends Activity {
         heroTitle = label("NOCTURNE", isTv() ? 48 : 38, Color.WHITE); heroTitle.setTypeface(null, 1); copy.addView(heroTitle);
         heroMeta = label("Native Stremio catalog player", 13, 0xFFE3E4E8); heroMeta.setPadding(0, dp(6), 0, dp(7)); copy.addView(heroMeta);
         heroDescription = label("Your installed catalogs update this screen automatically.", 14, 0xFFF2F2F4); heroDescription.setMaxLines(2); copy.addView(heroDescription);
+        LinearLayout actions = new LinearLayout(this); actions.setPadding(0, dp(15), 0, 0); copy.addView(actions);
+        TextView play = glassButton("▶  Play", true); play.setOnClickListener(v -> { if (featured != null) openDetails(featured); }); actions.addView(play, margins(-2, dp(48), 0, 0, 10, 0));
+        TextView info = glassButton("More Info", false); info.setOnClickListener(v -> { if (featured != null) openDetails(featured); }); actions.addView(info, margins(-2, dp(48), 0, 0, 0, 0));
         return hero;
     }
 
@@ -196,7 +200,8 @@ public class MainActivity extends Activity {
         box.setOnFocusChangeListener((v, has) -> {
             v.animate().scaleX(has ? 1.08f : 1f).scaleY(has ? 1.08f : 1f).translationZ(has ? dp(10) : 0).setDuration(180).start();
             poster.setBackground(glass(has ? 0xFF323847 : 0xFF171923, 18, has ? 0xCCFFFFFF : 0x30FFFFFF));
-            if (has){if(!prefs.getBoolean("reducedMotion",false))ui.postDelayed(()->{if(box.hasFocus())startCardPreview(item,media,width,height);},5000);}else stopCardPreview(media,width,height);
+            if (pendingPreview != null) ui.removeCallbacks(pendingPreview);
+            if (has){if(!prefs.getBoolean("reducedMotion",false)){pendingPreview=()->{if(box.hasFocus())startCardPreview(item,media,width,height);};ui.postDelayed(pendingPreview,5000);}}else stopCardPreview(media,width,height);
         });
         box.setOnClickListener(v -> openDetails(knownItems.containsKey(key(item)) ? knownItems.get(key(item)) : item));
         return withMargins(box, 0, 0, 14, 0);
@@ -204,7 +209,7 @@ public class MainActivity extends Activity {
 
     private void startCardPreview(StremioClient.Item seed,FrameLayout media,int normalW,int normalH){StremioClient.Item cached=knownItems.get(key(seed));if(cached!=null&&cached.trailerUrl!=null){playCardPreview(cached,media);return;}enrich(seed,full->{knownItems.put(key(full),full);if(media.getParent()!=null&&((View)media.getParent()).hasFocus()&&full.trailerUrl!=null)playCardPreview(full,media);});}
     private void playCardPreview(StremioClient.Item item,FrameLayout media){if(media.getChildCount()>1)return;LinearLayout.LayoutParams lp=(LinearLayout.LayoutParams)media.getLayoutParams();lp.width=dp(isTv()?390:330);lp.height=dp(isTv()?219:186);media.setLayoutParams(lp);VideoView v=new VideoView(this);v.setVideoURI(Uri.parse(item.trailerUrl));v.setOnPreparedListener(mp->{mp.setLooping(true);mp.setVolume(0f,0f);v.start();});media.addView(v,new FrameLayout.LayoutParams(-1,-1));}
-    private void stopCardPreview(FrameLayout media,int w,int h){ui.removeCallbacksAndMessages(null);if(media.getChildCount()>1){View v=media.getChildAt(1);if(v instanceof VideoView)((VideoView)v).stopPlayback();media.removeViewAt(1);}LinearLayout.LayoutParams lp=(LinearLayout.LayoutParams)media.getLayoutParams();lp.width=w;lp.height=h;media.setLayoutParams(lp);}
+    private void stopCardPreview(FrameLayout media,int w,int h){if(media.getChildCount()>1){View v=media.getChildAt(1);if(v instanceof VideoView)((VideoView)v).stopPlayback();media.removeViewAt(1);}LinearLayout.LayoutParams lp=(LinearLayout.LayoutParams)media.getLayoutParams();lp.width=w;lp.height=h;media.setLayoutParams(lp);}
 
     private void setFeatured(StremioClient.Item item) {
         featured = item; heroTitle.setText(item.name); heroMeta.setText(metaLine(item));
@@ -227,9 +232,9 @@ public class MainActivity extends Activity {
         if (item.sourceBase != null) synchronized (addons) {
             for (StremioClient.Addon a : addons) if (item.sourceBase.equals(a.baseUrl) && a.resources.contains("meta")) { metaAddon = a; break; }
         }
-        if (metaAddon == null) metaAddon = firstResource("meta"); if (metaAddon == null) return;
+        if (metaAddon == null) metaAddon = firstResource("meta"); if (metaAddon == null) { callback.done(item); return; }
         StremioClient.Addon selected = metaAddon;
-        network.execute(() -> { try { StremioClient.Item full = StremioClient.loadMeta(selected, item.type, item.id); runOnUiThread(() -> callback.done(full)); } catch (Exception ignored) { } });
+        network.execute(() -> { try { StremioClient.Item full = StremioClient.loadMeta(selected, item.type, item.id); runOnUiThread(() -> callback.done(full)); } catch (Exception ignored) { runOnUiThread(() -> callback.done(item)); } });
     }
 
     private void openDetails(StremioClient.Item seed) {
@@ -298,6 +303,28 @@ public class MainActivity extends Activity {
         EditText query = new EditText(this); query.setHint("Movie or series"); query.setSingleLine(true); query.setInputType(InputType.TYPE_CLASS_TEXT); query.setPadding(dp(18), dp(16), dp(18), dp(16));
         AlertDialog d = new AlertDialog.Builder(this,AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle("Search your catalogs").setView(query).setPositiveButton("Search", null).setNegativeButton("Cancel", null).create();
         d.setOnShowListener(x -> d.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> { String q = query.getText().toString().trim(); if (!q.isEmpty()) { saveSearch(q);d.dismiss(); runSearch(q); } })); d.show();
+    }
+
+    private void showSearchPage() {
+        resetPage();
+        TextView title = label("Search", 34, Color.WHITE); title.setTypeface(null, 1); page.addView(title, margins(-1, -2, 0, 25, 0, 8));
+        TextView hint = muted("Find movies and shows across your installed catalogs."); page.addView(hint);
+        EditText input = new EditText(this); input.setSingleLine(true); input.setHint("Search titles"); input.setTextColor(Color.WHITE); input.setHintTextColor(0xFFBFC1CB);
+        input.setBackground(glass(0xA8323540, 22, 0x88FFFFFF)); input.setPadding(dp(24), 0, dp(24), 0); page.addView(input, margins(isTv()?dp(600):-1, dp(64), 0, 14, 0, 16));
+        TextView go = glassButton("Search Catalogs", true); go.setOnClickListener(v -> { String q=input.getText().toString().trim(); if (!q.isEmpty()) { saveSearch(q); runSearch(q); } }); page.addView(go, margins(dp(210), dp(54), 0, 0, 0, 20));
+        input.setOnEditorActionListener((v, action, event) -> { go.performClick(); return true; });
+        try { JSONArray recent = new JSONArray(prefs.getString("searchHistory", "[]")); if (recent.length()>0) {TextView h=label("Recent Searches",21,Color.WHITE);h.setTypeface(null,1);page.addView(h,margins(-1,-2,0,25,0,8));for(int i=0;i<Math.min(6,recent.length());i++){String q=recent.optString(i);TextView b=glassButton(q,false);b.setOnClickListener(v->runSearch(q));page.addView(b,margins(-2,dp(48),0,7,0,0));}} } catch(Exception ignored) { }
+        scroller.scrollTo(0,0);
+    }
+
+    private void showSettingsPage() {
+        resetPage();
+        TextView title=label("Settings & Add-ons",34,Color.WHITE);title.setTypeface(null,1);page.addView(title,margins(-1,-2,0,25,0,8));
+        TextView description=muted("Manage catalog rows, playback, sources, and Stremio addons on this device.");page.addView(description);
+        String[] names={"Catalog & Stream Add-ons","Catalog Rows","Playback & Interface","Source Preferences","Clear Search History"};
+        Runnable[] actions={this::showAddons,this::showCatalogSettings,this::showPlaybackSettings,this::showSourceSettings,()->{prefs.edit().remove("searchHistory").apply();Toast.makeText(this,"Search history cleared",Toast.LENGTH_SHORT).show();}};
+        for(int i=0;i<names.length;i++){TextView button=glassButton(names[i],false);button.setGravity(Gravity.CENTER_VERTICAL|Gravity.LEFT);button.setPadding(dp(24),0,dp(24),0);button.setOnClickListener(v->actions[((Integer)v.getTag())].run());button.setTag(i);page.addView(button,margins(isTv()?dp(530):-1,dp(62),0,8,0,0));}
+        scroller.scrollTo(0,0);
     }
 
     private void runSearch(String query) {
