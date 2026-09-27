@@ -91,15 +91,32 @@ public class MainActivity extends Activity {
                 descriptors.put(d);
             }
 
+            JSONObject uiSettings = new JSONObject();
+            uiSettings.put("preferredQuality", store.device.getString("preferredQuality", "Auto"));
+            uiSettings.put("maxSizeGB", store.device.getFloat("maxSizeGB", 50f));
+            uiSettings.put("excludeKeywords", store.device.getString("excludeKeywords", ""));
+            uiSettings.put("dedupe", store.device.getBoolean("dedupe", true));
+            uiSettings.put("subtitlesLanguage", store.device.getString("subtitleLanguage", "eng"));
+            uiSettings.put("audioLanguage", store.device.getString("audioLanguage", "eng"));
+            uiSettings.put("seekSeconds", store.device.getInt("seekSeconds", 10));
+            uiSettings.put("reducedMotion", store.device.getBoolean("reducedMotion", false));
+            uiSettings.put("previewAudio", store.device.getBoolean("previewAudio", true));
+            uiSettings.put("previews", store.device.getBoolean("previews", true));
+
             String json = descriptors.toString();
+            String settingsJson = uiSettings.toString();
             String script =
                 "(function(){" +
                 "try{" +
+                "var changed=false;" +
                 "var current=localStorage.getItem('addonDescriptors');" +
                 "if(!current||current==='[]'){" +
-                "localStorage.setItem('addonDescriptors'," + JSONObject.quote(json) + ");" +
-                "location.reload();" +
+                "localStorage.setItem('addonDescriptors'," + JSONObject.quote(json) + ");changed=true;" +
                 "}" +
+                "if(!localStorage.getItem('settings')){" +
+                "localStorage.setItem('settings'," + JSONObject.quote(settingsJson) + ");changed=true;" +
+                "}" +
+                "if(changed)location.reload();" +
                 "}catch(e){}" +
                 "})();";
             web.evaluateJavascript(script, null);
