@@ -20,8 +20,23 @@ const TOP_GUN=["tt0092099","tt1745960"];
 const ALIEN=["tt0078748","tt0084787","tt0090605","tt0103644","tt2316204","tt1446714","tt18412256"];
 const MATRIX=["tt0133093","tt0234215","tt0242653","tt10838180"];
 
+function normalizedTitle(item:MediaItem){
+  const title=String(item.name||"")
+    .toLowerCase().normalize("NFKD")
+    .replace(/\([^)]*\b(?:19|20)\d{2}[^)]*\)/g," ")
+    .replace(/\blibrary\b/g," ")
+    .replace(/[^a-z0-9]+/g," ").trim();
+  const year=yearOf(item);
+  return `${item.type}:${title}:${year||""}`;
+}
 function uniq(items:MediaItem[]){
-  const seen=new Set<string>();return items.filter(x=>x.id&&!seen.has(x.id)&&(seen.add(x.id),true));
+  const ids=new Set<string>(),titles=new Set<string>();
+  return items.filter(x=>{
+    if(!x.id)return false;
+    const titleKey=normalizedTitle(x);
+    if(ids.has(x.id)||titles.has(titleKey))return false;
+    ids.add(x.id);titles.add(titleKey);return true;
+  });
 }
 function roundRobin(groups:MediaItem[][],limit=70){
   const out:MediaItem[]=[];let i=0;
@@ -63,9 +78,13 @@ export function dedupePlannedRows(rows:PlannedRow[],perRow=20){
   const curated=new Set(["mcu","star-wars","harry-potter","horror-icons","mission-impossible","nolan","top-gun","alien","matrix"]);
   const priority=(r:PlannedRow)=>curated.has(r.id)?0:r.kind==="top10"?1:2;
   const indexed=rows.map((r,i)=>({r,i})).sort((a,b)=>priority(a.r)-priority(b.r)||a.i-b.i);
-  const used=new Set<string>();const resolved=new Map<string,MediaItem[]>();
+  const usedIds=new Set<string>(),usedTitles=new Set<string>();const resolved=new Map<string,MediaItem[]>();
   for(const {r} of indexed){
-    const items=r.items.filter(x=>{if(used.has(x.id))return false;used.add(x.id);return true}).slice(0,perRow);
+    const items=uniq(r.items).filter(x=>{
+      const titleKey=normalizedTitle(x);
+      if(usedIds.has(x.id)||usedTitles.has(titleKey))return false;
+      usedIds.add(x.id);usedTitles.add(titleKey);return true;
+    }).slice(0,perRow);
     resolved.set(r.id,items);
   }
   return rows.map(r=>({...r,items:resolved.get(r.id)||[]})).filter(r=>r.items.length>=3);
