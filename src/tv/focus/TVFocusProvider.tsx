@@ -1,10 +1,10 @@
 import { PropsWithChildren, useEffect } from "react";
-import { initNavigation, setFocus } from "@noriginmedia/norigin-spatial-navigation";
+import { init, setFocus } from "@noriginmedia/norigin-spatial-navigation-core";
 import { useNavigationStore } from "../../stores/navigationStore";
 
 let ready=false;
 if(!ready){
-  initNavigation({debug:false,visualDebugger:false,nativeMode:false});
+  init({debug:false,visualDebug:false,nativeMode:false,throttle:0,throttleKeypresses:false,distanceCalculationMethod:"center"});
   ready=true;
 }
 
