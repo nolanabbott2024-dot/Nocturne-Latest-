@@ -1,4 +1,4 @@
-import { FocusContext,useFocusable } from "@noriginmedia/norigin-spatial-navigation-react";
+import { FocusContext,useFocusable } from "@noriginmedia/norigin-spatial-navigation";
 import type { PropsWithChildren } from "react";
 export function FocusBoundary({id,children,preferredChildFocusKey,trap=false}:{
   id:string;preferredChildFocusKey?:string;trap?:boolean
