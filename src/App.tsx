@@ -1,4 +1,5 @@
 import { useEffect,useState } from "react";
+import { setFocus } from "@noriginmedia/norigin-spatial-navigation-core";
 import { AnimatePresence } from "motion/react";
 import { TVSidebar } from "./tv/navigation/TVSidebar";
 import { CollectionPage } from "./pages/CollectionPage";
@@ -33,6 +34,7 @@ export default function App(){
  };
  const back=()=>{if(player){if(controls){setControls(false);return}setPlayer(null);setControls(true);return}const snap=BackStack.pop();if(snap){setRoute({name:snap.route});setTimeout(()=>snap.focusKey&&useNavigationStore.getState().setFocus(snap.focusKey,snap.route),0)}};
  useEffect(()=>installRemoteAdapter((a)=>{if(a==="back")back();if(player&&a!=="back")setControls(true)}),[player,controls,route.name]);
+ useEffect(()=>{if(player&&controls){const id=requestAnimationFrame(()=>{void setFocus("player:player:play")});return()=>cancelAnimationFrame(id)}},[player,controls]);
  return <div className="app-shell"><TVSidebar route={route.name} onRoute={go}/><div className="app-content"><AnimatePresence mode="wait">
    {route.name==="home"&&<CollectionPage key="home" route="home" onOpen={open} onResume={resume}/>}
    {route.name==="movies"&&<CollectionPage key="movies" route="movies" type="movie" onOpen={open}/>}
