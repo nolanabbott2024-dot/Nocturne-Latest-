@@ -30,7 +30,7 @@ export default function App(){
  const open=(item:MediaItem)=>{BackStack.push({route:route.name,focusKey:nav.focusedKey,scrollY:nav.scrollHistory[route.name]?.y||0});setRoute({name:"details",item})};
  const resume=async(e:LibraryEntry)=>{
    const source=await resolvePlayableStream(e.item,e.videoId||e.item.id,addons);
-   if(source?.url){if(!playNative(source.url,e.item.name,source.headers||{}))setPlayer({src:source.url,title:e.item.name,headers:source.headers})}
+   if(source?.url){if(!playNative(source.url,e.item.name,source.headers||{},e.item,e.videoId||e.item.id))setPlayer({src:source.url,title:e.item.name,headers:source.headers})}
  };
  const back=()=>{if(player){if(controls){setControls(false);return}setPlayer(null);setControls(true);return}const snap=BackStack.pop();if(snap){setRoute({name:snap.route});setTimeout(()=>snap.focusKey&&useNavigationStore.getState().setFocus(snap.focusKey,snap.route),0)}};
  useEffect(()=>installRemoteAdapter((a)=>{if(a==="back")back();if(player&&a!=="back")setControls(true)}),[player,controls,route.name]);
@@ -43,6 +43,6 @@ export default function App(){
    {route.name==="search"&&<SearchPage key="search" onOpen={open}/>}
    {route.name==="library"&&<LibraryPage key="library" onOpen={open}/>}
    {route.name==="settings"&&<SettingsPage key="settings"/>}
-   {route.name==="details"&&route.item&&<DetailsPage key={route.item.id} seed={route.item} onBack={back} onPlay={(src,title,headers)=>{if(!playNative(src,title,headers||{}))setPlayer({src,title,headers})}}/>}
+   {route.name==="details"&&route.item&&<DetailsPage key={route.item.id} seed={route.item} onBack={back} onPlay={(src,title,headers,item,videoId)=>{if(!playNative(src,title,headers||{},item,videoId))setPlayer({src,title,headers})}}/>}
  </AnimatePresence></div>{player&&<div className="player-layer" onMouseMove={()=>setControls(true)}><TVVideo src={player.src}/>{controls&&<><div className="player-title">{player.title}</div><PlayerControls route="player" playing onToggle={()=>{}} onBack10={()=>{}} onForward10={()=>{}}/></>}</div>}</div>
 }
