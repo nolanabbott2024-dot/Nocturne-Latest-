@@ -13,6 +13,7 @@ import { BackStack } from "./tv/navigation/BackStack";
 import { useNavigationStore } from "./stores/navigationStore";
 import { installRemoteAdapter } from "./tv/navigation/remote";
 import type { MediaItem } from "./types/tv";
+import { playNative } from "./platform/native";
 
 type Route={name:string;item?:MediaItem};
 export default function App(){
@@ -32,6 +33,6 @@ export default function App(){
    {route.name==="search"&&<SearchPage key="search" onOpen={open}/>}
    {route.name==="library"&&<LibraryPage key="library" onOpen={open}/>}
    {route.name==="settings"&&<SettingsPage key="settings"/>}
-   {route.name==="details"&&route.item&&<DetailsPage key={route.item.id} seed={route.item} onBack={back} onPlay={(src,title)=>setPlayer({src,title})}/>}
+   {route.name==="details"&&route.item&&<DetailsPage key={route.item.id} seed={route.item} onBack={back} onPlay={(src,title)=>{if(!playNative(src,title))setPlayer({src,title})}}/>}
  </AnimatePresence></div>{player&&<div className="player-layer" onMouseMove={()=>setControls(true)}><TVVideo src={player.src}/>{controls&&<><div className="player-title">{player.title}</div><PlayerControls route="player" playing onToggle={()=>{}} onBack10={()=>{}} onForward10={()=>{}}/></>}</div>}</div>
 }
