@@ -18,7 +18,7 @@ export function TVSidebar({route,onRoute}:{route:string;onRoute:(r:string)=>void
       animate={{width:hasFocusedChild?250:72}} transition={{type:"spring",stiffness:380,damping:34}}>
       {ITEMS.map(([id,label,Icon])=><SidebarItem key={id} id={id} label={label} active={route===id} Icon={Icon}
         onPress={()=>onRoute(id)}
-        onFocus={()=>{const current=useNavigationStore.getState().focusedKey;if(current&&!current.startsWith("sidebar:"))saveContent(current)}}
+        onFocus={()=>{const s=useNavigationStore.getState();const prior=s.previousFocusedKey;if(prior&&!prior.startsWith("sidebar:"))saveContent(prior)}}
         onRight={()=>{if(contentFocus)try{setFocus(contentFocus)}catch{}}}/>)}
     </motion.aside>
   </FocusContext.Provider>
