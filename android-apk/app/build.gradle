@@ -10,8 +10,8 @@ android {
         applicationId "com.nolanabbott.nocturne"
         minSdk 23
         targetSdk 35
-        versionCode 4
-        versionName "3.1.0-ui-fix"
+        versionCode 5
+        versionName "3.2.0-native-navigation"
     }
 
     buildTypes {
