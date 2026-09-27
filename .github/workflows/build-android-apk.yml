@@ -26,13 +26,47 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
+      - name: Restore persistent debug signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: nocturne-debug-signing-v4
       - name: Install Android platform
         run: |
           SDKMANAGER="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}/cmdline-tools/latest/bin/sdkmanager"
           yes | "$SDKMANAGER" --licenses >/dev/null || true
           "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
       - name: Build debug APK
-        run: gradle :app:assembleDebug --stacktrace
+        run: |
+          mkdir -p app/src/androidTest/assets
+          ffmpeg -loglevel error -f lavfi -i testsrc2=size=320x180:rate=15 -f lavfi -i sine=frequency=440:sample_rate=44100 -t 20 -c:v libx264 -preset fast -crf 36 -pix_fmt yuv420p -c:a aac -b:a 32k -movflags +faststart -y app/src/androidTest/assets/sample.mp4
+          gradle :app:assembleDebug :app:assembleDebugAndroidTest --stacktrace
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Verify native screens and playback
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          target: default
+          arch: x86_64
+          profile: tv_1080p
+          disable-animations: true
+          working-directory: android-apk
+          script: |
+            gradle :app:connectedDebugAndroidTest --stacktrace
+            adb pull /sdcard/Android/data/com.nolanabbott.nocturne/files/screenshots app/build/screenshots
+      - name: Upload verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nocturne-TV-verification
+          path: |
+            android-apk/app/build/reports/androidTests
+            android-apk/app/build/outputs/androidTest-results
+            android-apk/app/build/screenshots
       - name: Rename APK
         run: cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/Nocturne-TV.apk
       - uses: actions/upload-artifact@v4

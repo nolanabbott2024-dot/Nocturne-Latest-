@@ -1,471 +1,91 @@
 package com.nolanabbott.nocturne;
 
-import android.app.Activity;
-import android.app.AlertDialog;
-import android.app.Dialog;
-import android.content.Intent;
-import android.content.SharedPreferences;
+import android.app.*;
+import android.content.*;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
+import android.os.*;
 import android.text.InputType;
-import android.view.Gravity;
-import android.view.KeyEvent;
-import android.view.View;
-import android.view.ViewGroup;
-import android.view.Window;
-import android.view.WindowManager;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.FrameLayout;
-import android.widget.HorizontalScrollView;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.ProgressBar;
-import android.widget.ScrollView;
-import android.widget.TextView;
-import android.widget.Toast;
-import android.widget.VideoView;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
+import android.view.*;
+import android.widget.*;
+import org.json.*;
+import java.util.*;
 
 public class MainActivity extends Activity {
-    private static final String PREFS = "nocturne_native";
-    private final ExecutorService network = Executors.newFixedThreadPool(6);
-    private final ImageLoader images = new ImageLoader();
-    private final Handler ui = new Handler(Looper.getMainLooper());
-    private final List<StremioClient.Addon> addons = Collections.synchronizedList(new ArrayList<>());
-    private final Map<String, StremioClient.Item> knownItems = Collections.synchronizedMap(new LinkedHashMap<>());
-    private SharedPreferences prefs;
-    private FrameLayout root;
-    private ImageView backdrop, heroLogo;
-    private TextView heroTitle, heroMeta, heroDescription, status;
-    private LinearLayout page;
-    private ScrollView scroller;
-    private StremioClient.Item featured;
-    private String typeFilter;
-    private Runnable pendingPreview;
-
-    @Override protected void onCreate(Bundle state) {
-        super.onCreate(state);
-        prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
-        getWindow().setStatusBarColor(Color.TRANSPARENT); getWindow().setNavigationBarColor(Color.BLACK);
-        buildShell(); loadAddons(); immersive();
-    }
-
-    private void buildShell() {
-        root = new FrameLayout(this); root.setBackgroundColor(Color.rgb(3, 4, 8));
-        backdrop = new ImageView(this); backdrop.setScaleType(ImageView.ScaleType.CENTER_CROP); backdrop.setAlpha(.74f);
-        root.addView(backdrop, new FrameLayout.LayoutParams(-1, -1));
-        View shade = new View(this); GradientDrawable shadeBg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
-                new int[]{0x4D000000, 0x72000000, 0xFA05060A}); shade.setBackground(shadeBg);
-        root.addView(shade, new FrameLayout.LayoutParams(-1, -1));
-
-        scroller = new ScrollView(this); scroller.setFillViewport(true); scroller.setClipToPadding(false);
-        page = new LinearLayout(this); page.setOrientation(LinearLayout.VERTICAL); page.setPadding(dp(34), dp(18), dp(20), dp(70));
-        scroller.addView(page, new ScrollView.LayoutParams(-1, -2)); root.addView(scroller);
-        setContentView(root);
-        showLoading("Connecting to catalogs…");
-    }
-
-    // Navigation belongs to the scroll document, never on top of focused catalog cards.
-    private void resetPage() {
-        page.removeAllViews();
-        LinearLayout navHolder = new LinearLayout(this); navHolder.setGravity(Gravity.CENTER);
-        navHolder.addView(buildNavigation());
-        page.addView(navHolder, margins(-1, dp(62), 0, 0, 0, 18));
-    }
-
-    private View buildNavigation() {
-        HorizontalScrollView navScroll = new HorizontalScrollView(this); navScroll.setHorizontalScrollBarEnabled(false);
-        LinearLayout.LayoutParams nlp = new LinearLayout.LayoutParams(dp(isTv()?720:650), dp(54));
-        navScroll.setLayoutParams(nlp); navScroll.setBackground(glass(0xA6222328, 28, 0x55FFFFFF));
-        LinearLayout nav = new LinearLayout(this); nav.setGravity(Gravity.CENTER); nav.setPadding(dp(8), 0, dp(8), 0);
-        navScroll.addView(nav, new HorizontalScrollView.LayoutParams(-1, -1));
-        addNav(nav, "Watch Now", () -> { typeFilter = null; buildHome(); });
-        TextView brand=glassButton("Nocturne",true); brand.setTypeface(null,1); brand.setOnClickListener(v->{typeFilter=null;buildHome();}); nav.addView(brand,margins(-2,dp(42),3,0,3,0));
-        addNav(nav, "Movies", () -> { typeFilter = "movie"; buildHome(); });
-        addNav(nav, "TV Shows", () -> { typeFilter = "series"; buildHome(); });
-        addNav(nav, "Sports", () -> { typeFilter = "__sports"; buildHome(); });
-        addNav(nav, "Library", this::showLibrary);
-        addNav(nav, "⌕", this::showSearchPage);
-        addNav(nav, "⚙", this::showSettingsPage);
-        return navScroll;
-    }
-
-    private void addNav(LinearLayout nav, String text, Runnable action) {
-        TextView b = navButton(text); b.setOnClickListener(v -> action.run()); nav.addView(b, margins(-2, dp(42), 2, 0, 2, 0));
-    }
-
-    private void loadAddons() {
-        addons.clear();
-        List<String> urls = manifestUrls(); AtomicInteger pending = new AtomicInteger(urls.size()); List<String> failures = Collections.synchronizedList(new ArrayList<>());
-        if (urls.isEmpty()) { urls.add(StremioClient.CINEMETA); saveManifestUrls(urls); pending.set(1); }
-        for (String url : urls) network.execute(() -> {
-            try { addons.add(StremioClient.loadAddon(url)); } catch (Exception e) { failures.add(shortHost(url) + ": " + e.getMessage()); }
-            if (pending.decrementAndGet() == 0) runOnUiThread(() -> {
-                if (addons.isEmpty()) showError("No catalogs connected", failures.isEmpty() ? "Add a Stremio manifest in Settings." : failures.get(0));
-                else { buildHome(); if (!failures.isEmpty()) Toast.makeText(this, failures.size() + " addon failed to update", Toast.LENGTH_LONG).show(); }
-            });
-        });
-    }
-
-    private void buildHome() {
-        resetPage(); knownItems.clear(); featured=null;
-        String pageName = typeFilter == null ? "Watch Now" : "movie".equals(typeFilter) ? "Movies" : "series".equals(typeFilter) ? "TV Shows" : "Sports";
-        TextView pageHeading = label(pageName, 26, Color.WHITE); pageHeading.setTypeface(null, 1); page.addView(pageHeading, margins(-1, -2, 0, 0, 0, 3));
-        page.addView(buildHero(), new LinearLayout.LayoutParams(-1, dp(isTv() ? 285 : 255)));
-        List<StremioClient.Catalog> catalogs = allCatalogs(); int shown = 0;
-        for (StremioClient.Catalog cat : catalogs) {
-            boolean sports="tv".equalsIgnoreCase(cat.type)||"channel".equalsIgnoreCase(cat.type)||"sports".equalsIgnoreCase(cat.type)||"live".equalsIgnoreCase(cat.type);
-            if ("__sports".equals(typeFilter) ? !sports : typeFilter!=null&&!typeFilter.equals(cat.type)) continue;
-            if(cat.requiresExtra)continue;
-            if (isCatalogHidden(cat)) continue;
-            LinearLayout section = section(catalogName(cat), cat.addonName); page.addView(section);
-            LinearLayout rail = (LinearLayout) ((HorizontalScrollView) section.getChildAt(1)).getChildAt(0);
-            ProgressBar progress = new ProgressBar(this); rail.addView(progress, margins(dp(48), dp(110), 16, 10, 16, 10));
-            network.execute(() -> {
-                try {
-                    List<StremioClient.Item> items = StremioClient.loadCatalog(cat, 0, null);
-                    runOnUiThread(() -> populateRail(rail, items));
-                } catch (Exception e) { runOnUiThread(() -> { rail.removeAllViews(); TextView t = muted("Catalog unavailable"); rail.addView(t); }); }
-            });
-            if (++shown >= 18) break;
-        }
-        if (shown == 0) {
-            TextView empty = muted("No matching catalogs. Add or update catalog addons in Settings."); empty.setPadding(0, dp(20), 0, dp(20)); page.addView(empty);
-        }
-        addSavedRails(); scroller.scrollTo(0, 0);
-    }
-
-    private View buildHero() {
-        FrameLayout hero = new FrameLayout(this);
-        LinearLayout copy = new LinearLayout(this); copy.setOrientation(LinearLayout.VERTICAL); copy.setGravity(Gravity.BOTTOM);
-        FrameLayout.LayoutParams clp = new FrameLayout.LayoutParams(isTv() ? dp(560) : dp(470), -1); clp.setMargins(dp(4), 0, dp(16), dp(18)); hero.addView(copy, clp);
-        heroLogo = new ImageView(this); heroLogo.setScaleType(ImageView.ScaleType.FIT_START); heroLogo.setAdjustViewBounds(true);
-        copy.addView(heroLogo, new LinearLayout.LayoutParams(isTv() ? dp(330) : dp(250), dp(72)));
-        heroTitle = label("NOCTURNE", isTv() ? 48 : 38, Color.WHITE); heroTitle.setTypeface(null, 1); copy.addView(heroTitle);
-        heroMeta = label("Native Stremio catalog player", 13, 0xFFE3E4E8); heroMeta.setPadding(0, dp(6), 0, dp(7)); copy.addView(heroMeta);
-        heroDescription = label("Your installed catalogs update this screen automatically.", 14, 0xFFF2F2F4); heroDescription.setMaxLines(2); copy.addView(heroDescription);
-        LinearLayout actions = new LinearLayout(this); actions.setPadding(0, dp(15), 0, 0); copy.addView(actions);
-        TextView play = glassButton("▶  Play", true); play.setOnClickListener(v -> { if (featured != null) openDetails(featured); }); actions.addView(play, margins(-2, dp(48), 0, 0, 10, 0));
-        TextView info = glassButton("More Info", false); info.setOnClickListener(v -> { if (featured != null) openDetails(featured); }); actions.addView(info, margins(-2, dp(48), 0, 0, 0, 0));
-        return hero;
-    }
-
-    private LinearLayout section(String title, String source) {
-        LinearLayout box = new LinearLayout(this); box.setOrientation(LinearLayout.VERTICAL); box.setPadding(0, dp(5), 0, dp(16));
-        LinearLayout heading = new LinearLayout(this); heading.setGravity(Gravity.CENTER_VERTICAL);
-        TextView h = label(title, 20, Color.WHITE); h.setTypeface(null, 1); heading.addView(h);
-        TextView chip = label(source, 11, 0xFFCACCD4); chip.setPadding(dp(10), dp(4), dp(10), dp(4)); chip.setBackground(glass(0x55363846, 20, 0x33FFFFFF));
-        heading.addView(chip, margins(-2, -2, 10, 0, 0, 0)); box.addView(heading);
-        HorizontalScrollView scroll = new HorizontalScrollView(this); scroll.setHorizontalScrollBarEnabled(false); scroll.setClipToPadding(false);
-        LinearLayout rail = new LinearLayout(this); rail.setPadding(0, dp(10), dp(30), dp(8)); scroll.addView(rail); box.addView(scroll);
-        return box;
-    }
-
-    private void populateRail(LinearLayout rail, List<StremioClient.Item> items) {
-        rail.removeAllViews(); int max = Math.min(items.size(), 25);
-        if (max == 0) { rail.addView(muted("Nothing in this catalog right now.")); return; }
-        for (int i = 0; i < max; i++) {
-            StremioClient.Item item = items.get(i); knownItems.put(key(item), item); rail.addView(card(item));
-            if (featured == null && item.background != null) setFeatured(item);
-        }
-    }
-
-    private View card(StremioClient.Item item) {
-        LinearLayout box = new LinearLayout(this); box.setOrientation(LinearLayout.VERTICAL); box.setFocusable(true); box.setClickable(true);
-        int width = isTv() ? dp(244) : dp(205), height = isTv() ? dp(137) : dp(115);
-        FrameLayout media=new FrameLayout(this);
-        ImageView poster = new ImageView(this); poster.setScaleType(ImageView.ScaleType.CENTER_CROP); poster.setBackground(glass(0xFF171923, 18, 0x30FFFFFF)); poster.setClipToOutline(true);
-        media.addView(poster,new FrameLayout.LayoutParams(-1,-1));box.addView(media, new LinearLayout.LayoutParams(width, height)); images.load(item.background!=null?item.background:item.poster, poster);
-        TextView name = label(item.name, isTv() ? 14 : 13, Color.WHITE); name.setMaxLines(1); name.setPadding(dp(4), dp(6), dp(4), 0); box.addView(name);
-        String sub = item.releaseInfo == null ? titleCase(item.type) : item.releaseInfo + " · " + titleCase(item.type);
-        TextView meta = label(sub, 11, 0xFFA8AAB5); meta.setMaxLines(1); meta.setPadding(dp(4), dp(2), dp(4), 0); box.addView(meta);
-        box.setOnFocusChangeListener((v, has) -> {
-            v.animate().scaleX(has ? 1.08f : 1f).scaleY(has ? 1.08f : 1f).translationZ(has ? dp(10) : 0).setDuration(180).start();
-            poster.setBackground(glass(has ? 0xFF323847 : 0xFF171923, 18, has ? 0xCCFFFFFF : 0x30FFFFFF));
-            if (pendingPreview != null) ui.removeCallbacks(pendingPreview);
-            if (has){if(!prefs.getBoolean("reducedMotion",false)){pendingPreview=()->{if(box.hasFocus())startCardPreview(item,media,width,height);};ui.postDelayed(pendingPreview,5000);}}else stopCardPreview(media,width,height);
-        });
-        box.setOnClickListener(v -> openDetails(knownItems.containsKey(key(item)) ? knownItems.get(key(item)) : item));
-        return withMargins(box, 0, 0, 14, 0);
-    }
-
-    private void startCardPreview(StremioClient.Item seed,FrameLayout media,int normalW,int normalH){StremioClient.Item cached=knownItems.get(key(seed));if(cached!=null&&cached.trailerUrl!=null){playCardPreview(cached,media);return;}enrich(seed,full->{knownItems.put(key(full),full);if(media.getParent()!=null&&((View)media.getParent()).hasFocus()&&full.trailerUrl!=null)playCardPreview(full,media);});}
-    private void playCardPreview(StremioClient.Item item,FrameLayout media){if(media.getChildCount()>1)return;LinearLayout.LayoutParams lp=(LinearLayout.LayoutParams)media.getLayoutParams();lp.width=dp(isTv()?390:330);lp.height=dp(isTv()?219:186);media.setLayoutParams(lp);VideoView v=new VideoView(this);v.setVideoURI(Uri.parse(item.trailerUrl));v.setOnPreparedListener(mp->{mp.setLooping(true);mp.setVolume(0f,0f);v.start();});media.addView(v,new FrameLayout.LayoutParams(-1,-1));}
-    private void stopCardPreview(FrameLayout media,int w,int h){if(media.getChildCount()>1){View v=media.getChildAt(1);if(v instanceof VideoView)((VideoView)v).stopPlayback();media.removeViewAt(1);}LinearLayout.LayoutParams lp=(LinearLayout.LayoutParams)media.getLayoutParams();lp.width=w;lp.height=h;media.setLayoutParams(lp);}
-
-    private void setFeatured(StremioClient.Item item) {
-        featured = item; heroTitle.setText(item.name); heroMeta.setText(metaLine(item));
-        heroDescription.setText(item.description == null ? "Select to see details and available sources." : item.description);
-        heroLogo.setImageDrawable(null); heroLogo.setVisibility(item.logo == null ? View.GONE : View.VISIBLE);heroTitle.setVisibility(item.logo==null?View.VISIBLE:View.GONE);
-        if (item.logo != null) images.load(item.logo, heroLogo); if (item.background != null) images.load(item.background, backdrop);
-        if (item.description == null || item.logo == null) enrich(item, this::updateHeroIfCurrent);
-    }
-
-    private void updateHeroIfCurrent(StremioClient.Item item) { if (featured != null && key(featured).equals(key(item))) setFeaturedWithoutFetch(item); }
-    private void setFeaturedWithoutFetch(StremioClient.Item item) {
-        featured = item; knownItems.put(key(item), item); heroTitle.setText(item.name); heroMeta.setText(metaLine(item));
-        heroDescription.setText(item.description == null ? "Select to see details and available sources." : item.description);
-        heroLogo.setVisibility(item.logo == null ? View.GONE : View.VISIBLE);heroTitle.setVisibility(item.logo==null?View.VISIBLE:View.GONE); if (item.logo != null) images.load(item.logo, heroLogo);
-        if (item.background != null) images.load(item.background, backdrop);
-    }
-
-    private void enrich(StremioClient.Item item, ItemCallback callback) {
-        StremioClient.Addon metaAddon = null;
-        if (item.sourceBase != null) synchronized (addons) {
-            for (StremioClient.Addon a : addons) if (item.sourceBase.equals(a.baseUrl) && a.resources.contains("meta")) { metaAddon = a; break; }
-        }
-        if (metaAddon == null) metaAddon = firstResource("meta"); if (metaAddon == null) { callback.done(item); return; }
-        StremioClient.Addon selected = metaAddon;
-        network.execute(() -> { try { StremioClient.Item full = StremioClient.loadMeta(selected, item.type, item.id); runOnUiThread(() -> callback.done(full)); } catch (Exception ignored) { runOnUiThread(() -> callback.done(item)); } });
-    }
-
-    private void openDetails(StremioClient.Item seed) {
-        if (seed.description != null && (!"series".equals(seed.type) || !seed.videos.isEmpty())) { showDetailDialog(seed); return; }
-        Toast.makeText(this, "Loading title details…", Toast.LENGTH_SHORT).show();
-        enrich(seed, full -> { knownItems.put(key(full), full); showDetailDialog(full); });
-    }
-
-    private void showDetailDialog(StremioClient.Item item) {
-        Dialog dialog = new Dialog(this, android.R.style.Theme_Material_NoActionBar); dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
-        FrameLayout shell = new FrameLayout(this); shell.setBackgroundColor(0xFF05060A);
-        ImageView art = new ImageView(this); art.setScaleType(ImageView.ScaleType.CENTER_CROP); art.setAlpha(.42f); shell.addView(art, new FrameLayout.LayoutParams(-1, -1));
-        if (item.background != null) images.load(item.background, art);
-        View gradient = new View(this); gradient.setBackground(new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{0xF905060A, 0xBB05060A, 0x5505060A})); shell.addView(gradient, new FrameLayout.LayoutParams(-1, -1));
-        ScrollView sv = new ScrollView(this); LinearLayout body = new LinearLayout(this); body.setOrientation(LinearLayout.VERTICAL); body.setPadding(dp(42), dp(70), dp(34), dp(50)); sv.addView(body); shell.addView(sv);
-        ImageView logo = new ImageView(this); logo.setScaleType(ImageView.ScaleType.FIT_START); body.addView(logo, new LinearLayout.LayoutParams(dp(330), dp(100)));
-        if (item.logo != null) images.load(item.logo, logo); else logo.setVisibility(View.GONE);
-        TextView title = label(item.name, isTv() ? 42 : 34, Color.WHITE); title.setTypeface(null, 1); body.addView(title);
-        TextView meta = label(metaLine(item), 16, 0xFFD5D6DC); meta.setPadding(0, dp(8), 0, dp(16)); body.addView(meta);
-        TextView desc = label(item.description == null ? "No description supplied by this catalog." : item.description, 18, 0xFFE8E9ED); desc.setMaxWidth(dp(720)); desc.setLineSpacing(0, 1.15f); body.addView(desc);
-        if(item.cast!=null){TextView cast=label("Cast  "+item.cast,14,0xFFC4C5CC);cast.setPadding(0,dp(16),0,0);body.addView(cast);}
-        if(item.directors!=null){TextView directors=label("Directed by  "+item.directors,14,0xFFC4C5CC);directors.setPadding(0,dp(6),0,0);body.addView(directors);}
-        LinearLayout actions = new LinearLayout(this); actions.setPadding(0, dp(24), 0, dp(20)); body.addView(actions);
-        TextView play = glassButton("▶  Choose Source", true); play.setOnClickListener(v -> chooseEpisodeOrStream(item, dialog)); actions.addView(play, margins(-2, dp(60), 0, 0, 12, 0));
-        TextView watch = glassButton(inWatchlist(item) ? "✓  In Watchlist" : "＋  Watchlist", false);
-        watch.setOnClickListener(v -> toggleWatchlist(item, watch)); actions.addView(watch, margins(-2, dp(60), 0, 0, 12, 0));
-        TextView close = glassButton("Close", false); close.setOnClickListener(v -> dialog.dismiss()); actions.addView(close, margins(-2, dp(60), 0, 0, 0, 0));
-        if(item.trailerUrl!=null||item.trailerYtId!=null){TextView trailer=glassButton("Watch Trailer",false);trailer.setOnClickListener(v->{String u=item.trailerUrl!=null?item.trailerUrl:"https://www.youtube.com/watch?v="+item.trailerYtId;try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(u)));}catch(Exception ignored){}});actions.addView(trailer,margins(-2,dp(60),12,0,0,0));}
-        if (!item.videos.isEmpty()) { TextView episodes = label(item.videos.size() + " episodes available", 15, 0xFFBFC1CB); body.addView(episodes); }
-        dialog.setContentView(shell); Window w = dialog.getWindow(); if (w != null) { w.setLayout(-1, -1); w.setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN); }
-        dialog.show(); if (w != null) w.setLayout(-1, -1);
-    }
-
-    private void chooseEpisodeOrStream(StremioClient.Item item, Dialog parent) {
-        if ("series".equals(item.type) && !item.videos.isEmpty()) {
-            String[] labels = new String[item.videos.size()];
-            for (int i = 0; i < labels.length; i++) { StremioClient.Video v = item.videos.get(i); labels[i] = "S" + v.season + " E" + v.episode + "  " + v.title; }
-            new AlertDialog.Builder(this,AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle("Choose episode").setItems(labels, (d, which) -> findStreams(item, item.videos.get(which).id, labels[which], parent)).setNegativeButton("Cancel", null).show();
-        } else findStreams(item, item.id, item.name, parent);
-    }
-
-    private void findStreams(StremioClient.Item item, String streamId, String title, Dialog parent) {
-        List<StremioClient.Addon> streamAddons = resourceAddonsFor("stream",item.type,streamId);
-        if (streamAddons.isEmpty()) { message("No stream addons", "Install a Stremio stream addon manifest in Settings. Catalog addons provide artwork and metadata; stream addons provide playable sources."); return; }
-        Toast.makeText(this, "Checking " + streamAddons.size() + " stream addon(s)…", Toast.LENGTH_SHORT).show();
-        List<StremioClient.Stream> found = Collections.synchronizedList(new ArrayList<>()); AtomicInteger remaining = new AtomicInteger(streamAddons.size());
-        for (StremioClient.Addon addon : streamAddons) network.execute(() -> {
-            try { found.addAll(StremioClient.loadStreams(addon, item.type, streamId)); } catch (Exception ignored) { }
-            if (remaining.decrementAndGet() == 0) runOnUiThread(() -> showStreams(item, streamId, title, found, parent));
-        });
-    }
-
-    private void showStreams(StremioClient.Item item, String streamId, String title, List<StremioClient.Stream> streams, Dialog parent) {
-        if (streams.isEmpty()) { message("No playable sources", "Your installed stream addons returned no sources for this title."); return; }
-        List<StreamEngine.Info> processed=StreamEngine.process(streams,prefs);if(processed.isEmpty()){message("No matching sources","Sources were returned, but your source preferences filtered them out. Change Source preferences in Settings.");return;}
-        if(prefs.getBoolean("autoPick",false)){launchStream(item,streamId,title,processed.get(0).stream,parent);return;}
-        String[] labels = new String[processed.size()]; for (int i = 0; i < labels.length; i++) labels[i] = processed.get(i).stream.label()+"\n"+processed.get(i).label();
-        new AlertDialog.Builder(this,AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle("Choose source").setItems(labels, (d, which) -> {
-            launchStream(item,streamId,title,processed.get(which).stream,parent);
-        }).setNegativeButton("Cancel", null).show();
-    }
-
-    private void launchStream(StremioClient.Item item,String streamId,String title,StremioClient.Stream s,Dialog parent){saveContinue(item);if(s.url!=null){Intent intent=new Intent(this,PlayerActivity.class);intent.putExtra("url",s.url);intent.putExtra("title",title);intent.putExtra("historyKey",item.type+":"+streamId);intent.putExtra("itemJson",item.toJson().toString());List<StremioClient.Addon>subAddons=resourceAddonsFor("subtitles",item.type,streamId);if(!subAddons.isEmpty()){network.execute(()->{for(StremioClient.Addon a:subAddons)try{List<StremioClient.Subtitle>subs=StremioClient.loadSubtitles(a,item.type,streamId);String want=prefs.getString("subtitleLanguage","eng");if(want.isEmpty())want="eng";for(StremioClient.Subtitle sub:subs)if(sub.lang.startsWith(want.substring(0,Math.min(3,want.length())))){intent.putExtra("subtitleUrl",sub.url);intent.putExtra("subtitleLang",sub.lang);break;}if(intent.hasExtra("subtitleUrl"))break;}catch(Exception ignored){}runOnUiThread(()->startActivity(intent));});}else startActivity(intent);}else if(s.infoHash!=null)message("Torrent resolver required","This source contains an infoHash. Install a debrid or torrent-resolver addon that returns a playable URL.");else{String target=s.externalUrl!=null?s.externalUrl:"https://www.youtube.com/watch?v="+s.ytId;try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(target)));}catch(Exception e){message("No compatible app","Install an app that can open this source.");}}if(parent!=null)parent.dismiss();}
-
-    private void showSearch() {
-        EditText query = new EditText(this); query.setHint("Movie or series"); query.setSingleLine(true); query.setInputType(InputType.TYPE_CLASS_TEXT); query.setPadding(dp(18), dp(16), dp(18), dp(16));
-        AlertDialog d = new AlertDialog.Builder(this,AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle("Search your catalogs").setView(query).setPositiveButton("Search", null).setNegativeButton("Cancel", null).create();
-        d.setOnShowListener(x -> d.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> { String q = query.getText().toString().trim(); if (!q.isEmpty()) { saveSearch(q);d.dismiss(); runSearch(q); } })); d.show();
-    }
-
-    private void showSearchPage() {
-        resetPage();
-        TextView title = label("Search", 34, Color.WHITE); title.setTypeface(null, 1); page.addView(title, margins(-1, -2, 0, 25, 0, 8));
-        TextView hint = muted("Find movies and shows across your installed catalogs."); page.addView(hint);
-        EditText input = new EditText(this); input.setSingleLine(true); input.setHint("Search titles"); input.setTextColor(Color.WHITE); input.setHintTextColor(0xFFBFC1CB);
-        input.setBackground(glass(0xA8323540, 22, 0x88FFFFFF)); input.setPadding(dp(24), 0, dp(24), 0); page.addView(input, margins(isTv()?dp(600):-1, dp(64), 0, 14, 0, 16));
-        TextView go = glassButton("Search Catalogs", true); go.setOnClickListener(v -> { String q=input.getText().toString().trim(); if (!q.isEmpty()) { saveSearch(q); runSearch(q); } }); page.addView(go, margins(dp(210), dp(54), 0, 0, 0, 20));
-        input.setOnEditorActionListener((v, action, event) -> { go.performClick(); return true; });
-        try { JSONArray recent = new JSONArray(prefs.getString("searchHistory", "[]")); if (recent.length()>0) {TextView h=label("Recent Searches",21,Color.WHITE);h.setTypeface(null,1);page.addView(h,margins(-1,-2,0,25,0,8));for(int i=0;i<Math.min(6,recent.length());i++){String q=recent.optString(i);TextView b=glassButton(q,false);b.setOnClickListener(v->runSearch(q));page.addView(b,margins(-2,dp(48),0,7,0,0));}} } catch(Exception ignored) { }
-        scroller.scrollTo(0,0);
-    }
-
-    private void showSettingsPage() {
-        resetPage();
-        TextView title=label("Settings & Add-ons",34,Color.WHITE);title.setTypeface(null,1);page.addView(title,margins(-1,-2,0,25,0,8));
-        TextView description=muted("Manage catalog rows, playback, sources, and Stremio addons on this device.");page.addView(description);
-        String[] names={"Catalog & Stream Add-ons","Catalog Rows","Playback & Interface","Source Preferences","Clear Search History"};
-        Runnable[] actions={this::showAddons,this::showCatalogSettings,this::showPlaybackSettings,this::showSourceSettings,()->{prefs.edit().remove("searchHistory").apply();Toast.makeText(this,"Search history cleared",Toast.LENGTH_SHORT).show();}};
-        for(int i=0;i<names.length;i++){TextView button=glassButton(names[i],false);button.setGravity(Gravity.CENTER_VERTICAL|Gravity.LEFT);button.setPadding(dp(24),0,dp(24),0);button.setOnClickListener(v->actions[((Integer)v.getTag())].run());button.setTag(i);page.addView(button,margins(isTv()?dp(530):-1,dp(62),0,8,0,0));}
-        scroller.scrollTo(0,0);
-    }
-
-    private void runSearch(String query) {
-        resetPage(); TextView heading = label("Search: “" + query + "”", 30, Color.WHITE); heading.setTypeface(null, 1); heading.setPadding(0, dp(35), 0, dp(10)); page.addView(heading);
-        List<StremioClient.Catalog> searchable = new ArrayList<>(); for (StremioClient.Catalog c : allCatalogs()) if (c.searchable) searchable.add(c);
-        if (searchable.isEmpty()) { page.addView(muted("None of your installed catalogs declares search support.")); return; }
-        for (StremioClient.Catalog cat : searchable) {
-            LinearLayout section = section(cat.name, cat.addonName); page.addView(section); LinearLayout rail = (LinearLayout) ((HorizontalScrollView) section.getChildAt(1)).getChildAt(0); rail.addView(new ProgressBar(this));
-            network.execute(() -> { try { List<StremioClient.Item> results = StremioClient.loadCatalog(cat, 0, query); runOnUiThread(() -> populateRail(rail, results)); } catch (Exception e) { runOnUiThread(() -> { rail.removeAllViews(); rail.addView(muted("Search unavailable")); }); } });
-        }
-        scroller.scrollTo(0, 0);
-    }
-
-    private void showLibrary() {
-        resetPage(); TextView heading = label("Library", 34, Color.WHITE); heading.setTypeface(null, 1); heading.setPadding(0, dp(35), 0, dp(14)); page.addView(heading);
-        addStoredSection("Watchlist", prefs.getStringSet("watchlist", new HashSet<>()));
-        addStoredSection("Continue Watching", prefs.getStringSet("continue", new HashSet<>()));
-        TextView settings=glassButton("⚙  Settings & Add-ons",false);settings.setOnClickListener(v->showSettings());page.addView(settings,margins(dp(260),dp(58),0,28,0,30));scroller.scrollTo(0, 0);
-    }
-
-    private void addSavedRails() {
-        Set<String> cont = prefs.getStringSet("continue", new HashSet<>()); if (!cont.isEmpty()) addStoredSection("Continue Watching", cont);
-        Set<String> watch = prefs.getStringSet("watchlist", new HashSet<>()); if (!watch.isEmpty()) addStoredSection("My Watchlist", watch);
-    }
-
-    private void addStoredSection(String title, Set<String> jsonItems) {
-        if (jsonItems == null || jsonItems.isEmpty()) return;
-        LinearLayout section = section(title, "On this device"); page.addView(section); LinearLayout rail = (LinearLayout) ((HorizontalScrollView) section.getChildAt(1)).getChildAt(0);
-        for (String raw : jsonItems) try { rail.addView(card(StremioClient.Item.fromJson(new JSONObject(raw)))); } catch (Exception ignored) { }
-    }
-
-    private void showSettings() {
-        String[] choices={"Add-ons","Catalog rows","Playback & interface","Source preferences","Clear search history"};
-        new AlertDialog.Builder(this,AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle("Nocturne Settings").setItems(choices,(d,which)->{
-            if(which==0)showAddons();else if(which==1)showCatalogSettings();else if(which==2)showPlaybackSettings();else if(which==3)showSourceSettings();else{prefs.edit().remove("searchHistory").apply();Toast.makeText(this,"Search history cleared",Toast.LENGTH_SHORT).show();}
-        }).setNegativeButton("Done",null).show();
-    }
-
-    private void showAddons() {
-        List<String> names = new ArrayList<>(); synchronized (addons) { for (StremioClient.Addon a : addons) names.add(a.name + "\n" + shortHost(a.manifestUrl)); }
-        names.add("＋ Add Stremio addon");
-        new AlertDialog.Builder(this,AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle("Catalog & stream addons").setItems(names.toArray(new String[0]), (d, which) -> {
-            if (which == names.size() - 1) addAddonDialog(); else addonActions(which);
-        }).setNegativeButton("Back", (d,w)->showSettings()).show();
-    }
-
-    private void addAddonDialog() {
-        EditText input = new EditText(this); input.setHint("https://…/manifest.json"); input.setSingleLine(true); input.setInputType(InputType.TYPE_TEXT_VARIATION_URI); input.setPadding(dp(18), dp(16), dp(18), dp(16));
-        AlertDialog d = new AlertDialog.Builder(this,AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle("Install addon manifest").setView(input).setPositiveButton("Verify & Add", null).setNegativeButton("Cancel", null).create();
-        d.setOnShowListener(x -> d.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-            String entered=input.getText().toString().trim().replaceFirst("^stremio://","https://");final String url=entered.endsWith("manifest.json")?entered:entered.replaceAll("/+$","")+"/manifest.json"; if (!url.startsWith("http://") && !url.startsWith("https://")) { input.setError("Enter a full manifest URL"); return; }
-            d.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);
-            network.execute(() -> { try {
-                StremioClient.Addon addon = StremioClient.loadAddon(url); runOnUiThread(() -> { List<String> urls = manifestUrls(); if (!urls.contains(url)) urls.add(url); saveManifestUrls(urls); d.dismiss(); Toast.makeText(this, addon.name + " installed", Toast.LENGTH_SHORT).show(); loadAddons(); });
-            } catch (Exception e) { runOnUiThread(() -> { d.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(true); input.setError("Manifest failed: " + e.getMessage()); }); } });
-        })); d.show();
-    }
-
-    private void addonActions(int index) {
-        StremioClient.Addon addon; synchronized (addons) { if (index >= addons.size()) return; addon = addons.get(index); }
-        boolean builtIn = StremioClient.CINEMETA.equals(addon.manifestUrl);
-        List<String> actions=new ArrayList<>();actions.add("Verify now");for(String r:addon.resources)actions.add((resourceEnabled(addon,r)?"✓ ":"○ ")+"Enable "+r);if(!builtIn)actions.add("Remove addon");
-        new AlertDialog.Builder(this,AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle(addon.name+"  "+addon.version).setMessage((addon.description==null?"":addon.description+"\n\n")+addon.catalogs.size()+" catalogs · "+addon.resources.size()+" resources")
-                .setItems(actions.toArray(new String[0]),(d,which)->{if(which==0)network.execute(()->{try{StremioClient.loadAddon(addon.manifestUrl);runOnUiThread(()->Toast.makeText(this,"Manifest verified",Toast.LENGTH_SHORT).show());}catch(Exception e){runOnUiThread(()->message("Verification failed",e.getMessage()));}});else if(which<=addon.resources.size()){String r=addon.resources.get(which-1);prefs.edit().putBoolean(resourceKey(addon,r),!resourceEnabled(addon,r)).apply();Toast.makeText(this,r+" "+(resourceEnabled(addon,r)?"enabled":"disabled"),Toast.LENGTH_SHORT).show();buildHome();}else{List<String>urls=manifestUrls();urls.remove(addon.manifestUrl);saveManifestUrls(urls);loadAddons();}}).setNegativeButton("Close",null).show();
-    }
-
-    private void showPlaybackSettings(){
-        String[] rows={"Binge watching: "+on(prefs.getBoolean("binge",true)),"Hardware decoding: "+on(prefs.getBoolean("hardware",true)),"Play in background: "+on(prefs.getBoolean("backgroundPlay",false)),"Reduced motion: "+on(prefs.getBoolean("reducedMotion",false)),"Preferred quality: "+prefs.getString("preferredQuality","Auto"),"Subtitle language: "+prefs.getString("subtitleLanguage","eng"),"Seek duration: "+prefs.getInt("seekSeconds",10)+" seconds","Spotlight rotation: "+on(prefs.getBoolean("spotlight",true))};
-        new AlertDialog.Builder(this,AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle("Playback & interface").setItems(rows,(d,w)->{if(w<4){String[]k={"binge","hardware","backgroundPlay","reducedMotion"};prefs.edit().putBoolean(k[w],!prefs.getBoolean(k[w],w<2)).apply();showPlaybackSettings();}else if(w==4)choice("Preferred quality",new String[]{"Auto","2160p","1080p","720p"},"preferredQuality",this::showPlaybackSettings);else if(w==5)editPreference("Subtitle language","Use a 3-letter code such as eng, spa or fra","subtitleLanguage",this::showPlaybackSettings);else if(w==6)choiceInt("Seek duration",new String[]{"5 seconds","10 seconds","15 seconds","30 seconds"},new int[]{5,10,15,30},"seekSeconds",this::showPlaybackSettings);else{prefs.edit().putBoolean("spotlight",!prefs.getBoolean("spotlight",true)).apply();showPlaybackSettings();}}).setNegativeButton("Back",(d,w)->showSettings()).show();
-    }
-
-    private void showSourceSettings(){String[]rows={"Preferred quality: "+prefs.getString("preferredQuality","Auto"),"Maximum file size: "+prefs.getFloat("maxSizeGB",50)+" GB","Merge duplicate releases: "+on(prefs.getBoolean("dedupe",true)),"Auto-pick best source: "+on(prefs.getBoolean("autoPick",false)),"Exclude keywords: "+prefs.getString("excludeKeywords","None")};new AlertDialog.Builder(this,AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle("Source preferences").setItems(rows,(d,w)->{if(w==0)choice("Preferred quality",new String[]{"Auto","2160p","1080p","720p"},"preferredQuality",this::showSourceSettings);else if(w==1)choiceFloat("Maximum size",new String[]{"10 GB","25 GB","50 GB","100 GB","Unlimited"},new float[]{10,25,50,100,0},"maxSizeGB",this::showSourceSettings);else if(w==2||w==3){String k=w==2?"dedupe":"autoPick";prefs.edit().putBoolean(k,!prefs.getBoolean(k,w==2)).apply();showSourceSettings();}else editPreference("Exclude keywords","Comma-separated, for example: CAM, telesync","excludeKeywords",this::showSourceSettings);}).setNegativeButton("Back",(d,w)->showSettings()).show();}
-
-    private void showCatalogSettings(){List<StremioClient.Catalog>cats=allCatalogsRaw();String[]labels=new String[cats.size()];for(int i=0;i<cats.size();i++)labels[i]=(isCatalogHidden(cats.get(i))?"○ ":"✓ ")+catalogName(cats.get(i))+" — "+cats.get(i).addonName;new AlertDialog.Builder(this,AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle("Catalog rows").setItems(labels,(d,w)->catalogActions(cats.get(w),w)).setNegativeButton("Back",(d,w)->showSettings()).show();}
-    private void catalogActions(StremioClient.Catalog c,int index){String[]a={isCatalogHidden(c)?"Show row":"Hide row","Rename row","Move up","Reset name"};new AlertDialog.Builder(this,AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle(catalogName(c)).setItems(a,(d,w)->{if(w==0){Set<String>s=new HashSet<>(prefs.getStringSet("hiddenCatalogs",new HashSet<>()));if(!s.add(catalogKey(c)))s.remove(catalogKey(c));prefs.edit().putStringSet("hiddenCatalogs",s).apply();buildHome();}else if(w==1)editCatalogName(c);else if(w==2)moveCatalogUp(c);else{JSONObject o=catalogNames();o.remove(catalogKey(c));prefs.edit().putString("catalogNames",o.toString()).apply();buildHome();}}).setNegativeButton("Back",(d,w)->showCatalogSettings()).show();}
-    private void editCatalogName(StremioClient.Catalog c){EditText e=new EditText(this);e.setText(catalogName(c));new AlertDialog.Builder(this,AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle("Rename row").setView(e).setPositiveButton("Save",(d,w)->{try{JSONObject o=catalogNames();o.put(catalogKey(c),e.getText().toString().trim());prefs.edit().putString("catalogNames",o.toString()).apply();buildHome();}catch(Exception ignored){}}).setNegativeButton("Cancel",null).show();}
-    private void moveCatalogUp(StremioClient.Catalog c){List<String>order=catalogOrder();String k=catalogKey(c);if(!order.contains(k)){for(StremioClient.Catalog x:allCatalogsRaw())order.add(catalogKey(x));}int i=order.indexOf(k);if(i>0){Collections.swap(order,i,i-1);prefs.edit().putString("catalogOrder",new JSONArray(order).toString()).apply();}buildHome();}
-
-    private void toggleWatchlist(StremioClient.Item item, TextView button) {
-        Set<String> set = new HashSet<>(prefs.getStringSet("watchlist", new HashSet<>())); String existing = findStored(set, item); boolean adding = existing == null;
-        if (existing != null) set.remove(existing); else set.add(item.toJson().toString()); prefs.edit().putStringSet("watchlist", set).apply();
-        button.setText(adding ? "✓  In Watchlist" : "＋  Watchlist"); Toast.makeText(this, adding ? "Added to Watchlist" : "Removed from Watchlist", Toast.LENGTH_SHORT).show();
-    }
-
-    private boolean inWatchlist(StremioClient.Item i) { return findStored(prefs.getStringSet("watchlist", new HashSet<>()), i) != null; }
-    private void saveContinue(StremioClient.Item item) { Set<String> set = new HashSet<>(prefs.getStringSet("continue", new HashSet<>())); String old = findStored(set, item); if (old != null) set.remove(old); set.add(item.toJson().toString()); prefs.edit().putStringSet("continue", set).apply(); }
-    private String findStored(Set<String> set, StremioClient.Item item) { if (set == null) return null; for (String raw : set) try { JSONObject o = new JSONObject(raw); if (item.id.equals(o.optString("id")) && item.type.equals(o.optString("type"))) return raw; } catch (Exception ignored) { } return null; }
-
-    private List<String> manifestUrls() {
-        String raw = prefs.getString("manifests", null); List<String> out = new ArrayList<>();
-        if (raw == null) { out.add(StremioClient.CINEMETA); return out; }
-        try { JSONArray a = new JSONArray(raw); for (int i = 0; i < a.length(); i++) out.add(a.getString(i)); } catch (Exception ignored) { }
-        if (!out.contains(StremioClient.CINEMETA)) out.add(0, StremioClient.CINEMETA); return out;
-    }
-    private void saveManifestUrls(List<String> urls) { prefs.edit().putString("manifests", new JSONArray(urls).toString()).apply(); }
-    private List<StremioClient.Catalog> allCatalogsRaw() { List<StremioClient.Catalog> c = new ArrayList<>(); synchronized (addons) { for (StremioClient.Addon a : addons) if(resourceEnabled(a,"catalog"))c.addAll(a.catalogs); } return c; }
-    private List<StremioClient.Catalog> allCatalogs() {List<StremioClient.Catalog>c=allCatalogsRaw();List<String>o=catalogOrder();Collections.sort(c,(a,b)->{int x=o.indexOf(catalogKey(a)),y=o.indexOf(catalogKey(b));return Integer.compare(x<0?999:x,y<0?999:y);});return c;}
-    private List<StremioClient.Addon> resourceAddons(String r) { List<StremioClient.Addon> out = new ArrayList<>(); synchronized (addons) { for (StremioClient.Addon a : addons) if (a.resources.contains(r)&&resourceEnabled(a,r)) out.add(a); } return out; }
-    private List<StremioClient.Addon> resourceAddonsFor(String r,String type,String id){List<StremioClient.Addon>out=new ArrayList<>();for(StremioClient.Addon a:resourceAddons(r))if(StremioClient.supports(a,r,type,id))out.add(a);return out;}
-    private StremioClient.Addon firstResource(String r) { List<StremioClient.Addon> a = resourceAddons(r); return a.isEmpty() ? null : a.get(0); }
-
-    private String resourceKey(StremioClient.Addon a,String r){return "resource_"+a.manifestUrl.hashCode()+"_"+r;}
-    private boolean resourceEnabled(StremioClient.Addon a,String r){return prefs.getBoolean(resourceKey(a,r),true);}
-    private String catalogKey(StremioClient.Catalog c){return c.baseUrl+"|"+c.type+"|"+c.id;}
-    private boolean isCatalogHidden(StremioClient.Catalog c){return prefs.getStringSet("hiddenCatalogs",new HashSet<>()).contains(catalogKey(c));}
-    private JSONObject catalogNames(){try{return new JSONObject(prefs.getString("catalogNames","{}"));}catch(Exception e){return new JSONObject();}}
-    private String catalogName(StremioClient.Catalog c){return catalogNames().optString(catalogKey(c),c.name);}
-    private List<String> catalogOrder(){List<String>o=new ArrayList<>();try{JSONArray a=new JSONArray(prefs.getString("catalogOrder","[]"));for(int i=0;i<a.length();i++)o.add(a.getString(i));}catch(Exception ignored){}return o;}
-    private String on(boolean b){return b?"On":"Off";}
-    private void choice(String title,String[]values,String key,Runnable after){new AlertDialog.Builder(this,AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle(title).setItems(values,(d,w)->{prefs.edit().putString(key,values[w]).apply();after.run();}).setNegativeButton("Cancel",null).show();}
-    private void choiceInt(String title,String[]labels,int[]values,String key,Runnable after){new AlertDialog.Builder(this,AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle(title).setItems(labels,(d,w)->{prefs.edit().putInt(key,values[w]).apply();after.run();}).setNegativeButton("Cancel",null).show();}
-    private void choiceFloat(String title,String[]labels,float[]values,String key,Runnable after){new AlertDialog.Builder(this,AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle(title).setItems(labels,(d,w)->{prefs.edit().putFloat(key,values[w]).apply();after.run();}).setNegativeButton("Cancel",null).show();}
-    private void editPreference(String title,String hint,String key,Runnable after){EditText e=new EditText(this);e.setHint(hint);e.setText(prefs.getString(key,""));new AlertDialog.Builder(this,AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle(title).setView(e).setPositiveButton("Save",(d,w)->{prefs.edit().putString(key,e.getText().toString().trim()).apply();after.run();}).setNegativeButton("Cancel",null).show();}
-    private void saveSearch(String q){List<String>h=new ArrayList<>();try{JSONArray a=new JSONArray(prefs.getString("searchHistory","[]"));for(int i=0;i<a.length();i++)if(!q.equalsIgnoreCase(a.optString(i)))h.add(a.optString(i));}catch(Exception ignored){}h.add(0,q);while(h.size()>12)h.remove(h.size()-1);prefs.edit().putString("searchHistory",new JSONArray(h).toString()).apply();}
-
-    private void showLoading(String text) { resetPage(); status = label(text, 20, Color.WHITE); status.setGravity(Gravity.CENTER); page.addView(status, new LinearLayout.LayoutParams(-1, dp(420))); }
-    private void showError(String title, String detail) { resetPage(); TextView t = label(title + "\n\n" + detail + "\n\nOpen Settings to manage addons.", 20, Color.WHITE); t.setGravity(Gravity.CENTER); page.addView(t, new LinearLayout.LayoutParams(-1, dp(430))); }
-    private void message(String title, String text) { new AlertDialog.Builder(this,AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle(title).setMessage(text).setPositiveButton("OK", null).show(); }
-
-    private TextView label(String text, float size, int color) { TextView v = new TextView(this); v.setText(text); v.setTextSize(size); v.setTextColor(color); v.setFontFeatureSettings("kern"); return v; }
-    private TextView muted(String text) { TextView t = label(text, 15, 0xFFAEB0BA); t.setPadding(dp(8), dp(24), dp(28), dp(24)); return t; }
-    private TextView glassButton(String text, boolean light) {
-        TextView b = label(text, 15, light ? Color.BLACK : Color.WHITE); b.setGravity(Gravity.CENTER); b.setPadding(dp(20), 0, dp(20), 0); b.setFocusable(true); b.setClickable(true);
-        b.setBackground(glass(light ? 0xF5FFFFFF : 0x803F414C, 28, light ? 0xFFFFFFFF : 0x66FFFFFF));
-        b.setOnFocusChangeListener((v, has) -> { v.animate().scaleX(has ? 1.08f : 1f).scaleY(has ? 1.08f : 1f).translationZ(has ? dp(8) : 0).setDuration(150).start(); if (!light) v.setBackground(glass(has ? 0xCCFFFFFF : 0x803F414C, 28, has ? 0xFFFFFFFF : 0x66FFFFFF)); b.setTextColor(light || has ? Color.BLACK : Color.WHITE); });
-        return b;
-    }
-    private TextView navButton(String text){TextView b=label(text,14,Color.WHITE);b.setGravity(Gravity.CENTER);b.setPadding(dp(18),0,dp(18),0);b.setFocusable(true);b.setClickable(true);b.setBackgroundColor(Color.TRANSPARENT);b.setOnFocusChangeListener((v,has)->{b.setBackground(has?glass(0xEFFFFFFF,24,0xFFFFFFFF):null);b.setTextColor(has?Color.BLACK:Color.WHITE);v.animate().scaleX(has?1.04f:1f).scaleY(has?1.04f:1f).setDuration(130).start();});return b;}
-    private GradientDrawable glass(int color, int radius, int stroke) { GradientDrawable g = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{color, shiftAlpha(color, .72f)}); g.setCornerRadius(dp(radius)); g.setStroke(dp(1), stroke); return g; }
-    private int shiftAlpha(int c, float f) { return Color.argb((int) (Color.alpha(c) * f), Color.red(c), Color.green(c), Color.blue(c)); }
-    private LinearLayout.LayoutParams margins(int w, int h, int l, int t, int r, int b) { LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(w, h); p.setMargins(dp(l), dp(t), dp(r), dp(b)); return p; }
-    private View withMargins(View v, int l, int t, int r, int b) { v.setLayoutParams(margins(-2, -2, l, t, r, b)); return v; }
-    private int dp(int n) { return Math.round(n * getResources().getDisplayMetrics().density); }
-    private boolean isTv() { return getResources().getConfiguration().smallestScreenWidthDp >= 600; }
-    private String key(StremioClient.Item i) { return i.type + ":" + i.id; }
-    private String metaLine(StremioClient.Item i) { StringBuilder s = new StringBuilder(); if (i.releaseInfo != null) s.append(i.releaseInfo); if (i.imdbRating != null) { if (s.length() > 0) s.append("  ·  "); s.append("★ ").append(i.imdbRating); } if (i.genres != null) { if (s.length() > 0) s.append("  ·  "); s.append(i.genres); } if (s.length() == 0) s.append(titleCase(i.type)); return s.toString(); }
-    private String titleCase(String s) { if (s == null || s.isEmpty()) return "Title"; return Character.toUpperCase(s.charAt(0)) + s.substring(1); }
-    private String shortHost(String url) { try { return Uri.parse(url).getHost(); } catch (Exception e) { return url; } }
-    private void immersive() { getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_STABLE); }
-    @Override protected void onResume() { super.onResume(); immersive(); }
-    @Override public boolean onKeyDown(int keyCode, KeyEvent event) { if (keyCode == KeyEvent.KEYCODE_MENU) { showSettings(); return true; } return super.onKeyDown(keyCode, event); }
-    @Override protected void onDestroy() { network.shutdownNow(); super.onDestroy(); }
-    private interface ItemCallback { void done(StremioClient.Item item); }
+    private TvUi u; private LibraryStore store; private AddonRepository repo; private ImageLoader images;
+    private final Handler handler=new Handler(Looper.getMainLooper());
+    private final Deque<Route> history=new ArrayDeque<>();
+    private Route current=new Route("Home",null,"");
+    private LinearLayout page,content,nav; private ScrollView scroll; private FrameLayout root; private ImageView backdrop;
+    private int epoch,width; private boolean resumed;
+    private TrailerView preview; private FrameLayout previewHost; private Runnable previewDelay,collapsePreview;
+    private final Map<String,StremioClient.Item> visibleItems=new LinkedHashMap<>();
+    private static final int PLAY_REQUEST=20;
+    static final class Route {final String kind;final Object value;final String extra;Route(String k,Object v,String e){kind=k;value=v;extra=e;}}
+    @Override public void onCreate(Bundle state){super.onCreate(state);u=new TvUi(this);store=new LibraryStore(this);repo=new AddonRepository(store);images=new ImageLoader();width=Math.round(getResources().getDisplayMetrics().widthPixels/u.density);shell();render(new Route("Loading",null,""));repo.refresh((a,error)->{render(new Route("Home",null,""));if(error!=null)toast("Some addons could not update. See Settings → Add-ons.");});}
+    private void shell(){getWindow().setStatusBarColor(Color.BLACK);getWindow().setNavigationBarColor(Color.BLACK);root=new FrameLayout(this);root.setBackgroundColor(0xFF08090B);backdrop=new ImageView(this);backdrop.setScaleType(ImageView.ScaleType.CENTER_CROP);root.addView(backdrop,new FrameLayout.LayoutParams(-1,u.dp(490)));View shade=new View(this);shade.setBackground(new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,new int[]{0xEE08090B,0x6008090B,0x1508090B}));root.addView(shade,new FrameLayout.LayoutParams(-1,u.dp(490)));View fade=new View(this);fade.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0x0008090B,0x3308090B,0xFF08090B}));root.addView(fade,new FrameLayout.LayoutParams(-1,u.dp(500)));scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setClipToPadding(false);scroll.setVerticalScrollBarEnabled(false);page=u.column();u.pad(page,36,18,36,54);scroll.addView(page);root.addView(scroll,new FrameLayout.LayoutParams(-1,-1));scroll.setOnScrollChangeListener((v,x,y,ox,oy)->{backdrop.setTranslationY(-y*.55f);backdrop.setAlpha(Math.max(0,1-y/(float)u.dp(430)));});setContentView(root);immersive();}
+    private void primary(String name){history.clear();render(new Route(name,null,""));}
+    private void open(String kind,Object value,String extra){history.push(current);render(new Route(kind,value,extra));}
+    private void render(Route route){current=route;epoch++;stopPreview();handler.removeCallbacksAndMessages(null);page.removeAllViews();visibleItems.clear();backdrop.setImageDrawable(null);backdrop.setTag(null);backdrop.setAlpha(1);backdrop.setTranslationY(0);buildNav();content=u.column();page.addView(content,u.lp(-1,-2,0,0,0,0));scroll.scrollTo(0,0);
+        switch(route.kind){case "Loading":heading("Welcome to Nocturne","Updating your installed catalogs…");loading(content);break;case "Home":case "Movies":case "TV Shows":case "Sports":home(route.kind);break;case "Channels":channels();break;case "Library":library(route.extra);break;case "Search":search(route.extra);break;case "Details":details((StremioClient.Item)route.value);break;case "Catalog":catalog((StremioClient.Catalog)route.value,route.extra);break;case "Sources":sources((StremioClient.Item)route.value,route.extra);break;case "Settings":settings();break;case "Add-ons":addons();break;case "Addon":addon((StremioClient.Addon)route.value);break;case "Catalog Rows":catalogSettings();break;case "Playback":playbackSettings();break;case "Sources Settings":sourceSettings();break;case "Profiles":profiles();break;case "About":about();break;default:primary("Home");}}
+    private void buildNav(){HorizontalScrollView strip=new HorizontalScrollView(this);strip.setHorizontalScrollBarEnabled(false);strip.setClipToPadding(false);nav=u.row();u.pad(nav,6,5,6,5);nav.setBackground(u.glass(0xD0303237,28,false));for(String tab:new String[]{"Home","Movies","TV Shows","Sports","Channels","Library","Search","Settings"}){boolean active=tab.equals(current.kind);TextView b=u.button(tab,active,()->primary(tab));b.setTextSize(12);u.pad(b,13,0,13,0);if(!active)b.setBackgroundColor(Color.TRANSPARENT);b.setTag("nav-"+tab);nav.addView(b,u.lp(-2,42,1,0,1,0));}strip.addView(nav);LinearLayout header=u.row();header.setGravity(Gravity.CENTER);header.addView(strip,u.lp(-2,54,0,0,0,0));page.addView(header,u.lp(-1,64,0,0,0,8));}
+    private void heading(String title,String sub){content.addView(u.title(title,32),u.lp(-1,-2,0,16,0,0));if(sub!=null&&!sub.isEmpty())content.addView(u.note(sub));}
+    private void loading(LinearLayout target){target.addView(new ProgressBar(this),u.lp(38,38,4,22,0,22));}
+    private void action(LinearLayout parent,String text,boolean main,Runnable callback){parent.addView(u.button(text,main,callback),u.lp(-2,46,0,0,10,0));}
+    private void rowAction(String title,String summary,Runnable click){LinearLayout row=u.column();row.setFocusable(true);row.setClickable(true);row.setContentDescription(title);u.pad(row,22,16,22,16);row.setBackground(u.glass(0xDF202228,16,false));row.addView(u.title(title,17));if(summary!=null)row.addView(u.text(summary,13,0xFFBABCC5));row.setOnClickListener(v->click.run());row.setOnFocusChangeListener((v,focus)->v.setBackground(u.glass(focus?0xFF4B4E58:0xDF202228,16,focus)));content.addView(row,u.lp(-1,-2,0,5,0,5));}
+    private boolean matches(StremioClient.Catalog c,String section){if(section.equals("Movies"))return c.type.equals("movie");if(section.equals("TV Shows"))return c.type.equals("series");if(section.equals("Sports")){String s=(c.type+" "+c.name).toLowerCase(Locale.US);return s.contains("sport")||s.contains("live")||s.contains("channel")||c.type.equals("tv");}return true;}
+    private Map<String,String> defaults(StremioClient.Catalog c){Map<String,String>x=new LinkedHashMap<>();if(c.required.contains("genre")&&!c.genres.isEmpty())x.put("genre",c.genres.get(0));return x;}
+    private void home(String section){final int version=epoch;LinearLayout hero=heroPlaceholder(section);content.addView(hero,u.lp(-1,230,0,0,0,12));if(section.equals("Home")){storedRail("Continue Watching","continue","");storedRail("Watchlist","watchlist","");}List<StremioClient.Catalog> cats=new ArrayList<>();for(StremioClient.Catalog c:repo.catalogs())if(matches(c,section)&&!repo.hidden(c)&&!c.required.contains("search"))cats.add(c);if(cats.isEmpty()){content.addView(u.note(section.equals("Sports")?"Live sports appear here when an installed addon provides sports or live catalogs.":"No catalogs are available for this page."));rowAction("Manage Add-ons","Add or update your catalog providers",()->open("Add-ons",null,""));return;}final boolean[] featured={false};for(StremioClient.Catalog cat:cats){LinearLayout rail=rail(repo.name(cat),cat.addonName,()->open("Catalog",cat,""));loading(rail);repo.catalog(cat,defaults(cat),(items,error)->{if(version!=epoch)return;rail.removeAllViews();if(error!=null){rail.addView(u.button("Retry "+repo.name(cat),false,()->render(current)));return;}List<StremioClient.Item> allowed=filter(items);if(!featured[0]&&!allowed.isEmpty()){featured[0]=true;fillHero(hero,allowed.get(0));}for(int i=0;i<Math.min(20,allowed.size());i++)rail.addView(card(allowed.get(i)));if(allowed.isEmpty())rail.addView(u.note("No titles match this profile’s restrictions."));});}}
+    private LinearLayout heroPlaceholder(String section){LinearLayout hero=u.column();hero.setGravity(Gravity.BOTTOM);u.pad(hero,0,26,0,18);hero.addView(u.text("NOCTURNE",13,0xFFD7D8DC));hero.addView(u.title(section.equals("Home")?"Your next great watch.":section,40));hero.addView(u.note("Fresh from your connected catalogs"));return hero;}
+    private void fillHero(LinearLayout hero,StremioClient.Item seed){final int version=epoch;hero.removeAllViews();u.pad(hero,0,0,0,12);hero.setGravity(Gravity.BOTTOM);images.load(seed.background!=null?seed.background:seed.poster,backdrop);LinearLayout copy=u.column();hero.addView(copy,u.lp(Math.min(width-72,510),-2,0,0,0,0));ImageView logo=new ImageView(this);logo.setScaleType(ImageView.ScaleType.FIT_START);logo.setAdjustViewBounds(true);TextView title=u.title(seed.name,40);copy.addView(logo,u.lp(300,76,0,0,0,7));copy.addView(title);TextView meta=u.text(meta(seed),12,0xFFE3E4E8);copy.addView(meta,u.lp(-1,-2,0,7,0,0));TextView desc=u.text(seed.description==null?"Explore this title and discover available ways to watch.":seed.description,14,0xFFE3E4E8);desc.setMaxLines(2);copy.addView(desc,u.lp(-1,-2,0,9,0,12));LinearLayout buttons=u.row();copy.addView(buttons);action(buttons,"▶  Watch",true,()->open("Details",seed,""));action(buttons,"＋  Watchlist",false,()->{store.toggle("watchlist",seed);toast(store.contains("watchlist",seed)?"Added to Watchlist":"Removed from Watchlist");});if(seed.logo!=null){images.load(seed.logo,logo);title.setVisibility(View.GONE);}else logo.setVisibility(View.GONE);repo.meta(seed,(full,error)->{if(version!=epoch)return;desc.setText(full.description==null?desc.getText():full.description);meta.setText(meta(full));if(full.logo!=null){logo.setVisibility(View.VISIBLE);images.load(full.logo,logo);title.setVisibility(View.GONE);}});}
+    private LinearLayout rail(String title,String subtitle,Runnable more){LinearLayout section=u.column();u.pad(section,0,5,0,17);LinearLayout head=u.row();head.addView(u.title(title,21),new LinearLayout.LayoutParams(0,-2,1));if(more!=null)head.addView(u.button("See All  ›",false,more),u.lp(-2,38,8,0,0,0));section.addView(head);if(subtitle!=null&&!subtitle.isEmpty())section.addView(u.text(subtitle,11,0xFF9699A5),u.lp(-1,-2,0,2,0,0));HorizontalScrollView h=new HorizontalScrollView(this);h.setHorizontalScrollBarEnabled(false);h.setClipToPadding(false);u.pad(h,4,12,0,8);LinearLayout row=u.row();row.setGravity(Gravity.TOP);h.addView(row);section.addView(h);content.addView(section);return row;}
+    private List<StremioClient.Item> filter(List<StremioClient.Item> list){List<StremioClient.Item> out=new ArrayList<>();for(StremioClient.Item i:list)if(store.allowed(i))out.add(i);return out;}
+    private View card(StremioClient.Item item){visibleItems.put(LibraryStore.key(item),item);int w=Math.max(175,Math.min(235,(width-115)/4)),h=w*9/16;LinearLayout box=u.column();box.setFocusable(true);box.setClickable(true);box.setTag("card-"+item.id);box.setContentDescription(item.name);FrameLayout media=new FrameLayout(this);media.setBackground(u.glass(0xFF202228,12,false));media.setClipToOutline(true);ImageView art=new ImageView(this);art.setScaleType(ImageView.ScaleType.CENTER_CROP);media.addView(art,new FrameLayout.LayoutParams(-1,-1));images.load(item.background!=null?item.background:item.poster,art);if(item.logo!=null){ImageView logo=new ImageView(this);logo.setScaleType(ImageView.ScaleType.FIT_CENTER);FrameLayout.LayoutParams lp=new FrameLayout.LayoutParams(u.dp(w-40),u.dp(35),Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL);lp.bottomMargin=u.dp(10);media.addView(logo,lp);images.load(item.logo,logo);}box.addView(media,u.lp(w,h,0,0,0,0));TextView title=u.title(item.name,13);title.setMaxLines(1);box.addView(title,u.lp(w,-2,2,7,0,0));TextView sub=u.text((item.releaseInfo==null?"":item.releaseInfo+" · ")+(item.type.equals("series")?"Series":"movie".equals(item.type)?"Movie":item.type),11,0xFF9DA0AC);sub.setMaxLines(1);box.addView(sub,u.lp(w,-2,2,2,0,0));String video=store.lastVideo(item);long dur=store.duration(item.type,video),pos=store.position(item.type,video);if(dur>0&&pos>0){ProgressBar progress=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);progress.setMax(1000);progress.setProgress((int)Math.min(1000,pos*1000/dur));box.addView(progress,u.lp(w,3,0,5,0,0));}box.setOnClickListener(v->open("Details",item,""));box.setOnLongClickListener(v->{itemMenu(item);return true;});box.setOnFocusChangeListener((v,focus)->{boolean motion=!store.device.getBoolean("reducedMotion",false);v.animate().scaleX(focus&&motion?1.045f:1).scaleY(focus&&motion?1.045f:1).setDuration(140).start();media.setForeground(focus?outline():null);if(focus)schedulePreview(item,box,media,w,h);else if(previewHost==media||previewDelay!=null)stopPreview();});box.setOnHoverListener((v,e)->{if(e.getAction()==MotionEvent.ACTION_HOVER_ENTER)schedulePreview(item,box,media,w,h);else if(e.getAction()==MotionEvent.ACTION_HOVER_EXIT)stopPreview();return false;});box.setLayoutParams(u.lp(-2,-2,0,0,15,0));return box;}
+    private GradientDrawable outline(){GradientDrawable d=new GradientDrawable();d.setColor(Color.TRANSPARENT);d.setCornerRadius(u.dp(12));d.setStroke(u.dp(2),Color.WHITE);return d;}
+    private void schedulePreview(StremioClient.Item item,View owner,FrameLayout media,int w,int h){stopPreview();if(!store.device.getBoolean("previews",true))return;int version=epoch;previewDelay=()->repo.meta(item,(full,error)->{if(version!=epoch||!resumed||!(owner.hasFocus()||owner.isHovered()))return;if(full.trailerUrl==null&&full.trailerYtId==null)return;previewHost=media;media.setLayoutParams(u.lp(Math.min(width-90,360),203,0,0,0,0));collapsePreview=()->media.setLayoutParams(u.lp(w,h,0,0,0,0));preview=new TrailerView(this,full,!store.device.getBoolean("previewAudio",true),this::stopPreview);media.addView(preview,new FrameLayout.LayoutParams(-1,-1));});handler.postDelayed(previewDelay,5000);}
+    private void stopPreview(){if(previewDelay!=null){handler.removeCallbacks(previewDelay);previewDelay=null;}if(preview!=null){preview.release();if(preview.getParent()!=null)((ViewGroup)preview.getParent()).removeView(preview);preview=null;}if(collapsePreview!=null){collapsePreview.run();collapsePreview=null;}previewHost=null;}
+    private void itemMenu(StremioClient.Item item){String[]options={store.contains("watchlist",item)?"Remove from Watchlist":"Add to Watchlist",store.contains("watched",item)?"Mark unwatched":"Mark watched","Remove from Continue Watching"};new AlertDialog.Builder(this,AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle(item.name).setItems(options,(d,n)->{if(n==0)store.toggle("watchlist",item);if(n==1)store.markWatched(item,!store.contains("watched",item));if(n==2)store.remove("continue",item);render(current);}).show();}
+    private void storedRail(String title,String list,String type){List<StremioClient.Item> all=filter(store.list(list));all.removeIf(i->!type.isEmpty()&&!i.type.equals(type));if(all.isEmpty())return;LinearLayout row=rail(title,null,null);for(StremioClient.Item item:all)row.addView(card(item));}
+    private void library(String selected){heading("Library","Saved for "+store.profiles().get(store.active()));LinearLayout filters=u.row();for(String name:new String[]{"All","Watchlist","Continue Watching","Watched","Movies","TV Shows"})action(filters,name,name.equals(selected)||selected.isEmpty()&&name.equals("All"),()->render(new Route("Library",null,name)));horizontal(filters);String type=selected.equals("Movies")?"movie":selected.equals("TV Shows")?"series":"";if(selected.isEmpty()||selected.equals("All")||!type.isEmpty()){storedRail("Continue Watching","continue",type);storedRail("Watchlist","watchlist",type);storedRail("Watched","watched",type);}else storedRail(selected,selected.equals("Watchlist")?"watchlist":selected.equals("Watched")?"watched":"continue","");if(visibleItems.isEmpty())content.addView(u.note("Your library is empty here. Open a title to save it or start watching."));rowAction("Manage Profiles","Switch libraries and viewing preferences",()->open("Profiles",null,""));}
+    private void channels(){heading("Channels","Explore the catalogs supplied by your installed addons.");if(repo.addons.isEmpty())rowAction("Install an Add-on","Connect a catalog to begin",()->open("Add-ons",null,""));for(StremioClient.Addon a:repo.addons){rowAction(a.name,a.catalogs.size()+" catalogs · "+String.join(" / ",a.types),()->open("Addon",a,""));for(StremioClient.Catalog c:a.catalogs)if(!c.required.contains("search"))rowAction("    "+repo.name(c),c.type,()->open("Catalog",c,""));}}
+    private void horizontal(LinearLayout row){HorizontalScrollView s=new HorizontalScrollView(this);s.setHorizontalScrollBarEnabled(false);u.pad(s,2,12,2,18);s.addView(row);content.addView(s);}
+    private void search(String q){heading("Search","Find a movie, show, or person across searchable catalogs.");LinearLayout bar=u.row();EditText input=new EditText(this);input.setText(q);input.setTextColor(Color.WHITE);input.setHintTextColor(0xFF999BA5);input.setHint("Movies, shows, cast and crew");input.setSingleLine(true);input.setBackground(u.glass(0xFF24262C,22,false));u.pad(input,18,0,18,0);bar.addView(input,new LinearLayout.LayoutParams(0,u.dp(52),1));Runnable submit=()->{String query=input.getText().toString().trim();if(!query.isEmpty()){saveSearch(query);render(new Route("Search",null,query));}};bar.addView(u.button("Search",true,submit),u.lp(110,52,12,0,0,0));content.addView(bar,u.lp(-1,-2,0,8,0,20));input.setOnEditorActionListener((v,a,e)->{submit.run();return true;});if(q.isEmpty()){try{JSONArray a=new JSONArray(store.profile().getString("searches","[]"));for(int i=0;i<a.length();i++){String term=a.getString(i);rowAction(term,"Recent search",()->render(new Route("Search",null,term)));}}catch(Exception ignored){}return;}int version=epoch,count=0;for(StremioClient.Catalog c:repo.catalogs())if(c.searchable){count++;LinearLayout row=rail(repo.name(c),c.addonName,null);loading(row);Map<String,String> extra=defaults(c);extra.put("search",q);repo.catalog(c,extra,(items,error)->{if(version!=epoch)return;row.removeAllViews();if(error!=null)row.addView(u.note("Search unavailable: "+error));else{List<StremioClient.Item> allowed=filter(items);for(StremioClient.Item item:allowed)row.addView(card(item));if(allowed.isEmpty())row.addView(u.note("No matches in this catalog."));}});}if(count==0)content.addView(u.note("Your installed addons do not declare search support."));}
+    private void saveSearch(String q){JSONArray out=new JSONArray();out.put(q);try{JSONArray a=new JSONArray(store.profile().getString("searches","[]"));for(int i=0;i<a.length()&&out.length()<8;i++)if(!q.equalsIgnoreCase(a.getString(i)))out.put(a.getString(i));}catch(Exception ignored){}store.profile().edit().putString("searches",out.toString()).apply();}
+    private void catalog(StremioClient.Catalog c,String genre){heading(repo.name(c),c.addonName+" · "+c.type);if(!c.genres.isEmpty()){LinearLayout genres=u.row();if(!c.required.contains("genre"))action(genres,"All",genre.isEmpty(),()->render(new Route("Catalog",c,"")));for(String g:c.genres)action(genres,g,g.equals(genre),()->render(new Route("Catalog",c,g)));horizontal(genres);}Map<String,String> extra=defaults(c);if(!genre.isEmpty())extra.put("genre",genre);LinearLayout grid=u.column();content.addView(grid);loadCatalogPage(c,extra,0,grid,epoch,new HashSet<>());}
+    private void loadCatalogPage(StremioClient.Catalog c,Map<String,String> filters,int skip,LinearLayout grid,int version,Set<String> seen){loading(grid);Map<String,String> extras=new LinkedHashMap<>(filters);if(skip>0)extras.put("skip",String.valueOf(skip));repo.catalog(c,extras,(items,error)->{if(version!=epoch)return;if(grid.getChildCount()>0&&grid.getChildAt(grid.getChildCount()-1) instanceof ProgressBar)grid.removeViewAt(grid.getChildCount()-1);if(error!=null){grid.addView(u.note(error));grid.addView(u.button("Retry",true,()->loadCatalogPage(c,filters,skip,grid,version,seen)));return;}LinearLayout row=null;int count=0;for(StremioClient.Item item:filter(items)){if(!seen.add(LibraryStore.key(item)))continue;if(count++%4==0){row=u.row();row.setGravity(Gravity.TOP);grid.addView(row,u.lp(-1,-2,0,12,0,10));}row.addView(card(item));}if(items.isEmpty()&&skip==0)grid.addView(u.note("No titles are available for these filters."));if(c.pageable&&!items.isEmpty()&&count>0){TextView more=u.button("Load More",false,()->{});more.setOnClickListener(v->{grid.removeView(more);loadCatalogPage(c,filters,skip+items.size(),grid,version,seen);});grid.addView(more,u.lp(180,48,0,16,0,16));}});}
+    private void details(StremioClient.Item seed){heading(seed.name,"Loading title details…");loading(content);int version=epoch;repo.meta(seed,(item,error)->{if(version!=epoch)return;if(!store.allowed(item)){content.removeAllViews();heading("Title restricted","This profile only allows rated family titles.");return;}content.removeAllViews();detailsLoaded(item,error);});}
+    private void detailsLoaded(StremioClient.Item item,String error){images.load(item.background!=null?item.background:item.poster,backdrop);LinearLayout hero=u.column();u.pad(hero,0,28,0,10);content.addView(hero);if(item.logo!=null){ImageView logo=new ImageView(this);logo.setScaleType(ImageView.ScaleType.FIT_START);images.load(item.logo,logo);hero.addView(logo,u.lp(330,88,0,0,0,12));}else hero.addView(u.title(item.name,40));hero.addView(u.text(meta(item),14,0xFFE2E3E7),u.lp(-1,-2,0,6,0,12));TextView description=u.text(item.description==null?"No description is available from this catalog.":item.description,16,0xFFE0E1E6);description.setMaxWidth(u.dp(640));hero.addView(description,u.lp(-1,-2,0,0,0,20));LinearLayout actions=u.row();String resume=store.lastVideo(item);action(actions,store.position(item.type,resume)>0?"▶  Resume":"▶  Play",true,()->playTitle(item));action(actions,store.contains("watchlist",item)?"✓  Watchlist":"＋  Watchlist",false,()->{store.toggle("watchlist",item);render(current);});action(actions,"Trailer",false,()->trailer(item));action(actions,"More",false,()->itemMenu(item));horizontal(actions);if(error!=null)content.addView(u.note(error));
+        if(!item.videos.isEmpty()){content.addView(u.title("Episodes",23),u.lp(-1,-2,0,22,0,5));TreeSet<Integer> seasons=new TreeSet<>();for(StremioClient.Video v:item.videos)try{seasons.add(Integer.parseInt(v.season));}catch(Exception ignored){}LinearLayout seasonButtons=u.row(),episodes=u.column();for(Integer season:seasons)action(seasonButtons,"Season "+season,false,()->episodes(item,season,episodes));horizontal(seasonButtons);content.addView(episodes);if(!seasons.isEmpty())episodes(item,seasons.first(),episodes);}
+        if(item.cast!=null){content.addView(u.title("Cast & Crew",23),u.lp(-1,-2,0,22,0,8));LinearLayout people=u.row();for(String name:item.cast.split(","))action(people,name.trim(),false,()->open("Search",null,name.trim()));horizontal(people);}if(item.directors!=null)content.addView(u.note("Directed by "+item.directors));content.addView(u.title("About",23),u.lp(-1,-2,0,22,0,5));content.addView(u.note(item.name+"\n"+meta(item)+(item.runtime==null?"":" · "+item.runtime)));for(StremioClient.Catalog c:repo.catalogs())if(c.type.equals(item.type)&&!c.requiresExtra){int version=epoch;LinearLayout related=rail("More to Explore",c.addonName,null);repo.catalog(c,new LinkedHashMap<>(),(items,e)->{if(version!=epoch)return;for(StremioClient.Item x:filter(items))if(!x.id.equals(item.id)&&related.getChildCount()<12)related.addView(card(x));});break;}}
+    private void episodes(StremioClient.Item item,int season,LinearLayout target){target.removeAllViews();List<StremioClient.Video> list=new ArrayList<>();for(StremioClient.Video v:item.videos)if(v.season.equals(String.valueOf(season)))list.add(v);list.sort(Comparator.comparingInt(v->{try{return Integer.parseInt(v.episode);}catch(Exception e){return 0;}}));for(StremioClient.Video v:list){LinearLayout tile=u.row();tile.setFocusable(true);tile.setClickable(true);tile.setContentDescription("Episode "+v.episode+" "+v.title);u.pad(tile,12,10,12,10);tile.setBackground(u.glass(0xEB202228,14,false));ImageView thumb=new ImageView(this);thumb.setScaleType(ImageView.ScaleType.CENTER_CROP);images.load(v.thumbnail!=null?v.thumbnail:item.background,thumb);tile.addView(thumb,u.lp(150,84,0,0,18,0));LinearLayout text=u.column();text.addView(u.title("Episode "+v.episode+" · "+v.title,16));text.addView(u.note((v.released==null?"":v.released.substring(0,Math.min(10,v.released.length())))+(store.profile().getBoolean("watched_"+item.type+":"+v.id,false)?" · Watched":"")));tile.addView(text,new LinearLayout.LayoutParams(0,-2,1));tile.setOnClickListener(x->open("Sources",item,v.id));tile.setOnFocusChangeListener((x,has)->x.setBackground(u.glass(has?0xFF4B4E58:0xEB202228,14,has)));target.addView(tile,u.lp(-1,-2,0,4,0,4));}}
+    private void playTitle(StremioClient.Item item){String id=store.lastVideo(item);if(item.type.equals("series")&&id.equals(item.id)){for(StremioClient.Video v:item.videos)if(!v.season.equals("0")&&!store.profile().getBoolean("watched_"+item.type+":"+v.id,false)){id=v.id;break;}if(id.equals(item.id)){toast("Choose an episode below, or install an addon that provides episodes.");return;}}open("Sources",item,id);}
+    private void trailer(StremioClient.Item item){if(item.trailerUrl==null&&item.trailerYtId==null){toast("This catalog did not supply a trailer.");return;}Dialog dialog=new Dialog(this,android.R.style.Theme_Material_NoActionBar);FrameLayout surface=new FrameLayout(this);TrailerView tv=new TrailerView(this,item,false,()->toast("This trailer could not be embedded. Try the YouTube app."));surface.addView(tv,new FrameLayout.LayoutParams(-1,-1));TextView close=u.button("Close Trailer",false,dialog::dismiss);FrameLayout.LayoutParams lp=new FrameLayout.LayoutParams(u.dp(160),u.dp(46),Gravity.TOP|Gravity.RIGHT);lp.setMargins(0,u.dp(16),u.dp(16),0);surface.addView(close,lp);dialog.setContentView(surface);dialog.setOnDismissListener(d->tv.release());dialog.show();dialog.getWindow().setLayout(-1,-1);close.requestFocus();}
+    private void sources(StremioClient.Item item,String id){heading("Ways to Watch",item.name+episodeLabel(item,id));loading(content);int version=epoch;repo.streams(item,id,(streams,error)->{if(version!=epoch)return;content.removeAllViews();heading("Ways to Watch",item.name+episodeLabel(item,id));List<StreamEngine.Info> list=StreamEngine.process(streams,store.device);if(list.isEmpty()){content.addView(u.note(error==null?"No sources match your preferences. Try another title, change filters, or update your addons.":error));rowAction("Manage Add-ons","Install or verify stream providers",()->open("Add-ons",null,""));rowAction("Source Preferences","Quality, file size and excluded words",()->open("Sources Settings",null,""));return;}if(store.device.getBoolean("autoPick",false)){for(StreamEngine.Info info:list)if(info.stream.url!=null){launch(item,id,info.stream);return;}}for(StreamEngine.Info info:list)rowAction(info.stream.label(),info.label()+(info.stream.infoHash!=null?" · Requires torrent resolver":""),()->launch(item,id,info.stream));if(error!=null)content.addView(u.note("Some providers could not respond.\n"+error));});}
+    private void launch(StremioClient.Item item,String id,StremioClient.Stream stream){stopPreview();if(stream.url==null){String url=stream.externalUrl!=null?stream.externalUrl:stream.ytId!=null?"https://www.youtube.com/watch?v="+stream.ytId:null;if(url==null){toast("This source requires a torrent resolver. Add a provider that supplies a playable URL.");return;}try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(url)));}catch(Exception e){toast("No app can open this source.");}return;}Intent intent=new Intent(this,PlayerActivity.class);intent.putExtra("url",stream.url);intent.putExtra("title",item.name+episodeLabel(item,id));intent.putExtra("itemJson",item.toJson().toString());intent.putExtra("videoId",id);intent.putExtra("profile",store.active());intent.putExtra("headers",new JSONObject(stream.headers).toString());intent.putExtra("manifests",new JSONArray(repo.urls()).toString());startActivityForResult(intent,PLAY_REQUEST);}
+    private String episodeLabel(StremioClient.Item i,String id){for(StremioClient.Video v:i.videos)if(v.id.equals(id))return " · S"+v.season+" E"+v.episode+" · "+v.title;return "";}
+    private void settings(){heading("Settings",store.profiles().get(store.active())+" · Nocturne TV");rowAction("Profiles","Separate Watchlists, history, and family viewing filters",()->open("Profiles",null,""));rowAction("Add-ons",repo.addons.size()+" installed · catalogs, metadata, streams and subtitles",()->open("Add-ons",null,""));rowAction("Catalog Rows","Show, hide, rename and reorder your catalog rows",()->open("Catalog Rows",null,""));rowAction("Playback & Appearance","Previews, subtitles, next episode, motion and seeking",()->open("Playback",null,""));rowAction("Source Preferences","Quality, maximum size, duplicates and automatic selection",()->open("Sources Settings",null,""));rowAction("Refresh Catalogs","Fetch the latest addon manifests and catalog content",()->{render(new Route("Loading",null,""));repo.refresh((a,e)->{render(new Route("Settings",null,""));toast(e==null?"Catalogs updated":"Some addons failed to update");});});rowAction("About & Privacy","Version, local data and supported features",()->open("About",null,""));}
+    private void addons(){heading("Add-ons","Install Stremio manifests directly on this device.");rowAction("＋ Install Add-on","Paste an https://…/manifest.json or stremio:// URL",this::installAddon);for(StremioClient.Addon a:repo.addons)rowAction(a.name,a.version+" · "+a.catalogs.size()+" catalogs · "+String.join(", ",a.resources),()->open("Addon",a,""));if(!repo.failures.isEmpty())content.addView(u.note("Update issues\n"+String.join("\n",repo.failures)));}
+    private void addon(StremioClient.Addon a){heading(a.name,a.description);content.addView(u.note("Version "+a.version+" · "+Uri.parse(a.manifestUrl).getHost()));for(String r:a.resources)rowAction(r.toUpperCase(Locale.US),repo.enabled(a,r)?"Enabled":"Disabled",()->{repo.enable(a,r,!repo.enabled(a,r));render(current);});for(StremioClient.Catalog c:a.catalogs)rowAction(repo.name(c),"Browse "+c.type+" catalog",()->open("Catalog",c,""));rowAction("Verify & Update","Fetch the current manifest",()->{toast("Checking addon…");repo.refresh((all,error)->{toast(error==null?"Addons updated":"Some providers did not respond");render(new Route("Add-ons",null,""));});});if(!a.manifestUrl.equals(StremioClient.CINEMETA))rowAction("Remove Add-on","Remove this provider from the device",()->confirm("Remove "+a.name+"?",()->{List<String> urls=repo.urls();urls.remove(a.manifestUrl);repo.saveUrls(urls);repo.refresh((all,e)->render(new Route("Add-ons",null,"")));}));}
+    private void installAddon(){edit("Install Add-on","https://…/manifest.json","",value->{String url=value.trim().replaceFirst("^stremio://","https://");if(!url.endsWith("/manifest.json"))url=url.replaceAll("/+$","")+"/manifest.json";if(!url.startsWith("https://")&&!url.startsWith("http://")){toast("Enter a full manifest URL");return;}final String target=url;toast("Verifying manifest…");repo.io.execute(()->{try{StremioClient.loadAddon(target);runOnUiThread(()->{List<String> urls=repo.urls();if(!urls.contains(target))urls.add(target);repo.saveUrls(urls);repo.refresh((a,e)->render(new Route("Add-ons",null,"")));});}catch(Exception e){runOnUiThread(()->toast("Could not install: "+e.getMessage()));}});});}
+    private void catalogSettings(){heading("Catalog Rows","Rows and their names come from your addons. Provider rankings are never invented.");for(StremioClient.Catalog c:repo.catalogs())rowAction(repo.name(c),(repo.hidden(c)?"Hidden":"Visible")+" · "+c.addonName+" · "+c.type,()->catalogMenu(c));}
+    private void catalogMenu(StremioClient.Catalog c){String[] options={repo.hidden(c)?"Show row":"Hide row","Rename","Move Up","Move Down","Reset Name"};new AlertDialog.Builder(this,AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle(repo.name(c)).setItems(options,(d,n)->{if(n==0){Set<String> hidden=new HashSet<>(store.device.getStringSet("hiddenCatalogs",Collections.emptySet()));if(!hidden.add(AddonRepository.catalogKey(c)))hidden.remove(AddonRepository.catalogKey(c));store.device.edit().putStringSet("hiddenCatalogs",hidden).apply();}else if(n==1){edit("Row Name","Name",repo.name(c),name->{try{JSONObject names=new JSONObject(store.device.getString("catalogNames","{}"));names.put(AddonRepository.catalogKey(c),name);store.device.edit().putString("catalogNames",names.toString()).apply();render(current);}catch(Exception ignored){}});return;}else if(n==2||n==3){List<StremioClient.Catalog> ordered=repo.catalogs();int at=ordered.indexOf(c),to=at+(n==2?-1:1);if(to>=0&&to<ordered.size())Collections.swap(ordered,at,to);JSONArray order=new JSONArray();for(StremioClient.Catalog x:ordered)order.put(AddonRepository.catalogKey(x));store.device.edit().putString("catalogOrder",order.toString()).apply();}else try{JSONObject names=new JSONObject(store.device.getString("catalogNames","{}"));names.remove(AddonRepository.catalogKey(c));store.device.edit().putString("catalogNames",names.toString()).apply();}catch(Exception ignored){}render(current);}).show();}
+    private void toggle(String label,String key,boolean fallback){rowAction(label,store.device.getBoolean(key,fallback)?"On":"Off",()->{store.device.edit().putBoolean(key,!store.device.getBoolean(key,fallback)).apply();render(current);});}
+    private void playbackSettings(){heading("Playback & Appearance","Changes take effect the next time playback starts.");toggle("Autoplay Card Previews after 5 seconds","previews",true);toggle("Trailer Audio","previewAudio",true);toggle("Reduced Motion","reducedMotion",false);toggle("Play Next Episode Automatically","binge",true);rowAction("Preferred Subtitle Language",store.device.getString("subtitleLanguage","eng"),()->edit("Subtitle Language","eng, spa, fra…",store.device.getString("subtitleLanguage","eng"),v->{store.device.edit().putString("subtitleLanguage",v).apply();render(current);}));rowAction("Preferred Audio Language",store.device.getString("audioLanguage","eng"),()->edit("Audio Language","eng, spa, fra…",store.device.getString("audioLanguage","eng"),v->{store.device.edit().putString("audioLanguage",v).apply();render(current);}));rowAction("Seek Interval",store.device.getInt("seekSeconds",10)+" seconds",()->choose("Seek Interval",new String[]{"5","10","15","30"},n->{store.device.edit().putInt("seekSeconds",new int[]{5,10,15,30}[n]).apply();render(current);}));rowAction("Clear Search History","Only for the active profile",()->confirm("Clear recent searches?",()->{store.profile().edit().remove("searches").apply();toast("Search history cleared");}));}
+    private void sourceSettings(){heading("Source Preferences","Filter and sort the sources returned by your addons.");rowAction("Preferred Quality",store.device.getString("preferredQuality","Auto"),()->choose("Preferred Quality",new String[]{"Auto","2160p","1080p","720p"},n->{store.device.edit().putString("preferredQuality",new String[]{"Auto","2160p","1080p","720p"}[n]).apply();render(current);}));rowAction("Maximum File Size",store.device.getFloat("maxSizeGB",50)+" GB · 0 means unlimited",()->choose("Maximum Size",new String[]{"10 GB","25 GB","50 GB","100 GB","Unlimited"},n->{store.device.edit().putFloat("maxSizeGB",new float[]{10,25,50,100,0}[n]).apply();render(current);}));toggle("Merge Duplicate URLs","dedupe",true);toggle("Automatically Select Best Source","autoPick",false);rowAction("Excluded Keywords",store.device.getString("excludeKeywords","None"),()->edit("Excluded Keywords","CAM, telesync",store.device.getString("excludeKeywords",""),s->{store.device.edit().putString("excludeKeywords",s).apply();render(current);}));}
+    private void profiles(){heading("Profiles","Watchlists, progress and history stay on this device.");for(Map.Entry<String,String> p:store.profiles().entrySet())rowAction(p.getValue(),p.getKey().equals(store.active())?"Active profile":"Switch profile",()->{store.switchProfile(p.getKey());primary("Home");});rowAction("＋ Add Profile","Create a separate local library",()->edit("New Profile","Name","",name->{if(!name.trim().isEmpty()){store.addProfile(name.trim());render(current);}}));rowAction("Family Titles Only",store.profile().getBoolean("familyOnly",false)?"On · only G, PG, TV-Y, TV-Y7, TV-G and TV-PG; unrated titles hidden":"Off",()->{store.profile().edit().putBoolean("familyOnly",!store.profile().getBoolean("familyOnly",false)).apply();render(current);});if(!store.active().equals("default"))rowAction("Delete Current Profile","Remove this profile’s local library and progress",()->confirm("Delete this profile and its library?",()->{store.removeProfile(store.active());render(current);}));}
+    private void about(){heading("Nocturne TV","4.0 · Native Android & Fire TV");content.addView(u.note("Catalogs, artwork, title logos, metadata, streams and subtitles are supplied by your installed Stremio addons. Profiles and viewing history are stored locally. Refresh Catalogs updates the manifests and rows.\n\nThis app does not include an Apple account, Apple purchases, Apple subscriptions, licensed sports feeds, AirPlay, SharePlay, or scene-level InSight data. Those services are not provided by Stremio addons.\n\nNo personal addon token is bundled. Add your own configuration in Settings → Add-ons. YouTube trailers use the official embedded player; an owner can disable embedding. Direct video sources use Android Media3. Torrent hashes require a resolver addon."));rowAction("Clear Current Profile History","Remove Continue Watching, Watched and saved playback positions",()->confirm("Clear this profile’s playback history?",()->{android.content.SharedPreferences.Editor e=store.profile().edit();for(String k:store.profile().getAll().keySet())if(k.startsWith("position_")||k.startsWith("duration_")||k.startsWith("last_")||k.startsWith("watched_")||k.equals("continue")||k.equals("watched"))e.remove(k);e.apply();toast("History cleared");}));}
+    interface TextResult{void value(String value);}interface Choice{void value(int n);}
+    private void edit(String title,String hint,String value,TextResult cb){EditText input=new EditText(this);input.setText(value);input.setHint(hint);input.setSingleLine(true);input.setInputType(InputType.TYPE_CLASS_TEXT);u.pad(input,20,12,20,12);new AlertDialog.Builder(this,AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle(title).setView(input).setPositiveButton("Save",(d,n)->cb.value(input.getText().toString().trim())).setNegativeButton("Cancel",null).show();}
+    private void choose(String title,String[] options,Choice cb){new AlertDialog.Builder(this,AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle(title).setItems(options,(d,n)->cb.value(n)).setNegativeButton("Cancel",null).show();}
+    private void confirm(String title,Runnable action){new AlertDialog.Builder(this,AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle(title).setPositiveButton("Confirm",(d,n)->action.run()).setNegativeButton("Cancel",null).show();}
+    private String meta(StremioClient.Item i){List<String> parts=new ArrayList<>();if(i.releaseInfo!=null)parts.add(i.releaseInfo);if(i.genres!=null)parts.add(i.genres);if(i.imdbRating!=null)parts.add("★ "+i.imdbRating);if(i.contentRating!=null)parts.add(i.contentRating);return String.join(" · ",parts);}
+    private void toast(String message){Toast.makeText(this,message,Toast.LENGTH_LONG).show();}
+    private void immersive(){getWindow().getDecorView().setSystemUiVisibility(5894|View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);}
+    @Override public void onBackPressed(){stopPreview();if(!history.isEmpty())render(history.pop());else if(!current.kind.equals("Home"))primary("Home");else if(scroll.getScrollY()>0){scroll.smoothScrollTo(0,0);nav.getChildAt(0).requestFocus();}else super.onBackPressed();}
+    @Override public boolean onKeyDown(int key,KeyEvent event){if(key==KeyEvent.KEYCODE_MENU){open("Settings",null,"");return true;}return super.onKeyDown(key,event);}
+    @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(request==PLAY_REQUEST){if(result==RESULT_OK&&data!=null&&data.hasExtra("nextVideo")){try{open("Sources",StremioClient.Item.fromJson(new JSONObject(data.getStringExtra("itemJson"))),data.getStringExtra("nextVideo"));}catch(Exception ignored){}}else render(current);}}
+    @Override protected void onResume(){super.onResume();resumed=true;immersive();}
+    @Override protected void onPause(){resumed=false;stopPreview();super.onPause();}
+    @Override protected void onDestroy(){handler.removeCallbacksAndMessages(null);stopPreview();repo.close();images.close();super.onDestroy();}
 }

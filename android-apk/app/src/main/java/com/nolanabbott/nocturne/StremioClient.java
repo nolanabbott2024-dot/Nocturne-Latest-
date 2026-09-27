@@ -13,6 +13,8 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.LinkedHashMap;
 
 final class StremioClient {
     static final String CINEMETA = "https://v3-cinemeta.strem.io/manifest.json";
@@ -23,11 +25,14 @@ final class StremioClient {
         final List<String> resources = new ArrayList<>();
         final List<String> types = new ArrayList<>();
         final List<String> idPrefixes = new ArrayList<>();
+        final Map<String, JSONObject> resourceRules = new LinkedHashMap<>();
     }
 
     static final class Catalog {
         String type, id, name, addonName, baseUrl;
-        boolean searchable, requiresExtra;
+        boolean searchable, requiresExtra, pageable;
+        final List<String> genres = new ArrayList<>();
+        final List<String> required = new ArrayList<>();
     }
 
     static final class Item {
@@ -44,6 +49,7 @@ final class StremioClient {
                 o.put("genres", genres); o.put("imdbRating", imdbRating); o.put("sourceBase", sourceBase);
                 o.put("runtime", runtime); o.put("contentRating", contentRating); o.put("cast", cast);
                 o.put("directors", directors); o.put("trailerUrl", trailerUrl); o.put("trailerYtId", trailerYtId);
+                JSONArray episodes=new JSONArray(); for(Video v:videos){JSONObject e=new JSONObject();e.put("id",v.id);e.put("title",v.title);e.put("season",v.season);e.put("episode",v.episode);e.put("released",v.released);e.put("thumbnail",v.thumbnail);episodes.put(e);}o.put("videos",episodes);
             } catch (Exception ignored) { }
             return o;
         }
@@ -58,6 +64,7 @@ final class StremioClient {
             i.runtime = nullable(o.optString("runtime")); i.contentRating = nullable(o.optString("contentRating"));
             i.cast = nullable(o.optString("cast")); i.directors = nullable(o.optString("directors"));
             i.trailerUrl = nullable(o.optString("trailerUrl")); i.trailerYtId = nullable(o.optString("trailerYtId"));
+            JSONArray videos=o.optJSONArray("videos");if(videos!=null)for(int n=0;n<videos.length();n++){JSONObject e=videos.optJSONObject(n);if(e==null)continue;Video v=new Video();v.id=e.optString("id");v.title=e.optString("title");v.season=e.optString("season");v.episode=e.optString("episode");v.released=nullable(e.optString("released"));v.thumbnail=nullable(e.optString("thumbnail"));i.videos.add(v);}
             return i;
         }
     }
@@ -69,6 +76,7 @@ final class StremioClient {
     static final class Stream {
         String name, title, description, url, externalUrl, ytId, infoHash, filename;
         long videoSize;
+        final Map<String,String> headers = new LinkedHashMap<>();
         String label() {
             String a = name == null || name.isEmpty() ? "Stream" : name;
             return title == null || title.isEmpty() ? a : a + " — " + title;
@@ -79,6 +87,12 @@ final class StremioClient {
 
     static Addon loadAddon(String manifestUrl) throws Exception {
         JSONObject manifest = getJson(manifestUrl);
+        return parseAddon(manifestUrl,manifest);
+    }
+
+    static Addon parseAddon(String manifestUrl, JSONObject manifest) throws Exception {
+        if(!manifestUrl.endsWith("/manifest.json")) throw new IllegalArgumentException("The addon URL must end in /manifest.json");
+        if(!manifest.has("id")||!manifest.has("name"))throw new IllegalArgumentException("This is not a Stremio manifest");
         Addon a = new Addon();
         a.id = manifest.optString("id", manifestUrl);
         a.name = manifest.optString("name", "Stremio addon");
@@ -91,7 +105,7 @@ final class StremioClient {
         if (resources != null) for (int x = 0; x < resources.length(); x++) {
             Object r = resources.opt(x);
             if (r instanceof String) a.resources.add((String) r);
-            else if (r instanceof JSONObject) a.resources.add(((JSONObject) r).optString("name"));
+            else if (r instanceof JSONObject) {JSONObject rule=(JSONObject)r;String name=rule.optString("name");a.resources.add(name);a.resourceRules.put(name,rule);}
         }
         JSONArray types = manifest.optJSONArray("types");
         if (types != null) for (int i = 0; i < types.length(); i++) a.types.add(types.optString(i));
@@ -107,8 +121,9 @@ final class StremioClient {
             JSONArray extra = c.optJSONArray("extra");
             if (extra != null) for (int y = 0; y < extra.length(); y++) {
                 Object e = extra.opt(y);
-                if (e instanceof String && "search".equals(e)) cat.searchable = true;
-                if (e instanceof JSONObject) { JSONObject eo=(JSONObject)e; if("search".equals(eo.optString("name")))cat.searchable=true; if(eo.optBoolean("isRequired",eo.optBoolean("is_required",false)))cat.requiresExtra=true; }
+                String name=e instanceof String?(String)e:((JSONObject)e).optString("name");
+                if("search".equals(name))cat.searchable=true;if("skip".equals(name))cat.pageable=true;
+                if(e instanceof JSONObject){JSONObject eo=(JSONObject)e;if(eo.optBoolean("isRequired",false)){cat.requiresExtra=true;cat.required.add(name);}if("genre".equals(name)){JSONArray values=eo.optJSONArray("options");if(values!=null)for(int z=0;z<values.length();z++)cat.genres.add(values.optString(z));}}
             }
             if (!cat.type.isEmpty() && !cat.id.isEmpty()) a.catalogs.add(cat);
         }
@@ -116,13 +131,17 @@ final class StremioClient {
     }
 
     static List<Item> loadCatalog(Catalog c, int skip, String search) throws Exception {
-        StringBuilder path = new StringBuilder(c.baseUrl).append("catalog/")
-                .append(seg(c.type)).append('/').append(seg(c.id));
-        if (search != null && !search.trim().isEmpty()) {
-            path.append("/search=").append(seg(search.trim()));
-        } else if (skip > 0) path.append("/skip=").append(skip);
-        path.append(".json");
-        JSONObject o = getJson(path.toString());
+        Map<String,String> extra=new LinkedHashMap<>();if(search!=null&&!search.trim().isEmpty())extra.put("search",search.trim());if(skip>0&&c.pageable)extra.put("skip",String.valueOf(skip));return loadCatalog(c,extra);
+    }
+
+    static String resourceUrl(String base,String resource,String type,String id,Map<String,String> extras){
+        StringBuilder p=new StringBuilder(base).append(seg(resource)).append('/').append(seg(type)).append('/').append(seg(id));
+        if(extras!=null&&!extras.isEmpty()){p.append('/');boolean first=true;for(Map.Entry<String,String> e:extras.entrySet()){if(!first)p.append('&');first=false;p.append(seg(e.getKey())).append('=').append(seg(e.getValue()));}}return p.append(".json").toString();
+    }
+
+    static List<Item> loadCatalog(Catalog c,Map<String,String> extra) throws Exception {
+        for(String required:c.required)if(!extra.containsKey(required))throw new IllegalArgumentException("Choose "+required+" for this catalog");
+        JSONObject o = getJson(resourceUrl(c.baseUrl,"catalog",c.type,c.id,extra));
         JSONArray metas = o.optJSONArray("metas");
         List<Item> out = new ArrayList<>();
         if (metas != null) for (int i = 0; i < metas.length(); i++) {
@@ -134,7 +153,7 @@ final class StremioClient {
 
     static Item loadMeta(Addon addon, String type, String id) throws Exception {
         JSONObject o = getJson(addon.baseUrl + "meta/" + seg(type) + "/" + seg(id) + ".json");
-        Item item = parseItem(o.optJSONObject("meta"), type); item.sourceBase = addon.baseUrl; return item;
+        if(o.optJSONObject("meta")==null)throw new IllegalStateException("Metadata unavailable");Item item = parseItem(o.optJSONObject("meta"), type); item.sourceBase = addon.baseUrl; return item;
     }
 
     static List<Stream> loadStreams(Addon addon, String type, String id) throws Exception {
@@ -148,13 +167,14 @@ final class StremioClient {
             stream.url = nullable(s.optString("url")); stream.externalUrl = nullable(s.optString("externalUrl"));
             stream.ytId = nullable(s.optString("ytId")); stream.infoHash = nullable(s.optString("infoHash"));
             JSONObject hints = s.optJSONObject("behaviorHints");
-            if (hints != null) { stream.filename = nullable(hints.optString("filename")); stream.videoSize = hints.optLong("videoSize", 0); }
+            if (hints != null) { stream.filename = nullable(hints.optString("filename")); stream.videoSize = hints.optLong("videoSize", 0);JSONObject proxy=hints.optJSONObject("proxyHeaders");if(proxy!=null){JSONObject request=proxy.optJSONObject("request");if(request!=null){java.util.Iterator<String>keys=request.keys();while(keys.hasNext()){String k=keys.next();stream.headers.put(k,request.optString(k));}}} }
             if (stream.url != null || stream.externalUrl != null || stream.ytId != null || stream.infoHash != null) out.add(stream);
         }
         return out;
     }
 
-    static boolean supports(Addon a,String resource,String type,String id){if(!a.resources.contains(resource))return false;if(!a.types.isEmpty()&&!a.types.contains(type))return false;if(!a.idPrefixes.isEmpty()){boolean ok=false;String base=id==null?"":id.split(":")[0];for(String p:a.idPrefixes)if(base.startsWith(p)){ok=true;break;}if(!ok)return false;}return true;}
+    static boolean supports(Addon a,String resource,String type,String id){if(!a.resources.contains(resource))return false;JSONObject rule=a.resourceRules.get(resource);List<String> types=rule!=null&&rule.has("types")?strings(rule.optJSONArray("types")):a.types;List<String> prefixes=rule!=null&&rule.has("idPrefixes")?strings(rule.optJSONArray("idPrefixes")):a.idPrefixes;if(!types.isEmpty()&&!types.contains(type))return false;if(!prefixes.isEmpty()){for(String p:prefixes)if(id!=null&&id.startsWith(p))return true;return false;}return true;}
+    private static List<String> strings(JSONArray a){List<String>o=new ArrayList<>();if(a!=null)for(int i=0;i<a.length();i++)o.add(a.optString(i));return o;}
 
     static List<Subtitle> loadSubtitles(Addon addon, String type, String id) throws Exception {
         JSONObject o = getJson(addon.baseUrl + "subtitles/" + seg(type) + "/" + seg(id) + ".json");
@@ -202,14 +222,14 @@ final class StremioClient {
         return item;
     }
 
-    private static JSONObject getJson(String address) throws Exception {
+    static JSONObject getJson(String address) throws Exception {
         HttpURLConnection c = (HttpURLConnection) new URL(address).openConnection();
         c.setConnectTimeout(12000); c.setReadTimeout(18000); c.setInstanceFollowRedirects(true);
         c.setRequestProperty("Accept", "application/json");
-        c.setRequestProperty("User-Agent", "NocturneTV/2.0 Android");
+        c.setRequestProperty("User-Agent", "NocturneTV/4.0 Android");
         int status = c.getResponseCode();
         InputStream in = status >= 200 && status < 300 ? c.getInputStream() : c.getErrorStream();
-        BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+        if(in==null){c.disconnect();throw new IllegalStateException("HTTP "+status);}BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
         StringBuilder body = new StringBuilder(); String line;
         while ((line = reader.readLine()) != null) body.append(line);
         reader.close(); c.disconnect();

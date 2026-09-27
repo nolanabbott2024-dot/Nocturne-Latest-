@@ -23,7 +23,7 @@ final class StreamEngine {
         for(StremioClient.Stream s:input){ Info i=parse(s); String text=text(s).toLowerCase(Locale.US);
             boolean blocked=false; for(String word:exclude.split(","))if(!word.trim().isEmpty()&&text.contains(word.trim()))blocked=true;
             if(blocked||(s.videoSize>0&&max>0&&s.videoSize/1e9>max))continue;
-            String k=(s.filename==null?i.label():s.filename).toLowerCase(Locale.US).replaceAll("[^a-z0-9]","");
+            String k=s.url!=null?s.url:s.externalUrl!=null?s.externalUrl:s.infoHash!=null?s.infoHash:s.ytId;
             if(p.getBoolean("dedupe",true)&&!seen.add(k))continue; out.add(i);
         }
         Collections.sort(out, Comparator.comparingInt((Info i)->score(i,preferred)).reversed().thenComparingLong(i->-i.stream.videoSize)); return out;

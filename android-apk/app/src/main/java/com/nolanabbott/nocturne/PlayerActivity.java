@@ -1,49 +1,43 @@
 package com.nolanabbott.nocturne;
 
-import android.app.Activity;
-import android.graphics.Color;
-import android.media.MediaFormat;
+import android.app.*;
+import android.content.*;
 import android.net.Uri;
-import android.os.Bundle;
-import android.view.Gravity;
-import android.view.View;
-import android.widget.FrameLayout;
-import android.widget.MediaController;
-import android.widget.ProgressBar;
-import android.widget.TextView;
-import android.widget.VideoView;
-
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import android.os.*;
+import android.view.*;
+import android.widget.*;
+import androidx.media3.common.*;
+import androidx.media3.datasource.*;
+import androidx.media3.exoplayer.*;
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
+import androidx.media3.session.MediaSession;
+import androidx.media3.ui.PlayerView;
+import org.json.*;
+import java.util.*;
 
 public class PlayerActivity extends Activity {
-    private VideoView video;
-    private String historyKey;
-    private String itemJson;
-
-    @Override protected void onCreate(Bundle state) {
-        super.onCreate(state); getWindow().setStatusBarColor(Color.BLACK); getWindow().setNavigationBarColor(Color.BLACK);
-        FrameLayout root = new FrameLayout(this); root.setBackgroundColor(Color.BLACK);
-        video = new VideoView(this); root.addView(video, new FrameLayout.LayoutParams(-1, -1));
-        ProgressBar loading = new ProgressBar(this); FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(64, 64, Gravity.CENTER);
-        root.addView(loading, lp);
-        TextView title = new TextView(this); title.setText(getIntent().getStringExtra("title")); title.setTextColor(Color.WHITE);
-        title.setTextSize(18); title.setPadding(28, 20, 28, 20); root.addView(title);
-        setContentView(root); immersive();
-        String url = getIntent().getStringExtra("url"); historyKey = getIntent().getStringExtra("historyKey"); itemJson=getIntent().getStringExtra("itemJson");
-        MediaController controls = new MediaController(this); controls.setAnchorView(video); video.setMediaController(controls);
-        video.setVideoURI(Uri.parse(url));
-        video.setOnPreparedListener(mp -> {
-            loading.setVisibility(View.GONE); int p = getSharedPreferences("nocturne_native",0).getInt("position_"+historyKey, 0);
-            if (p > 0 && p < mp.getDuration() - 15000) video.seekTo(p); video.start();
-        });
-        String sub=getIntent().getStringExtra("subtitleUrl"); String lang=getIntent().getStringExtra("subtitleLang");
-        if(sub!=null)new Thread(()->{try{HttpURLConnection c=(HttpURLConnection)new URL(sub).openConnection();c.setConnectTimeout(10000);c.setReadTimeout(15000);InputStream in=c.getInputStream();MediaFormat f=MediaFormat.createSubtitleFormat(sub.toLowerCase().contains(".srt")?"application/x-subrip":"text/vtt",lang==null?"und":lang);runOnUiThread(()->{try{video.addSubtitleSource(in,f);}catch(Exception ignored){}});}catch(Exception ignored){}}).start();
-        video.setOnErrorListener((mp, what, extra) -> { loading.setVisibility(View.GONE); title.setText("This source could not be played on this device"); return true; });
-    }
-
-    @Override protected void onPause() { if (video != null && historyKey != null) getSharedPreferences("nocturne_native",0).edit().putInt("position_"+historyKey, video.getCurrentPosition()).putInt("duration_"+historyKey,video.getDuration()).apply(); super.onPause(); }
-    @Override protected void onResume() { super.onResume(); immersive(); }
-    private void immersive() { getWindow().getDecorView().setSystemUiVisibility(5894 | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY); }
+    private ExoPlayer player;private PlayerView video;private MediaSession session;
+    private LibraryStore store;private AddonRepository repo;private TvUi u;
+    private StremioClient.Item item;private String videoId,url;private Map<String,String> headers=new LinkedHashMap<>();
+    private TextView title,status;private LinearLayout extras;private int generation;private boolean playing=true;
+    private final Handler handler=new Handler(Looper.getMainLooper());
+    private final Runnable checkpoint=new Runnable(){public void run(){save();handler.postDelayed(this,5000);}};
+    @Override protected void onCreate(Bundle saved){super.onCreate(saved);u=new TvUi(this);store=new LibraryStore(this);String profile=getIntent().getStringExtra("profile");if(profile!=null)store.switchProfile(profile);repo=new AddonRepository(store);repo.refresh((a,e)->{if(player!=null)loadSubtitles();});try{item=StremioClient.Item.fromJson(new JSONObject(getIntent().getStringExtra("itemJson")));JSONObject h=new JSONObject(getIntent().getStringExtra("headers"));Iterator<String> keys=h.keys();while(keys.hasNext()){String k=keys.next();headers.put(k,h.getString(k));}}catch(Exception e){finish();return;}url=getIntent().getStringExtra("url");videoId=getIntent().getStringExtra("videoId");
+        FrameLayout root=new FrameLayout(this);root.setBackgroundColor(0xFF000000);video=new PlayerView(this);video.setKeepScreenOn(true);video.setShowSubtitleButton(true);video.setControllerShowTimeoutMs(4500);root.addView(video,new FrameLayout.LayoutParams(-1,-1));LinearLayout top=u.column();u.pad(top,28,20,28,20);top.setBackground(new android.graphics.drawable.GradientDrawable(android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xCC000000,0}));title=u.title(getIntent().getStringExtra("title"),20);top.addView(title);status=u.text("Preparing playback…",13,0xFFCBCDD5);top.addView(status);root.addView(top,new FrameLayout.LayoutParams(-1,-2,Gravity.TOP));extras=u.row();u.pad(extras,22,8,22,8);extras.setBackground(u.glass(0xE522242B,22,false));button("Audio",()->tracks(C.TRACK_TYPE_AUDIO));button("Subtitles",()->tracks(C.TRACK_TYPE_TEXT));button("Speed",this::speed);button("Next Episode",()->next(false));button("Change Source",this::finish);FrameLayout.LayoutParams controls=new FrameLayout.LayoutParams(-2,u.dp(52),Gravity.TOP|Gravity.RIGHT);controls.topMargin=u.dp(68);controls.rightMargin=u.dp(24);root.addView(extras,controls);video.setControllerVisibilityListener((PlayerView.ControllerVisibilityListener) visibility->{top.setVisibility(visibility);extras.setVisibility(visibility);});setContentView(root);immersive();initialize();}
+    private void button(String label,Runnable r){extras.addView(u.button(label,false,r),u.lp(-2,38,0,0,7,0));}
+    private void initialize(){if(item==null||player!=null)return;DefaultHttpDataSource.Factory http=new DefaultHttpDataSource.Factory().setUserAgent("NocturneTV/4.0").setAllowCrossProtocolRedirects(true).setDefaultRequestProperties(headers);DefaultDataSource.Factory data=new DefaultDataSource.Factory(this,http);player=new ExoPlayer.Builder(this).setMediaSourceFactory(new DefaultMediaSourceFactory(data)).setSeekBackIncrementMs(store.device.getInt("seekSeconds",10)*1000L).setSeekForwardIncrementMs(store.device.getInt("seekSeconds",10)*1000L).build();video.setPlayer(player);player.setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),true);player.setHandleAudioBecomingNoisy(true);player.setTrackSelectionParameters(player.getTrackSelectionParameters().buildUpon().setPreferredAudioLanguage(store.device.getString("audioLanguage","eng")).setPreferredTextLanguage(store.device.getString("subtitleLanguage","eng")).build());session=new MediaSession.Builder(this,player).build();player.addListener(new Player.Listener(){@Override public void onPlaybackStateChanged(int state){status.setText(state==Player.STATE_BUFFERING?"Buffering…":"");if(state==Player.STATE_ENDED){save();if(store.device.getBoolean("binge",true))next(true);else{status.setText("Finished · choose Next Episode to continue");video.showController();}}}@Override public void onPlayerError(PlaybackException error){status.setText("This source could not be played.");video.showController();new AlertDialog.Builder(PlayerActivity.this,AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle("Playback unavailable").setMessage("Try the source again or choose another source. Your position is saved.").setPositiveButton("Retry",(d,n)->{player.prepare();player.play();}).setNegativeButton("Change Source",(d,n)->finish()).show();}});long pos=store.position(item.type,videoId),dur=store.duration(item.type,videoId);if(dur>0&&pos>=dur*.95)pos=0;player.setMediaItem(MediaItem.fromUri(url),pos);player.prepare();player.setPlayWhenReady(playing);handler.removeCallbacks(checkpoint);handler.postDelayed(checkpoint,5000);loadSubtitles();}
+    private void loadSubtitles(){int request=++generation;String id=videoId;repo.subtitles(item,id,(subs,e)->{if(request!=generation||player==null||subs.isEmpty())return;List<MediaItem.SubtitleConfiguration> configurations=new ArrayList<>();for(StremioClient.Subtitle sub:subs){String lower=sub.url.toLowerCase(Locale.US);String mime=lower.contains(".srt")?MimeTypes.APPLICATION_SUBRIP:lower.contains(".ass")||lower.contains(".ssa")?MimeTypes.TEXT_SSA:MimeTypes.TEXT_VTT;configurations.add(new MediaItem.SubtitleConfiguration.Builder(Uri.parse(sub.url)).setId(sub.id).setLanguage(sub.lang).setLabel(sub.lang).setMimeType(mime).build());}MediaItem current=player.getCurrentMediaItem();if(current==null)return;long pos=player.getCurrentPosition();boolean play=player.getPlayWhenReady();player.setMediaItem(current.buildUpon().setSubtitleConfigurations(configurations).build(),pos);player.prepare();player.setPlayWhenReady(play);});}
+    private void tracks(int type){if(player==null)return;List<String> labels=new ArrayList<>();List<TrackSelectionOverride> options=new ArrayList<>();if(type==C.TRACK_TYPE_TEXT){labels.add("Off");options.add(null);}else{labels.add("Automatic");options.add(null);}for(Tracks.Group group:player.getCurrentTracks().getGroups())if(group.getType()==type)for(int i=0;i<group.length;i++)if(group.isTrackSupported(i)){Format f=group.getTrackFormat(i);labels.add((f.label!=null?f.label:f.language!=null?f.language:"Track "+(i+1))+(group.isTrackSelected(i)?" ✓":""));options.add(new TrackSelectionOverride(group.getMediaTrackGroup(),Collections.singletonList(i)));}if(labels.size()==1&&type==C.TRACK_TYPE_AUDIO){Toast.makeText(this,"No alternate audio tracks in this source",Toast.LENGTH_SHORT).show();return;}new AlertDialog.Builder(this,AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle(type==C.TRACK_TYPE_AUDIO?"Audio":"Subtitles").setItems(labels.toArray(new String[0]),(d,n)->{TrackSelectionParameters.Builder p=player.getTrackSelectionParameters().buildUpon().clearOverridesOfType(type).setTrackTypeDisabled(type,type==C.TRACK_TYPE_TEXT&&n==0);if(options.get(n)!=null)p.addOverride(options.get(n));player.setTrackSelectionParameters(p.build());}).show();}
+    private void speed(){new AlertDialog.Builder(this,AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle("Playback Speed").setItems(new String[]{"0.75×","1×","1.25×","1.5×","2×"},(d,n)->player.setPlaybackSpeed(new float[]{.75f,1,1.25f,1.5f,2}[n])).show();}
+    private StremioClient.Video nextVideo(){List<StremioClient.Video> episodes=new ArrayList<>(item.videos);episodes.sort(Comparator.comparingInt((StremioClient.Video v)->number(v.season)).thenComparingInt(v->number(v.episode)));for(int i=0;i<episodes.size()-1;i++)if(episodes.get(i).id.equals(videoId))return episodes.get(i+1);return null;}
+    private int number(String s){try{return Integer.parseInt(s);}catch(Exception e){return 0;}}
+    private void next(boolean automatic){StremioClient.Video next=nextVideo();if(next==null){if(automatic)status.setText("You’re all caught up.");else Toast.makeText(this,"No next episode available",Toast.LENGTH_SHORT).show();return;}if(!automatic){Intent out=new Intent();out.putExtra("nextVideo",next.id);out.putExtra("itemJson",item.toJson().toString());setResult(RESULT_OK,out);finish();return;}status.setText("Finding sources for the next episode…");repo.streams(item,next.id,(streams,error)->{if(isFinishing())return;for(StreamEngine.Info info:StreamEngine.process(streams,store.device))if(info.stream.url!=null){save();release();videoId=next.id;url=info.stream.url;headers=new LinkedHashMap<>(info.stream.headers);title.setText(item.name+" · S"+next.season+" E"+next.episode+" · "+next.title);playing=true;initialize();return;}status.setText("Next episode has no playable source. Choose a source to continue.");video.showController();});}
+    private void save(){if(player!=null&&item!=null&&player.getPlaybackState()!=Player.STATE_IDLE){long duration=player.getDuration();store.record(item,videoId,player.getCurrentPosition(),duration==C.TIME_UNSET?0:duration);}}
+    private void release(){generation++;handler.removeCallbacks(checkpoint);if(session!=null){session.release();session=null;}if(player!=null){video.setPlayer(null);player.release();player=null;}}
+    @Override protected void onStart(){super.onStart();if(video!=null)initialize();}
+    @Override protected void onPause(){if(player!=null){playing=player.getPlayWhenReady();save();player.pause();}super.onPause();}
+    @Override protected void onStop(){save();release();super.onStop();}
+    @Override protected void onResume(){super.onResume();immersive();if(player!=null)player.setPlayWhenReady(playing);}
+    @Override protected void onDestroy(){release();if(repo!=null)repo.close();super.onDestroy();}
+    private void immersive(){getWindow().getDecorView().setSystemUiVisibility(5894|View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);}
 }
