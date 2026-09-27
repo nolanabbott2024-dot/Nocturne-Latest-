@@ -1,0 +1,1 @@
+export function Scrubber({position,duration}:{position:number;duration:number}){const p=duration?Math.min(100,position/duration*100):0;return <div className="scrubber"><i style={{width:p+"%"}}/></div>}
