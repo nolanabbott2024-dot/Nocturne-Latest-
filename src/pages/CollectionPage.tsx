@@ -12,9 +12,9 @@ import { useContentStore } from "../stores/contentStore";
 import { dedupePlannedRows,type PlannedRow } from "../data/catalogPlans";
 
 export function CollectionPage({
-  route,type,onOpen,onResume
+  route,type,onOpen,onPlay,onResume
 }:{
-  route:string;type?:"movie"|"series";onOpen:(m:MediaItem)=>void;onResume?:(e:LibraryEntry)=>void
+  route:string;type?:"movie"|"series";onOpen:(m:MediaItem)=>void;onPlay?:(m:MediaItem)=>void;onResume?:(e:LibraryEntry)=>void
 }){
  const addons=useAddons();
  const [libraryRevision,setLibraryRevision]=useState(0);
@@ -27,16 +27,17 @@ export function CollectionPage({
  const rows=useMemo(()=>dedupePlannedRows([...(primary.data||[]),...(providers.data||[]),...(curated.data||[])],20),[primary.data,providers.data,curated.data]);
  const cont=useMemo(()=>route==="home"?continueWatching():[],[route,libraryRevision]);
  return <TVPage route={route} initialFocusKey={`${route}:hero:play`}>
-   <Rows route={route} rows={rows} onOpen={onOpen} cont={cont} onResume={onResume}/>
+   <Rows route={route} rows={rows} onOpen={onOpen} onPlay={onPlay} cont={cont} onResume={onResume}/>
  </TVPage>
 }
 
-function Rows({route,rows,onOpen,cont,onResume}:{
- route:string;rows:PlannedRow[];onOpen:(m:MediaItem)=>void;
+function Rows({route,rows,onOpen,onPlay,cont,onResume}:{
+ route:string;rows:PlannedRow[];onOpen:(m:MediaItem)=>void;onPlay?:((m:MediaItem)=>void);
  cont:LibraryEntry[];onResume?:((e:LibraryEntry)=>void)
 }){
  const hero=useContentStore(s=>s.heroByRoute[route]); const setHero=useContentStore(s=>s.setHero);
  const metaAbort=useRef<AbortController|null>(null);
+ const focusHero=useCallback((item:MediaItem)=>{setHero(route,item)},[route,setHero]);
  const settleHero=useCallback((item:MediaItem)=>{
    setHero(route,item);
    metaAbort.current?.abort();
@@ -50,12 +51,12 @@ function Rows({route,rows,onOpen,cont,onResume}:{
    }
  },[rows,route,hero?.id]);
  return <>
-   <TVHero item={hero} route={route} onPlay={()=>hero&&onOpen(hero)} onMore={()=>hero&&onOpen(hero)}/>
+   <TVHero item={hero} route={route} onPlay={()=>hero&&(onPlay?onPlay(hero):onOpen(hero))} onMore={()=>hero&&onOpen(hero)}/>
    <div className="rows">
      {route==="home"&&onResume&&<TVContinueRow entries={cont} route={route} onResume={onResume}/>}
      {rows.map(row=>row.kind==="top10"
-       ?<TVTop10Row key={row.id} id={row.id} title={row.title} items={row.items} route={route} onOpen={onOpen} onSettled={settleHero}/>
-       :<TVRow key={row.id} id={row.id} title={row.title} items={row.items} route={route} onOpen={onOpen} onSettled={settleHero}/>
+       ?<TVTop10Row key={row.id} id={row.id} title={row.title} items={row.items} route={route} onOpen={onOpen} onFocused={focusHero} onSettled={settleHero}/>
+       :<TVRow key={row.id} id={row.id} title={row.title} items={row.items} route={route} onOpen={onOpen} onFocused={focusHero} onSettled={settleHero}/>
      )}
    </div>
  </>
