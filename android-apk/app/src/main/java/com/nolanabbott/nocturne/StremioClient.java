@@ -18,6 +18,7 @@ import java.util.LinkedHashMap;
 
 final class StremioClient {
     static final String CINEMETA = "https://v3-cinemeta.strem.io/manifest.json";
+    static final String DEFAULT_STREAM_ADDON = "https://aiostreams.elfhosted.com/stremio/d498bee7-8f2a-4f0d-8d63-b648a5855650/eyJpIjoiRnhPQ0o0akJoK2xsUnR0S1ZNSE1qQT09IiwiZSI6IkZheDVIQXdvVXA2cEtkOHR3NWMyT2VnYjhoMkhJUVpLSG40Vmk4cDJhOFU9IiwidCI6ImEifQ/manifest.json";
 
     static final class Addon {
         String id, name, version, logo, description, manifestUrl, baseUrl;
