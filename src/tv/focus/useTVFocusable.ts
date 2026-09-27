@@ -1,4 +1,4 @@
-import { useFocusable } from "@noriginmedia/norigin-spatial-navigation";
+import { useFocusable } from "@noriginmedia/norigin-spatial-navigation-react";
 import { useNavigationStore } from "../../stores/navigationStore";
 
 export function useTVFocusable(opts:{
