@@ -85,7 +85,7 @@ export async function buildPrimaryRows(args:{
   route:string;type?:"movie"|"series";catalogs:Catalog[];netflixBase?:string;signal?:AbortSignal;
 }):Promise<PlannedRow[]>{
   const {route,type,catalogs,netflixBase,signal}=args;
-  const relevant=catalogs.filter(c=>!type||c.type===type).slice(0,10);
+  const relevant=catalogs.filter(c=>!type||c.type===type).slice(0,route==="home"?4:6);
   const loaded=await Promise.all(relevant.map(c=>loadCatalog(c,{},signal).catch(()=>[])));
   const merged=roundRobin(loaded,70);
   const active=type?merged.filter(x=>x.type===type):merged;
@@ -114,9 +114,6 @@ export async function buildPrimaryRows(args:{
     {id:"popular-week",title:"Popular This Week",kind:"standard",type:genericType,items:popular}
   );
 
-  // Keep provider-specific service rows, but never make Home wait for every provider.
-  if(route!=="home")rows.push(...providerRows(relevant,loaded,type));
-
   if(route==="home"){
     return dedupePlannedRows(rows.filter(r=>[
       "netflix-global-movie","netflix-global-series","netflix-us-movie","netflix-us-series",
@@ -124,6 +121,17 @@ export async function buildPrimaryRows(args:{
     ].includes(r.id)),18);
   }
   return dedupePlannedRows(rows,20);
+}
+
+
+export async function buildProviderRows(args:{
+  route:string;type?:"movie"|"series";catalogs:Catalog[];signal?:AbortSignal;
+}):Promise<PlannedRow[]>{
+  const {route,type,catalogs,signal}=args;
+  if(route==="home")return [];
+  const relevant=catalogs.filter(c=>!type||c.type===type);
+  const loaded=await mapLimit(relevant,4,c=>loadCatalog(c,{},signal).catch(()=>[]));
+  return providerRows(relevant,loaded,type).filter(r=>r.items.length>=3);
 }
 
 export async function buildCuratedRows(args:{
