@@ -20,6 +20,7 @@ export const TVPosterCard=memo(function TVPosterCard({
   const {ref,focused}=useTVFocusable({
     focusKey:key,route,rowId,onPress:()=>onOpen(item),
     onFocus:(layout)=>onSpatialFocus?.(layout),
+    onArrowPress:(direction)=>onArrowPress?.(direction),
     onBlur:()=>{setTrailerReady(false);stopTrailer();}
   });
 
