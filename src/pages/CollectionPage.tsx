@@ -1,4 +1,4 @@
-import { useMemo,useRef } from "react";
+import { useEffect,useMemo,useRef,useState } from "react";
 import { TVPage } from "../tv/navigation/TVPage";
 import { TVHero } from "../tv/content/TVHero";
 import { TVRow } from "../tv/content/TVRow";
@@ -16,8 +16,10 @@ export function CollectionPage({
   route:string;type?:string;onOpen:(m:MediaItem)=>void;onResume?:(e:LibraryEntry)=>void
 }){
  const addons=useAddons();
+ const [libraryRevision,setLibraryRevision]=useState(0);
+ useEffect(()=>{const sync=()=>setLibraryRevision(x=>x+1);window.addEventListener("nocturne-library-sync",sync);return()=>window.removeEventListener("nocturne-library-sync",sync)},[]);
  const catalogs=useMemo(()=>addons.flatMap(a=>a.catalogs).filter(c=>!type||c.type===type).slice(0,7),[addons,type]);
- const cont=useMemo(()=>route==="home"?continueWatching():[],[route]);
+ const cont=useMemo(()=>route==="home"?continueWatching():[],[route,libraryRevision]);
  return <TVPage route={route}>
    <Rows route={route} catalogs={catalogs} onOpen={onOpen} cont={cont} onResume={onResume}/>
  </TVPage>
