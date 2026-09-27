@@ -12,6 +12,10 @@ on:
       - "vite.config.ts"
       - ".github/workflows/build-web.yml"
 
+concurrency:
+  group: nocturne-web-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
