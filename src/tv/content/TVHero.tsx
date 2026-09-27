@@ -1,5 +1,6 @@
 import { AnimatePresence,motion } from "motion/react";
 import { Play,Plus } from "lucide-react";
+import { setFocus } from "@noriginmedia/norigin-spatial-navigation";
 import type { MediaItem } from "../../types/tv";
 import { useTVFocusable } from "../focus/useTVFocusable";
 
@@ -23,7 +24,10 @@ export function TVHero({item,route,onPlay,onMore}:{item?:MediaItem;route:string;
   </section>
 }
 function HeroButton({focusKey,route,onPress,children}:any){
-  const {ref,focused}=useTVFocusable({focusKey,route,rowId:"hero",onPress});
+  const {ref,focused}=useTVFocusable({
+    focusKey,route,rowId:"hero",onPress,
+    onArrowPress:(direction)=>{if(direction==="left"){requestAnimationFrame(()=>void setFocus(`sidebar:${route}`));return false}return true}
+  });
   return <motion.button ref={ref as any} className={"hero-button "+(focused?"is-focused":"")}
     animate={{
       scale:focused?1.055:1,
