@@ -10,6 +10,7 @@ import { SettingsPage } from "./pages/SettingsPage";
 import { DetailsPage } from "./pages/DetailsPage";
 import { TVVideo,type TVVideoHandle } from "./tv/playback/TVVideo";
 import { PlayerControls } from "./tv/playback/PlayerControls";
+import { PlayerSurface } from "./tv/playback/PlayerSurface";
 import { BackStack } from "./tv/navigation/BackStack";
 import { useNavigationStore } from "./stores/navigationStore";
 import { installRemoteAdapter } from "./tv/navigation/remote";
@@ -34,7 +35,7 @@ export default function App(){
    const source=await resolvePlayableStream(e.item,e.videoId||e.item.id,addons);
    if(source?.url){if(!playNative(source.url,e.item.name,source.headers||{},e.item,e.videoId||e.item.id))setPlayer({src:source.url,title:e.item.name,headers:source.headers})}
  };
- const back=()=>{if(player){if(controls){setControls(false);return}setPlayer(null);setControls(true);return}const snap=BackStack.pop();if(snap){setRoute({name:snap.route});setTimeout(()=>snap.focusKey&&useNavigationStore.getState().setFocus(snap.focusKey,snap.route),0)}};
+ const back=()=>{if(player){if(controls){setControls(false);requestAnimationFrame(()=>{void setFocus("player:surface")});return}setPlayer(null);setControls(true);return}const snap=BackStack.pop();if(snap){setRoute({name:snap.route});setTimeout(()=>snap.focusKey&&useNavigationStore.getState().setFocus(snap.focusKey,snap.route),0)}};
  useEffect(()=>installRemoteAdapter((a)=>{if(a==="back")back();if(player&&a!=="back")setControls(true)}),[player,controls,route.name]);
  useEffect(()=>{if(player&&controls){const id=requestAnimationFrame(()=>{void setFocus("player:player:play")});return()=>cancelAnimationFrame(id)}},[player,controls]);
  return <div className="app-shell"><TVSidebar route={route.name} onRoute={go}/><div className="app-content"><AnimatePresence mode="wait">
@@ -46,5 +47,5 @@ export default function App(){
    {route.name==="library"&&<LibraryPage key="library" onOpen={open}/>}
    {route.name==="settings"&&<SettingsPage key="settings"/>}
    {route.name==="details"&&route.item&&<DetailsPage key={route.item.id} seed={route.item} onBack={back} onPlay={(src,title,headers,item,videoId)=>{if(!playNative(src,title,headers||{},item,videoId))setPlayer({src,title,headers})}}/>}
- </AnimatePresence></div>{player&&<div className="player-layer" onMouseMove={()=>setControls(true)}><TVVideo ref={videoRef} src={player.src} headers={player.headers} onPlayingChange={setBrowserPlaying}/>{controls&&<><div className="player-title">{player.title}</div><PlayerControls route="player" playing={browserPlaying} onToggle={()=>setBrowserPlaying(videoRef.current?.toggle()??browserPlaying)} onBack10={()=>videoRef.current?.seekBy(-10)} onForward10={()=>videoRef.current?.seekBy(10)}/></>}</div>}</div>
+ </AnimatePresence></div>{player&&<div className="player-layer" onMouseMove={()=>setControls(true)}><PlayerSurface onPress={()=>setControls(true)}><TVVideo ref={videoRef} src={player.src} headers={player.headers} onPlayingChange={setBrowserPlaying}/></PlayerSurface>{controls&&<><div className="player-title">{player.title}</div><PlayerControls route="player" playing={browserPlaying} onToggle={()=>setBrowserPlaying(videoRef.current?.toggle()??browserPlaying)} onBack10={()=>videoRef.current?.seekBy(-10)} onForward10={()=>videoRef.current?.seekBy(10)}/></>}</div>}</div>
 }
