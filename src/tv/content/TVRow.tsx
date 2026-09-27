@@ -1,7 +1,7 @@
 import { FocusContext,useFocusable } from "@noriginmedia/norigin-spatial-navigation";
 import { setFocus } from "@noriginmedia/norigin-spatial-navigation";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useCallback,useRef } from "react";
+import { useCallback,useEffect,useRef,useState } from "react";
 import type { MediaItem } from "../../types/tv";
 import { TVPosterCard } from "./TVPosterCard";
 
@@ -15,7 +15,14 @@ function keepVerticallyComfortable(el:HTMLElement){
 }
 export function TVRow({id,title,items,route,onOpen,onSettled,leftExitFocusKey}:{id:string;title:string;items:MediaItem[];route:string;onOpen:(m:MediaItem)=>void;onSettled?:(m:MediaItem)=>void;leftExitFocusKey?:string}){
   const {ref,focusKey}=useFocusable({focusKey:`row:${route}:${id}`,trackChildren:true,saveLastFocusedChild:true});
+  const sectionRef=useRef<HTMLElement|null>(null);
   const scroller=useRef<HTMLDivElement|null>(null);
+  const [active,setActive]=useState(false);
+  useEffect(()=>{
+    const el=sectionRef.current;if(!el)return;
+    const observer=new IntersectionObserver(([entry])=>setActive(entry.isIntersecting),{root:null,rootMargin:"520px 0px",threshold:0});
+    observer.observe(el);return()=>observer.disconnect();
+  },[]);
   const virtual=useVirtualizer({horizontal:true,count:items.length,getScrollElement:()=>scroller.current,estimateSize:()=>190,overscan:8});
   const onSpatialFocus=useCallback((layout:any,index:number)=>{
     const s=scroller.current;if(!s)return;
@@ -38,13 +45,13 @@ export function TVRow({id,title,items,route,onOpen,onSettled,leftExitFocusKey}:{
     virtual.scrollToIndex(index,{align:"auto"});
   },[virtual]);
   return <FocusContext.Provider value={focusKey}>
-    <section ref={ref as any} className="tv-row" data-row={id}>
+    <section ref={(node)=>{(ref as any).current=node;sectionRef.current=node}} className="tv-row" data-row={id}>
       <h2>{title}</h2>
       <div className="tv-row-scroll" ref={scroller}>
         <div className="tv-row-inner" style={{width:virtual.getTotalSize(),height:320,position:"relative"}}>
-          {virtual.getVirtualItems().map(v=><div key={items[v.index].id} style={{position:"absolute",left:v.start,top:0,width:v.size,paddingRight:18}}>
+          {active&&virtual.getVirtualItems().map(v=><div key={items[v.index].id} style={{position:"absolute",left:v.start,top:0,width:v.size,paddingRight:18}}>
             <TVPosterCard item={items[v.index]} route={route} rowId={id} onOpen={onOpen} onSettled={onSettled} onSpatialFocus={(layout)=>onSpatialFocus(layout,v.index)}
-              onArrowPress={(direction)=>{if(direction==="left"&&v.index===0){void setFocus(leftExitFocusKey||`sidebar:${route}`);return false}return true}}/>
+              onArrowPress={(direction)=>{if(direction==="left"&&v.index===0){requestAnimationFrame(()=>void setFocus(leftExitFocusKey||`sidebar:${route}`));return false}return true}}/>
           </div>)}
         </div>
       </div>
