@@ -1,0 +1,2702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Atrium</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   LIQUID GLASS DESIGN SYSTEM
+   ============================================================ */
+:root{
+  --bg:#08080A;
+  --text:#FFFFFF;
+  --text2:rgba(255,255,255,0.62);
+  --text3:rgba(255,255,255,0.42);
+
+  /* glass material */
+  --glass-tint:rgba(255,255,255,0.065);
+  --glass-tint-hi:rgba(255,255,255,0.13);
+  --glass-blur:blur(36px) saturate(200%) brightness(1.08);
+  --rim-bright:rgba(255,255,255,0.52);
+  --rim-dim:rgba(255,255,255,0.07);
+
+  --pad:clamp(20px,4.2vw,80px);
+  --r-card:16px;
+  --ease:cubic-bezier(.2,.7,.3,1);
+  --spring:cubic-bezier(.16,.9,.28,1);
+
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+html,body{height:100%;margin:0}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:Inter,-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,"Segoe UI",sans-serif;
+  overflow:hidden;-webkit-font-smoothing:antialiased;
+}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+::-webkit-scrollbar{display:none}
+*{scrollbar-width:none}
+
+/* --- the material itself ------------------------------------- */
+.glass{
+  position:relative;isolation:isolate;
+  background:var(--glass-tint);
+  backdrop-filter:var(--glass-blur);
+  -webkit-backdrop-filter:var(--glass-blur);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255,255,255,.26),
+    inset 0 -1px 0 0 rgba(255,255,255,.05),
+    0 20px 54px -14px rgba(0,0,0,.72);
+  transition:background 240ms var(--ease), box-shadow 240ms var(--ease), transform 240ms var(--spring);
+}
+/* specular sheen — light falling across the surface */
+.glass::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:-1;
+  background:linear-gradient(147deg,
+    rgba(255,255,255,.17) 0%,
+    rgba(255,255,255,.03) 32%,
+    transparent 55%,
+    rgba(255,255,255,.055) 100%);
+  mix-blend-mode:screen;
+}
+/* rim lensing — the refracted bright edge */
+.glass::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:-1;
+  padding:1px;
+  background:linear-gradient(153deg,
+    var(--rim-bright) 0%,
+    var(--rim-dim) 34%,
+    transparent 52%,
+    var(--rim-dim) 68%,
+    rgba(255,255,255,.30) 100%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  mask-composite:exclude;
+}
+.glass.lit{
+  background:var(--glass-tint-hi);
+  --rim-bright:rgba(255,255,255,.85);
+  --rim-dim:rgba(255,255,255,.16);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255,255,255,.42),
+    inset 0 -1px 0 0 rgba(255,255,255,.09),
+    0 26px 64px -14px rgba(0,0,0,.8);
+}
+
+/* ============================================================
+   BACKDROP
+   ============================================================ */
+/* --- spotlight trailer layer --- */
+.sl-layer{position:absolute;inset:0;opacity:0;transition:opacity 900ms var(--ease);overflow:hidden}
+.sl-layer.on{opacity:1}
+.sl-layer video,.sl-layer iframe{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:100%;height:100%;min-width:177.78vh;min-height:56.25vw;
+  border:0;object-fit:cover;pointer-events:none}
+/* procedural stand-in so the motion design is visible for bundled titles */
+.sl-demo{position:absolute;inset:-6%}
+.sl-demo span{position:absolute;inset:0;opacity:0;
+  animation:slcut 13s linear infinite;transform-origin:center}
+.sl-demo span:nth-child(1){animation-delay:0s}
+.sl-demo span:nth-child(2){animation-delay:3.25s}
+.sl-demo span:nth-child(3){animation-delay:6.5s}
+.sl-demo span:nth-child(4){animation-delay:9.75s}
+@keyframes slcut{
+  0%{opacity:0;transform:scale(1.02) translate3d(0,0,0)}
+  4%{opacity:1}
+  21%{opacity:1;transform:scale(1.14) translate3d(-2.5%,1.5%,0)}
+  25%{opacity:0;transform:scale(1.16) translate3d(-3%,2%,0)}
+  100%{opacity:0}
+}
+.sl-audio{position:absolute;right:var(--pad);bottom:clamp(30px,5vh,58px);z-index:6}
+@media(prefers-reduced-motion:reduce){.sl-demo span{animation:none;opacity:.6}}
+
+#backdrop{position:fixed;inset:0;z-index:0;background:var(--bg)}
+.bd-layer{position:absolute;inset:0;opacity:0;transition:opacity 950ms var(--ease);transform-origin:62% 38%}
+.bd-layer.on{opacity:1;animation:kb 28s linear infinite alternate}
+@keyframes kb{from{transform:scale(1)}to{transform:scale(1.05)}}
+.bd-grain{position:absolute;inset:0;pointer-events:none;opacity:.42;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/><feColorMatrix type='saturate' values='0'/></filter><rect width='160' height='160' filter='url(%23n)' opacity='.2'/></svg>")}
+#scrim{position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:
+    linear-gradient(to top,rgba(0,0,0,1) 0%,rgba(0,0,0,.94) 18%,rgba(0,0,0,.60) 45%,rgba(0,0,0,.12) 78%,rgba(0,0,0,.34) 100%),
+    linear-gradient(to right,rgba(0,0,0,.80) 0%,rgba(0,0,0,.30) 42%,rgba(0,0,0,0) 72%)}
+body.in-detail #scrim{background:
+  linear-gradient(to top,rgba(0,0,0,1) 0%,rgba(0,0,0,.92) 30%,rgba(0,0,0,.62) 62%,rgba(0,0,0,.30) 100%),
+  linear-gradient(to right,rgba(0,0,0,.88) 0%,rgba(0,0,0,.44) 48%,rgba(0,0,0,.05) 82%)}
+#dim{position:fixed;inset:0;z-index:2;background:#000;opacity:0;pointer-events:none;transition:opacity 280ms var(--ease)}
+body.sidebar-open #dim{opacity:.42}
+
+#app{position:relative;z-index:3;height:100%;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth}
+.page[hidden]{display:none}
+
+/* ============================================================
+   TOP NAV
+   ============================================================ */
+#topbar{
+  position:fixed;z-index:20;
+  top:calc(env(safe-area-inset-top,0px) + clamp(12px,2.2vh,26px));
+  left:var(--pad);right:var(--pad);
+  display:flex;align-items:center;gap:12px;
+  transition:opacity 280ms var(--ease),transform 340ms var(--spring);
+}
+body.sidebar-open #topbar,body.playing #topbar{
+  opacity:0;transform:translateY(-16px) scale(.97);pointer-events:none}
+.tabbar{
+  display:flex;align-items:center;gap:3px;
+  padding:5px;border-radius:999px;max-width:100%;overflow-x:auto}
+.tab{
+  padding:9px clamp(16px,1.6vw,26px);border-radius:999px;white-space:nowrap;
+  font-size:clamp(14px,1.05vw,18px);font-weight:500;letter-spacing:.004em;
+  transition:background 200ms var(--ease),color 200ms var(--ease),transform 220ms var(--spring)}
+.tab[aria-current="true"]{
+  background:rgba(255,255,255,.19);font-weight:560;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.46),inset 0 0 0 .5px rgba(255,255,255,.2),
+    0 4px 16px rgba(0,0,0,.34)}
+.tab.focused{
+  background:rgba(255,255,255,.95);color:#0A0A0A;font-weight:600;transform:scale(1.04);
+  box-shadow:0 10px 28px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.9)}
+.topright{margin-left:auto;display:flex;align-items:center;gap:9px;flex:none}
+.iconbtn{
+  width:clamp(40px,2.85vw,50px);height:clamp(40px,2.85vw,50px);border-radius:999px;
+  display:grid;place-items:center;font-size:clamp(15px,1.1vw,19px);
+  transition:background 200ms var(--ease),color 200ms var(--ease),transform 220ms var(--spring)}
+.iconbtn.focused{background:rgba(255,255,255,.95);color:#0A0A0A;transform:scale(1.09)}
+.nav-chev{color:var(--text3);font-size:20px;padding:0 2px}
+
+/* ============================================================
+   SIDEBAR  (glass panel, morphs in)
+   ============================================================ */
+#sidebar{
+  position:fixed;z-index:30;
+  top:calc(env(safe-area-inset-top,0px) + 16px);
+  bottom:calc(env(safe-area-inset-bottom,0px) + 16px);
+  left:16px;width:clamp(240px,19vw,290px);
+  border-radius:26px;padding:20px 12px;
+  display:flex;flex-direction:column;gap:1px;overflow-y:auto;
+  transform:translateX(calc(-100% - 24px)) scale(.97);
+  opacity:0;
+  transition:transform 340ms var(--spring),opacity 220ms var(--ease);
+}
+body.sidebar-open #sidebar{transform:none;opacity:1}
+.sb-profile{display:flex;align-items:center;gap:11px;padding:4px 12px 18px}
+.sb-avatar{width:32px;height:32px;border-radius:999px;display:grid;place-items:center;
+  font-size:13px;font-weight:600;color:#2A1018;
+  background:linear-gradient(145deg,#F0AEBF,#B96A8C);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5)}
+.sb-name{font-size:15px;font-weight:500}
+.sb-time{margin-left:auto;font-size:13px;color:var(--text3);font-variant-numeric:tabular-nums}
+.sb-head{padding:20px 14px 7px;font-size:12.5px;color:var(--text3);font-weight:500}
+.sb-item{display:flex;align-items:center;gap:13px;width:100%;padding:10px 14px;border-radius:999px;
+  font-size:15px;text-align:left;transition:all 200ms var(--ease);position:relative;isolation:isolate}
+.sb-item .ic{width:19px;text-align:center;font-size:15px;opacity:.9;flex:none}
+.sb-item[aria-current="true"]{
+  background:rgba(255,255,255,.17);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 0 0 .5px rgba(255,255,255,.2),0 4px 16px rgba(0,0,0,.35);
+  font-weight:560}
+.sb-item.focused{background:rgba(255,255,255,.92);color:#0A0A0A;font-weight:600;
+  box-shadow:0 8px 26px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.9)}
+
+/* ============================================================
+   HERO
+   ============================================================ */
+.hero{height:min(72vh,calc(100vh - 210px));min-height:380px;padding:0 var(--pad);
+  display:flex;flex-direction:column;justify-content:flex-end}
+.hero-inner{max-width:min(620px,52vw);padding-bottom:clamp(30px,5vh,58px)}
+.hero-fade{animation:heroIn 720ms var(--ease) both}
+@keyframes heroIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.hero-title{font-size:clamp(40px,6.4vw,80px);font-weight:600;line-height:.96;margin:0 0 16px;
+  letter-spacing:.14em;text-indent:.14em;text-shadow:0 4px 44px rgba(0,0,0,.65)}
+.hero-meta{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:12px;
+  font-size:clamp(13px,1.05vw,18px);color:rgba(255,255,255,.88);font-weight:500}
+.dot{color:var(--text3)}
+.badge{border:1px solid rgba(255,255,255,.4);border-radius:5px;padding:1px 6px;
+  font-size:.74em;letter-spacing:.04em;color:rgba(255,255,255,.8)}
+.svc{width:1.4em;height:1.4em;border-radius:6px;flex:none;display:grid;place-items:center;
+  font-size:.56em;font-weight:700;background:linear-gradient(140deg,#7A8798,#2C333D);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35)}
+.hero-desc{font-size:clamp(14px,1.08vw,19px);line-height:1.45;color:rgba(255,255,255,.82);
+  margin:0 0 14px;max-width:34em}
+.hero-tag{font-size:clamp(13px,1vw,17px);font-weight:500;margin-bottom:22px}
+.hero-actions{display:flex;align-items:center;gap:13px}
+.btn-play{display:flex;align-items:center;gap:9px;background:#fff;color:#0A0A0A;border-radius:999px;
+  padding:13px 30px 13px 24px;font-size:clamp(15px,1.1vw,19px);font-weight:600;
+  box-shadow:0 10px 30px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.9);
+  transition:transform 220ms var(--spring),box-shadow 220ms var(--ease)}
+.btn-play.focused{transform:scale(1.055);box-shadow:0 18px 44px rgba(0,0,0,.6),0 0 0 4px rgba(255,255,255,.28)}
+.btn-round{width:clamp(44px,3.1vw,54px);height:clamp(44px,3.1vw,54px);border-radius:999px;
+  display:grid;place-items:center;font-size:clamp(15px,1.15vw,20px)}
+.btn-round.focused{transform:scale(1.09)}
+.btn-round.on{background:rgba(255,255,255,.9);color:#0A0A0A}
+.hero-dots{display:flex;justify-content:center;gap:7px;padding-bottom:clamp(10px,1.6vh,20px)}
+.hdot{width:7px;height:7px;border-radius:999px;background:rgba(255,255,255,.26);
+  transition:all 340ms var(--spring);box-shadow:inset 0 .5px 0 rgba(255,255,255,.4)}
+.hdot.on{width:24px;background:rgba(255,255,255,.94)}
+
+/* ============================================================
+   RAILS / CARDS
+   ============================================================ */
+.rails{padding-bottom:clamp(40px,7vh,90px)}
+.rail{margin-bottom:clamp(24px,3.4vh,42px)}
+.rail-head{padding:0 var(--pad);margin:0 0 13px;font-size:clamp(17px,1.65vw,30px);
+  font-weight:600;letter-spacing:-.014em}
+.rail-scroll{display:flex;gap:clamp(10px,.95vw,20px);padding:14px var(--pad) 8px;
+  overflow-x:auto;overflow-y:visible;scroll-behavior:smooth;-webkit-overflow-scrolling:touch}
+.card{flex:none;position:relative;text-align:left;transform-origin:center;
+  transition:width 420ms var(--spring),transform 230ms var(--spring),filter 230ms var(--ease)}
+.card .thumb{border-radius:var(--r-card);overflow:hidden;position:relative;background:#141418;
+  box-shadow:0 2px 14px rgba(0,0,0,.45);transition:box-shadow 230ms var(--ease)}
+.card.poster{width:clamp(108px,10.2vw,190px)}
+.card.poster .thumb{aspect-ratio:2/3}
+.card.land{width:clamp(180px,17.5vw,330px)}
+.card.land .thumb{aspect-ratio:16/9}
+.card.square{width:clamp(130px,12vw,210px)}
+.card.square .thumb{aspect-ratio:1/1}
+.card.focused{transform:scale(1.075);filter:brightness(1.1);z-index:5}
+.card.trailer-expanded{width:clamp(280px,38vw,520px)!important;transform:scale(1.04);z-index:20}
+.card.trailer-expanded .thumb{aspect-ratio:16/9!important}
+.card.trailer-expanded .cap{opacity:1}
+/* glass rim lensing on the focused card */
+.card.focused .thumb{box-shadow:0 26px 52px rgba(0,0,0,.75)}
+.card .thumb::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  padding:1.5px;opacity:0;transition:opacity 230ms var(--ease);
+  background:linear-gradient(153deg,rgba(255,255,255,.95),rgba(255,255,255,.2) 36%,rgba(255,255,255,.08) 58%,rgba(255,255,255,.65));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  mask-composite:exclude;z-index:4}
+.card.focused .thumb::after{opacity:1}
+.card-trailer{position:absolute;inset:0;z-index:3;background:#000;overflow:hidden;border-radius:inherit}
+.card-trailer iframe,.card-trailer video{position:absolute;inset:0;width:100%;height:100%;border:0;object-fit:cover;pointer-events:none}
+.card-trailer iframe{top:50%;left:50%;transform:translate(-50%,-50%);width:177.78%;height:100%}
+.art{position:absolute;inset:0}
+.art::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(to top,rgba(0,0,0,.82),rgba(0,0,0,.18) 48%,transparent 72%)}
+.art-name{position:absolute;left:9%;right:9%;bottom:10%;z-index:2;text-align:center;
+  font-size:clamp(10px,.86vw,16px);font-weight:700;line-height:1.08;letter-spacing:.06em;
+  text-shadow:0 2px 12px rgba(0,0,0,.85)}
+.rank{position:absolute;left:-2px;bottom:-4px;z-index:3;font-size:clamp(30px,3.4vw,62px);
+  font-weight:700;line-height:.8;-webkit-text-stroke:2px rgba(0,0,0,.55)}
+.prog{position:absolute;left:0;right:0;bottom:0;height:3.5px;background:rgba(255,255,255,.22);z-index:3}
+.prog i{display:block;height:100%;background:#fff}
+.cap{padding:9px 2px 0;opacity:0;transition:opacity 210ms var(--ease)}
+.card.focused .cap,.rail.always-cap .cap{opacity:1}
+.cap-t{font-size:clamp(12px,.92vw,16px);font-weight:500;line-height:1.2;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cap-s{font-size:clamp(11px,.8vw,14px);color:var(--text3);margin-top:2px}
+.rail.ranked .rail-scroll{padding-left:calc(var(--pad) + 14px)}
+
+/* ============================================================
+   DETAIL
+   ============================================================ */
+.detail-hero{padding:clamp(90px,15vh,180px) var(--pad) 0;min-height:82vh;
+  display:flex;flex-direction:column;justify-content:flex-end}
+.detail-inner{max-width:min(640px,54vw);padding-bottom:clamp(30px,5vh,56px)}
+.d-title{font-size:clamp(34px,5vw,68px);font-weight:700;letter-spacing:-.025em;line-height:1;margin:0 0 15px}
+.d-desc{font-size:clamp(14px,1.05vw,18px);line-height:1.5;color:rgba(255,255,255,.8);margin:0 0 16px;max-width:36em}
+.d-credits{font-size:clamp(12.5px,.95vw,16px);color:var(--text3);line-height:1.65;margin-bottom:24px}
+.d-credits b{color:var(--text2);font-weight:500}
+.seasons{display:flex;gap:9px;padding:0 var(--pad) 18px;flex-wrap:wrap}
+.chip{padding:8px 19px;border-radius:999px;font-size:clamp(13px,1vw,16px);font-weight:500}
+.chip[aria-selected="true"]{background:rgba(255,255,255,.2);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5),inset 0 0 0 .5px rgba(255,255,255,.22)}
+.chip.focused{background:rgba(255,255,255,.93);color:#0A0A0A;font-weight:600;transform:scale(1.05)}
+.eps{padding:0 var(--pad) 90px;display:grid;gap:10px}
+.ep{display:flex;gap:16px;align-items:center;width:100%;text-align:left;padding:11px;border-radius:18px}
+.ep.focused{transform:scale(1.012)}
+.ep-thumb{width:clamp(110px,13vw,208px);aspect-ratio:16/9;border-radius:11px;overflow:hidden;
+  position:relative;flex:none;background:#141418}
+.ep-body{min-width:0;flex:1}
+.ep-t{font-size:clamp(14px,1.05vw,18px);font-weight:560;margin-bottom:4px}
+.ep-d{font-size:clamp(12.5px,.92vw,15px);color:var(--text3);line-height:1.42;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ep-m{font-size:clamp(12px,.88vw,14px);color:var(--text3);margin-top:6px}
+.tick{margin-left:8px}
+
+/* ============================================================
+   GENERIC PAGES
+   ============================================================ */
+.pagehead{padding:clamp(80px,13vh,150px) var(--pad) 22px}
+.pagehead h1{font-size:clamp(32px,4.2vw,62px);font-weight:700;letter-spacing:-.028em;margin:0}
+.filters{display:flex;gap:9px;padding:0 var(--pad) 26px;flex-wrap:wrap}
+.searchfield{margin:0 var(--pad) 8px;padding:16px 24px;border-radius:20px;display:flex;
+  align-items:center;gap:14px;font-size:clamp(16px,1.5vw,26px);color:var(--text3)}
+.searchfield input{flex:1;background:none;border:0;outline:none;color:#fff;font:inherit;min-width:0}
+.searchfield input::placeholder{color:var(--text3)}
+.grid{display:grid;gap:clamp(12px,1.1vw,22px);padding:0 var(--pad) 90px;
+  grid-template-columns:repeat(auto-fill,minmax(clamp(108px,10vw,180px),1fr))}
+.grid .card{width:100%}
+.empty{padding:0 var(--pad);color:var(--text3);font-size:clamp(14px,1.1vw,18px);max-width:34em;line-height:1.55}
+.empty b{display:block;color:#fff;font-weight:560;font-size:1.15em;margin-bottom:7px}
+.sets{padding:0 var(--pad) 90px;display:grid;gap:6px;max-width:940px}
+.sechead{padding:26px var(--pad) 8px;font-size:clamp(15px,1.25vw,20px);font-weight:600;color:var(--text2)}
+.setrow{display:flex;align-items:center;gap:16px;width:100%;text-align:left;padding:15px 20px;border-radius:16px}
+.setrow.focused{transform:scale(1.008)}
+.setrow .lbl{flex:1;font-size:clamp(14px,1.05vw,17px)}
+.setrow .sub{display:block;font-size:clamp(12px,.9vw,14px);color:var(--text3);margin-top:3px}
+.setrow .val{font-size:clamp(13px,1vw,16px);color:var(--text2)}
+.addon{display:flex;gap:16px;align-items:center;width:100%;text-align:left;padding:16px;border-radius:20px}
+.addon.focused{transform:scale(1.008)}
+.addon .ai{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;font-size:20px;flex:none;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.28)}
+.addon .ab{flex:1;min-width:0}
+.addon .an{font-size:clamp(14px,1.05vw,17px);font-weight:560}
+.addon .au{font-size:11.5px;color:var(--text3);margin-top:2px;font-variant-numeric:tabular-nums}
+.addon .ad{font-size:clamp(12px,.9vw,14.5px);color:var(--text3);margin-top:4px;line-height:1.4}
+.caps{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
+.capt{font-size:11.5px;padding:2px 9px;border-radius:999px;background:rgba(255,255,255,.1);color:var(--text2)}
+.pillbtn{padding:9px 20px;border-radius:999px;font-size:14px;font-weight:560;flex:none;
+  background:rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.28)}
+.pillbtn.done{background:transparent;color:var(--text3);box-shadow:none}
+
+/* --- addon install + async states --- */
+.rail-src{font-size:.52em;font-weight:500;color:var(--text3);letter-spacing:0;
+  vertical-align:middle;margin-left:.6em;padding:3px 9px;border-radius:999px;
+  background:rgba(255,255,255,.07);box-shadow:inset 0 .5px 0 rgba(255,255,255,.14)}
+.rail-err{padding-top:4px;font-size:clamp(13px,.95vw,15px)}
+.addon-install{margin-bottom:14px}
+.addon-install input{font-size:clamp(14px,1.15vw,19px)}
+.addon-install .pillbtn{margin-left:auto;font-size:14px}
+.addon-msg{padding-bottom:14px;color:#FFB4A8}
+.addon-msg.ok{color:#A8E6B8}
+.addon-hint{padding-bottom:22px;font-size:clamp(12.5px,.92vw,15px)}
+.addon-hint code{background:rgba(255,255,255,.1);padding:1px 6px;border-radius:5px;font-size:.92em}
+.addon .ai img{width:26px;height:26px;object-fit:contain}
+.capt.alt{background:rgba(255,255,255,.05);color:var(--text3)}
+.skel-line{height:38px;border-radius:9px;width:100%}
+.skel-t{opacity:.25}
+.sheet-note{margin-top:14px;padding:12px 16px;border-radius:14px;
+  background:rgba(255,255,255,.05);color:var(--text3);font-size:13px;line-height:1.45}
+
+/* --- source / catalog preference controls --- */
+.chipgroup{display:flex;flex-wrap:wrap;gap:8px;padding:0 var(--pad) 8px}
+.chip.tiny{padding:7px 15px;font-size:clamp(12.5px,.92vw,15px)}
+.chip.tiny.off{opacity:.42}
+.chip.tiny.off[aria-selected="false"]{background:transparent;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
+.prefinput{margin:0 var(--pad) 10px;padding:13px 20px;border-radius:16px;font-size:clamp(14px,1.1vw,18px)}
+.prefinput input{width:100%;background:none;border:0;outline:none;color:#fff;font:inherit}
+.chipgroup.inset{padding:0 0 4px clamp(56px,6vw,80px);margin-top:-4px}
+.setrow.dim{opacity:.5}
+.setrow.sub-action{padding-top:9px;padding-bottom:9px;margin-left:clamp(12px,2vw,28px)}
+.sub-lbl{font-size:clamp(12.5px,.92vw,15px);color:var(--text2)}
+.src.preview{margin:0 var(--pad);pointer-events:none}
+.dupes{font-size:.78em;color:var(--text3);margin-left:7px;font-weight:500}
+
+/* ============================================================
+   SOURCE SHEET  (glass, morphs up)
+   ============================================================ */
+.overlay{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.45);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  display:flex;align-items:flex-end;justify-content:center;animation:ovIn 260ms var(--ease)}
+.overlay[hidden]{display:none}
+@keyframes ovIn{from{opacity:0}to{opacity:1}}
+.sheet{width:min(780px,94vw);max-height:84vh;overflow-y:auto;border-radius:30px 30px 0 0;
+  padding:28px 24px calc(30px + env(safe-area-inset-bottom,0px));animation:shIn 380ms var(--spring)}
+@media(min-width:700px){.overlay{align-items:center}.sheet{border-radius:30px}}
+@keyframes shIn{from{transform:translateY(34px) scale(.97);opacity:0}to{transform:none;opacity:1}}
+.sheet h2{font-size:clamp(20px,1.9vw,28px);font-weight:600;margin:0 0 4px;letter-spacing:-.02em}
+.sheet .sub{color:var(--text3);font-size:14px;margin-bottom:20px}
+.src{display:flex;align-items:center;gap:14px;width:100%;text-align:left;
+  padding:14px 18px;border-radius:18px;margin-bottom:8px}
+.src.focused{transform:scale(1.014)}
+.src .sname{font-size:15.5px;font-weight:560}
+.src .sspec{font-size:13px;color:var(--text3);margin-top:3px}
+.src .sright{margin-left:auto;text-align:right;flex:none}
+.tagi{font-size:12px;font-weight:600;padding:3px 11px;border-radius:999px;
+  background:rgba(255,255,255,.92);color:#0A0A0A}
+.taga{font-size:12px;padding:3px 11px;border-radius:999px;background:rgba(255,255,255,.13);color:var(--text2)}
+.ssize{font-size:12.5px;color:var(--text3);margin-top:5px}
+
+/* ============================================================
+   PLAYER
+   ============================================================ */
+#player{position:fixed;inset:0;z-index:70;background:#000}
+#player[hidden]{display:none}
+.stage{position:absolute;inset:0}
+.pl-ui{position:absolute;inset:0;transition:opacity 460ms var(--ease)}
+.pl-ui.hid{opacity:0;pointer-events:none}
+.pl-top{position:absolute;top:calc(env(safe-area-inset-top,0px) + 26px);left:var(--pad);right:var(--pad);
+  display:flex;align-items:center;gap:16px}
+.pl-title{font-size:clamp(16px,1.3vw,22px);font-weight:560}
+.pl-sub{font-size:clamp(12px,.95vw,15px);color:var(--text3);margin-top:2px}
+.pl-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  display:flex;align-items:center;gap:clamp(26px,4vw,60px)}
+.pl-btn{width:clamp(50px,4vw,68px);height:clamp(50px,4vw,68px);border-radius:999px;
+  display:grid;place-items:center;font-size:clamp(17px,1.4vw,24px)}
+.pl-btn.big{width:clamp(64px,5.4vw,92px);height:clamp(64px,5.4vw,92px);font-size:clamp(22px,1.9vw,32px)}
+.pl-btn.focused{background:rgba(255,255,255,.94);color:#0A0A0A;transform:scale(1.09)}
+.pl-bottom{position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 30px);left:var(--pad);right:var(--pad)}
+.bar{height:5px;border-radius:999px;background:rgba(255,255,255,.22);position:relative;margin-bottom:11px;
+  box-shadow:inset 0 .5px 0 rgba(255,255,255,.2)}
+.bar i{position:absolute;left:0;top:0;bottom:0;border-radius:999px;background:#fff}
+.bar b{position:absolute;top:50%;width:14px;height:14px;border-radius:999px;background:#fff;
+  transform:translate(-50%,-50%);box-shadow:0 2px 10px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.9)}
+.times{display:flex;justify-content:space-between;font-size:13px;color:var(--text2);font-variant-numeric:tabular-nums}
+.pl-tools{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
+.tool{padding:9px 19px;border-radius:999px;font-size:14px}
+.tool.focused{background:rgba(255,255,255,.94);color:#0A0A0A;transform:scale(1.05)}
+.upnext{position:absolute;right:var(--pad);bottom:calc(env(safe-area-inset-bottom,0px) + 124px);
+  width:min(370px,72vw);padding:20px;border-radius:24px;animation:shIn 400ms var(--spring)}
+.upnext[hidden]{display:none}
+.upnext .k{font-size:12.5px;color:var(--text3);margin-bottom:6px}
+.upnext .t{font-size:16px;font-weight:560;margin-bottom:3px}
+.upnext .s{font-size:13px;color:var(--text3);margin-bottom:14px}
+.btn-white{background:#fff;color:#0A0A0A;padding:10px 22px;border-radius:999px;font-size:14px;font-weight:600;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9)}
+.btn-white.focused{transform:scale(1.05);box-shadow:0 0 0 4px rgba(255,255,255,.3)}
+
+@media(max-width:700px){
+  .hero{height:auto;min-height:0;padding-top:clamp(120px,26vh,260px)}
+  .hero-inner,.detail-inner{max-width:100%}
+  .detail-hero{min-height:0}
+  #sidebar{top:auto;bottom:0;left:0;right:0;width:auto;border-radius:28px 28px 0 0;
+    transform:translateY(calc(100% + 24px));max-height:76vh}
+  body.sidebar-open #sidebar{transform:none}
+  .ep-thumb{width:120px}.pl-tools{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms!important;transition-duration:.01ms!important}
+  #app,.rail-scroll{scroll-behavior:auto}.bd-layer.on{animation:none}
+}
+</style>
+</head>
+<body>
+<div id="backdrop"></div><div id="scrim"></div><div id="dim"></div>
+
+<nav id="topbar">
+  <div class="tabbar glass" id="tabbar"></div>
+  <div class="topright" id="topright"></div>
+</nav>
+
+<aside id="sidebar" class="glass" aria-label="Main navigation"></aside>
+
+<main id="app">
+  <section class="page" id="page-board"></section>
+  <section class="page" id="page-metaDetails" hidden></section>
+  <section class="page" id="page-search" hidden></section>
+  <section class="page" id="page-discover" hidden></section>
+  <section class="page" id="page-sports" hidden></section>
+  <section class="page" id="page-sourceprefs" hidden></section>
+  <section class="page" id="page-catalogprefs" hidden></section>
+  <section class="page" id="page-library" hidden></section>
+  <section class="page" id="page-addons" hidden></section>
+  <section class="page" id="page-settings" hidden></section>
+</main>
+
+<div class="overlay" id="sources" hidden></div>
+<div id="player" hidden></div>
+
+<script>
+"use strict";
+/* ================================================================
+   ENV  —  mirrors stremio_core::runtime::Env storage contract
+   ================================================================ */
+const Env = {
+  getStorage(k, fb){ try{ const v=localStorage.getItem("atrium:"+k); return v?JSON.parse(v):fb; }catch(e){ return fb; } },
+  setStorage(k, v){ try{ localStorage.setItem("atrium:"+k, JSON.stringify(v)); }catch(e){} },
+  now(){ return new Date().toISOString(); },
+  async fetchJSON(url, ms=12000){
+    let host=url;
+    try{ host=new URL(url).host; }catch(e){ throw new AddonError("url","That doesn't look like a valid URL."); }
+    if(location.protocol==="https:" && /^http:\/\//i.test(url))
+      throw new AddonError("mixed",`This page is served over HTTPS, so the browser blocks plain HTTP add-ons. Use an https:// URL for ${host}.`);
+    const c = new AbortController(), t = setTimeout(()=>c.abort(), ms);
+    try{
+      /* No custom headers on purpose: any header beyond the CORS-safelist turns
+         this into a preflighted request, and plenty of add-on servers set
+         Access-Control-Allow-Origin on GET but never answer the OPTIONS. */
+      const r = await fetch(url, {signal:c.signal, mode:"cors", credentials:"omit"});
+      if(!r.ok) throw new AddonError("http", `${host} responded ${r.status}.`);
+      return await r.json();
+    }catch(e){
+      if(e instanceof AddonError) throw e;
+      if(e.name==="AbortError") throw new AddonError("timeout",`${host} didn't respond within ${ms/1000}s.`);
+      if(e instanceof SyntaxError) throw new AddonError("parse",`${host} answered, but not with JSON.`);
+      throw new AddonError("network",
+        `Couldn't reach ${host}. Either it's offline, it doesn't send Access-Control-Allow-Origin, or this page is sandboxed and can't call other domains — see Settings › About.`);
+    }finally{ clearTimeout(t); }
+  }
+};
+class AddonError extends Error{ constructor(kind,msg){ super(msg||kind); this.kind=kind; } }
+
+/* ================================================================
+   ADDON PROTOCOL  —  src/addon_transport/http_transport
+   Resource URL, per http_transport.rs:48-67
+     no extra : {base}/{resource}/{type}/{id}.json
+     with extra: {base}/{resource}/{type}/{id}/{k=v&k=v}.json
+   All components percent-encoded (URI_COMPONENT_ENCODE_SET).
+   ================================================================ */
+const ADDON_MANIFEST_PATH = "/manifest.json";
+const ADDON_LEGACY_PATH   = "/-/q.json";
+const queryParamsEncode = extra =>
+  extra.map(([k,v])=>`${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join("&");
+
+class AddonHTTPTransport{
+  constructor(transportUrl){ this.transportUrl = transportUrl; }
+  resourceUrl(path){
+    if(this.transportUrl.endsWith(ADDON_LEGACY_PATH))
+      throw new AddonError("legacy","This is a legacy (v1) add-on. Only the v2 protocol is supported.");
+    if(!this.transportUrl.endsWith(ADDON_MANIFEST_PATH))
+      throw new AddonError("url",`Transport URL must end with ${ADDON_MANIFEST_PATH}`);
+    const e = encodeURIComponent;
+    const seg = (path.extra && path.extra.length)
+      ? `/${e(path.resource)}/${e(path.type)}/${e(path.id)}/${queryParamsEncode(path.extra)}.json`
+      : `/${e(path.resource)}/${e(path.type)}/${e(path.id)}.json`;
+    return this.transportUrl.replace(ADDON_MANIFEST_PATH, seg);
+  }
+  manifest(){ return Env.fetchJSON(this.transportUrl); }
+  resource(path){ return Env.fetchJSON(this.resourceUrl(path)); }
+}
+
+/* manifest resource matching — types/addon/manifest.rs ManifestResource */
+function manifestResource(manifest, name){
+  const list = manifest.resources || [];
+  const r = list.find(x => typeof x === "string" ? x === name : x && x.name === name);
+  if(!r) return null;
+  return typeof r === "string"
+    ? {name:r, types:manifest.types||[], idPrefixes:manifest.idPrefixes||null}
+    : {name:r.name, types:r.types||manifest.types||[], idPrefixes:r.idPrefixes||manifest.idPrefixes||null};
+}
+function isSupported(manifest, resource, type, id){
+  const r = manifestResource(manifest, resource);
+  if(!r) return false;
+  if(r.types.length && type && !r.types.includes(type)) return false;
+  if(r.idPrefixes && id && !r.idPrefixes.some(p=>String(id).startsWith(p))) return false;
+  return true;
+}
+function validateManifest(m){
+  if(!m || typeof m!=="object") throw new AddonError("manifest","That URL didn't return an add-on manifest.");
+  for(const k of ["id","name","version"])
+    if(!m[k]) throw new AddonError("manifest",`Manifest is missing "${k}".`);
+  if(!Array.isArray(m.resources)||!m.resources.length)
+    throw new AddonError("manifest","Manifest declares no resources.");
+  if(!Array.isArray(m.types)) m.types = [];
+  return m;
+}
+
+/* ================================================================
+   DEMO ADDON  —  built in, so the app works with nothing installed.
+   Implements the same transport interface as a real one.
+   ================================================================ */
+const PAL = {
+  dusk:["rgba(214,122,58,.55)","rgba(28,58,90,.75)","#2A1810","#07070A"],
+  deep:["rgba(70,130,180,.45)","rgba(10,30,60,.85)","#0B1A2A","#050508"],
+  moss:["rgba(110,162,100,.42)","rgba(20,50,40,.8)","#0E1A14","#060809"],
+  ash:["rgba(152,152,164,.34)","rgba(30,30,40,.85)","#15151C","#060608"],
+  ember:["rgba(222,90,60,.5)","rgba(60,20,20,.85)","#2A0E0C","#080505"],
+  ice:["rgba(160,202,232,.45)","rgba(25,45,70,.8)","#101E2C","#05070A"],
+  violet:["rgba(142,100,202,.45)","rgba(30,20,60,.85)","#1A1230","#070610"],
+  sand:["rgba(202,170,110,.45)","rgba(70,55,35,.8)","#241C10","#0A0806"],
+  teal:["rgba(80,182,176,.42)","rgba(10,45,55,.85)","#0A2028","#04090C"],
+  rose:["rgba(202,110,142,.42)","rgba(50,20,40,.85)","#22101A","#08050A"]
+};
+const art = p => `radial-gradient(120% 92% at 72% 18%, ${p[0]} 0%, transparent 58%),
+  radial-gradient(105% 105% at 16% 86%, ${p[1]} 0%, transparent 64%),
+  linear-gradient(162deg, ${p[2]} 0%, ${p[3]} 100%)`;
+const L=(name,category)=>({name,category,url:`stremio:///discover/${encodeURIComponent(category)}/${encodeURIComponent(name)}`});
+
+let _n=1000;
+const mk=(name,type,o)=>{
+  const id="tt"+(++_n);
+  return Object.assign({
+    id, type, name, poster:null, background:null, logo:null,
+    description:"", releaseInfo:"", runtime:"", posterShape:"poster",
+    links:[...(o.genres||["Drama"]).map(g=>L(g,"Genres")),
+           ...(o.cast||[]).map(c=>L(c,"Cast")),
+           ...(o.directors||[]).map(d=>L(d,"Directors"))],
+    trailerStreams:[], videos:[], pal:PAL.ash, imdbRating:"7.8", contentRating:"TV-14",
+    behaviorHints:{isLive:false,defaultVideoId:type==="movie"?id:null,featuredVideoId:null,hasScheduledVideos:false}
+  }, o, {id,type,name,links:[...(o.genres||["Drama"]).map(g=>L(g,"Genres")),
+           ...(o.cast||[]).map(c=>L(c,"Cast")),...(o.directors||[]).map(d=>L(d,"Directors"))]});
+};
+const DEMO = [
+  mk("Sublevel","series",{releaseInfo:"2024–",contentRating:"TV-MA",imdbRating:"8.6",pal:PAL.dusk,
+    genres:["Sci-Fi","Adventure"],cast:["Iris Calloway","Domhnall Reid","Ama Oyelaran"],directors:["Petra Vance"],
+    description:"Ten thousand people live inside a buried silo. One engineer stops believing the reason she was given.",
+    seasons:3,tagline:"#1 Show Today"}),
+  mk("The Long Quiet","series",{releaseInfo:"2025–",contentRating:"TV-MA",imdbRating:"8.9",pal:PAL.ice,
+    genres:["Thriller","Mystery"],cast:["Noor Haddad","Felix Brenner"],directors:["Junko Mori"],
+    description:"A sound engineer in coastal Maine records a frequency that shouldn't exist — and someone wants the tape.",
+    seasons:2,tagline:"New episode Friday"}),
+  mk("Ashfall County","movie",{releaseInfo:"2025",contentRating:"R",imdbRating:"7.9",pal:PAL.ember,runtime:"134 min",
+    genres:["Crime","Drama"],cast:["Ray Muldoon","Callie Vance"],directors:["Sam Arbogast"],
+    description:"Two brothers inherit a failing mine and the debt that comes with it."}),
+  mk("Meridian","movie",{releaseInfo:"2026",contentRating:"PG-13",imdbRating:"8.1",pal:PAL.deep,runtime:"141 min",
+    genres:["Sci-Fi","Drama"],cast:["Tova Lindqvist","Marcus Bell"],directors:["Ana Reyes"],
+    description:"The first crew to reach the edge of the heliosphere finds the map was wrong."}),
+  mk("Greenhouse","series",{releaseInfo:"2025–",contentRating:"TV-14",imdbRating:"8.3",pal:PAL.moss,
+    genres:["Comedy","Drama"],cast:["Priya Nandini","Oskar Lehmann"],directors:["Bea Clarke"],
+    description:"A failing botanical garden becomes the last neutral ground in a fracturing town.",seasons:2}),
+  mk("Nightshift","movie",{releaseInfo:"2025",contentRating:"R",imdbRating:"7.4",pal:PAL.violet,runtime:"118 min",
+    genres:["Thriller"],cast:["Idris Kamara"],directors:["Lena Vogt"],
+    description:"A hospital porter on the graveyard rotation keeps finding the same patient."}),
+  mk("Saltwater","movie",{releaseInfo:"2024",contentRating:"PG-13",imdbRating:"7.6",pal:PAL.teal,runtime:"106 min",
+    genres:["Drama","Romance"],cast:["Mira Ostrowski"],directors:["Tomas Aguilar"],
+    description:"Two strangers share a ferry crossing that neither of them is supposed to survive."}),
+  mk("The Cartographer","series",{releaseInfo:"2026–",contentRating:"TV-MA",imdbRating:"8.7",pal:PAL.sand,
+    genres:["Historical","Drama"],cast:["Henrik Sol","Adaeze Nwosu"],directors:["Claire Dupont"],
+    description:"An 18th-century mapmaker is paid to draw a coastline that does not exist.",seasons:1}),
+  mk("Tin Kingdom","movie",{releaseInfo:"2026",contentRating:"PG-13",imdbRating:"7.2",pal:PAL.rose,runtime:"127 min",
+    genres:["Adventure","Family"],cast:["Eloise Park"],directors:["Rahul Menon"],
+    description:"A girl and a broken automaton cross a continent to find the factory that made him."}),
+  mk("Deadfall Ridge","series",{releaseInfo:"2022–",contentRating:"TV-MA",imdbRating:"8.0",pal:PAL.ash,
+    genres:["Western","Crime"],cast:["Junia Cortez"],directors:["Wes Halloran"],
+    description:"A sheriff returns to the valley she testified against.",seasons:4}),
+  mk("Understory","movie",{releaseInfo:"2025",contentRating:"PG",imdbRating:"8.4",pal:PAL.moss,runtime:"94 min",
+    genres:["Documentary"],directors:["Naomi Fischer"],posterShape:"landscape",
+    description:"Three years beneath the canopy of a forest that communicates in chemistry."}),
+  mk("Copperline","series",{releaseInfo:"2023–2025",contentRating:"TV-14",imdbRating:"7.7",pal:PAL.dusk,
+    genres:["Drama"],cast:["Gene Sorrells"],directors:["Marta Klein"],
+    description:"The last switchboard operator in a Nevada town refuses to be automated.",seasons:2}),
+  mk("Vantage","movie",{releaseInfo:"2026",contentRating:"R",imdbRating:"7.1",pal:PAL.deep,runtime:"109 min",
+    genres:["Action","Thriller"],cast:["Zane Okafor"],directors:["Inez Barros"],
+    description:"A surveillance analyst watches a crime for six months before deciding to stop it."}),
+  mk("Winterlight","movie",{releaseInfo:"2023",contentRating:"PG-13",imdbRating:"8.2",pal:PAL.ice,runtime:"122 min",
+    genres:["Drama"],cast:["Sylvie Nourrit"],directors:["Erik Lund"],
+    description:"A composer returns to the village where she stopped writing."}),
+  mk("Backchannel","series",{releaseInfo:"2026–",contentRating:"TV-MA",imdbRating:"8.5",pal:PAL.violet,
+    genres:["Political","Thriller"],cast:["Hana Ito","Peter Malik"],directors:["Yuri Danchenko"],
+    description:"A junior translator becomes the only honest line between two governments.",seasons:1}),
+  mk("Foundry","movie",{releaseInfo:"2025",contentRating:"PG-13",imdbRating:"7.5",pal:PAL.ember,runtime:"131 min",
+    genres:["Drama","Sport"],cast:["Dana Kovács"],directors:["Miles Okonjo"],
+    description:"A closed steel town bets everything on a swimmer who hates the water."}),
+  mk("The Lantern Rooms","series",{releaseInfo:"2023–",contentRating:"TV-14",imdbRating:"8.1",pal:PAL.sand,
+    genres:["Mystery"],cast:["Ines Ferreira"],directors:["Aoife Byrne"],
+    description:"A hotel where every guest checks in under a name that already belongs to someone.",seasons:3}),
+  mk("Harrowgate","movie",{releaseInfo:"2024",contentRating:"R",imdbRating:"7.0",pal:PAL.ash,runtime:"115 min",
+    genres:["Horror"],cast:["Bram Hollis"],directors:["Kiri Watanabe"],
+    description:"An estate surveyor discovers the house is measured differently from inside."}),
+  mk("Tidewater","series",{releaseInfo:"2025–",contentRating:"TV-14",imdbRating:"7.9",pal:PAL.teal,
+    genres:["Drama","Family"],cast:["Ruth Amankwah"],directors:["Colin Braithe"],
+    description:"Four siblings, one oyster lease, and a coastline that is quietly disappearing.",seasons:2}),
+  mk("Second Sun","movie",{releaseInfo:"2026",contentRating:"PG-13",imdbRating:"8.3",pal:PAL.rose,runtime:"148 min",
+    genres:["Sci-Fi","Romance"],cast:["Leila Barzan","Otto Freeman"],directors:["Petra Vance"],
+    description:"On a tidally locked world, two cities argue over which one gets the morning."})
+];
+const EP_TITLES=["Threshold","The Harmonium","Undertow","Nine Degrees","Quiet Hours","The Long Descent",
+  "Carrier Wave","Ledger","Dead Air","Lightfall","The Second Door","Cold Open"];
+DEMO.filter(m=>m.type==="series").forEach(m=>{
+  const v=[];
+  for(let s=1;s<=m.seasons;s++){
+    const n=6+(s*3+m.name.length)%5;
+    for(let e=1;e<=n;e++) v.push({
+      id:`${m.id}:${s}:${e}`, title:EP_TITLES[(s*5+e*3+m.name.length)%EP_TITLES.length],
+      released:`${2022+s}-0${1+(s%9)}-${String((e*2)%28+1).padStart(2,"0")}T00:00:00Z`,
+      overview:"An old promise comes due, and the people who made it are no longer the people who have to keep it.",
+      thumbnail:null, streams:[], season:s, episode:e
+    });
+  }
+  m.videos=v; m.behaviorHints.defaultVideoId=v[0].id;
+});
+const DEMO_BY_ID = Object.fromEntries(DEMO.map(m=>[m.id,m]));
+const linksOf=(m,cat)=>(m.links||[]).filter(l=>l.category===cat).map(l=>l.name);
+
+const DEMO_SOURCES=[
+  {res:"2160p",hdr:"HDR10",codec:"HEVC",audio:"7.1 Atmos",size:19781000000,state:"instant",n:"Local file"},
+  {res:"1080p",hdr:null,codec:"H.264",audio:"5.1",size:4510000000,state:"instant",n:"Local file"},
+  {res:"1080p",hdr:null,codec:"AV1",audio:"Stereo",size:2250000000,state:"available",n:"Remote copy"},
+  {res:"720p",hdr:null,codec:"H.264",audio:"Stereo",size:1180000000,state:"instant",n:"Low bandwidth"}
+];
+const DEMO_MANIFEST={
+  id:"org.atrium.demo", version:"1.0.0", name:"Demo Catalog",
+  description:"Sample titles bundled with the app so it works before you install anything.",
+  logo:"◎", color:"#4A3A5E",
+  resources:["catalog","meta","stream"], types:["movie","series"],
+  idPrefixes:["tt"],
+  catalogs:[
+    {type:"movie", id:"top", name:"Popular Movies"},
+    {type:"series", id:"top", name:"Popular TV"},
+    {type:"movie", id:"new", name:"New Releases"},
+    {type:"movie", id:"search", name:"Movies", extra:[{name:"search", isRequired:true}]},
+    {type:"series", id:"search", name:"TV Shows", extra:[{name:"search", isRequired:true}]}
+  ]
+};
+class DemoTransport{
+  constructor(){ this.transportUrl="atrium://demo/manifest.json"; }
+  async manifest(){ return DEMO_MANIFEST; }
+  async resource({resource,type,id,extra}){
+    const ex = Object.fromEntries((extra||[]).map(([k,v])=>[k,v]));
+    switch(resource){
+      case "catalog":{
+        let metas = DEMO.filter(m=>!type||m.type===type);
+        if(id==="new") metas = metas.filter(m=>(m.releaseInfo||"").startsWith("2026"));
+        if(ex.search) metas = metas.filter(m=>
+          (m.name+" "+(m.links||[]).map(l=>l.name).join(" ")).toLowerCase().includes(ex.search.toLowerCase()));
+        if(ex.genre) metas = metas.filter(m=>linksOf(m,"Genres").includes(ex.genre));
+        return {metas};
+      }
+      case "meta": return {meta: DEMO_BY_ID[String(id).split(":")[0]] || null};
+      case "stream":{
+        const seed=String(id).length;
+        return {streams: DEMO_SOURCES.map((s,i)=>({
+          name:"Demo Catalog",
+          title:`${s.n}\n${[s.res,s.hdr,s.codec,s.audio].filter(Boolean).join(" · ")}`,
+          url:`https://demo.invalid/play/${id}/${i}`,
+          behaviorHints:{bingeGroup:`demo|${s.res}|${s.codec}`,
+            filename:`${id}.${s.res}.${s.codec}.mkv`, videoSize:s.size},
+          _demo:{...s, seed}
+        }))};
+      }
+      default: return {};
+    }
+  }
+}
+
+/* ================================================================
+   ADDON REGISTRY
+   ================================================================ */
+const DIRECTORY=[
+  {transportUrl:"atrium://demo/manifest.json", manifest:DEMO_MANIFEST, builtin:true, official:true},
+  {transportUrl:"https://v3-cinemeta.strem.io/manifest.json", official:true,
+   manifest:{id:"com.linvo.cinemeta",name:"Cinemeta",version:"3.0.13",logo:"★",color:"#2F4858",
+     description:"Movie and series metadata, posters and artwork from the public Cinemeta service.",
+     resources:["catalog","meta"],types:["movie","series"],idPrefixes:["tt"],
+     catalogs:[
+       {type:"movie", id:"top",  name:"Popular", extra:[{name:"genre"},{name:"search"},{name:"skip"}]},
+       {type:"series",id:"top",  name:"Popular", extra:[{name:"genre"},{name:"search"},{name:"skip"}]},
+       {type:"movie", id:"year", name:"New",     extra:[{name:"genre"},{name:"skip"}]},
+       {type:"series",id:"year", name:"New",     extra:[{name:"genre"},{name:"skip"}]}
+     ]}},
+  {transportUrl:"https://opensubtitles-v3.strem.io/manifest.json", official:true,
+   manifest:{id:"org.stremio.opensubtitlesv3",name:"OpenSubtitles v3",version:"1.0.0",logo:"💬",color:"#3A5E4A",
+     description:"Community subtitles matched by video hash.",
+     resources:["subtitles"],types:["movie","series"],idPrefixes:["tt"],catalogs:[]}},
+  {transportUrl:"https://watchhub.strem.io/manifest.json",
+   manifest:{id:"org.stremio.watchhub",name:"WatchHub",version:"1.0.0",logo:"▤",color:"#5E4A3A",
+     description:"Finds where a title is available to rent or buy on legitimate services.",
+     resources:["stream"],types:["movie"],idPrefixes:["tt"],catalogs:[]}},
+  {transportUrl:"https://dexter-jellyfin.example/manifest.json",
+   manifest:{id:"org.atrium.jellyfin",name:"Jellyfin Bridge",version:"0.9.3",logo:"⬢",color:"#4A3A5E",
+     description:"Serves catalogs, meta and streams from your own Jellyfin or Emby server.",
+     resources:["catalog","meta","stream","subtitles"],types:["movie","series"],
+     catalogs:[{type:"movie",id:"jf-movies",name:"My Movies"},{type:"series",id:"jf-series",name:"My Shows"}]}}
+];
+
+const DEMO_DESC=DIRECTORY[0], CINEMETA_DESC=DIRECTORY[1];
+/* Cinemeta-only first run for the small live trailer test */
+const DEFAULT_ADDONS=[CINEMETA_DESC];
+
+const Addons = {
+  transport(d){ return d.builtin ? new DemoTransport() : new AddonHTTPTransport(d.transportUrl); },
+  installed(){ return model.ctx.profile.addons; },
+  /* a resource is live only if the manifest declares it AND the user left it on */
+  enabled(d,resource){ return !d.enabled || d.enabled[resource]!==false; },
+  supporting(resource, type, id){
+    return this.installed().filter(d=>
+      this.enabled(d,resource) && isSupported(d.manifest, resource, type, id));
+  },
+  async install(url){
+    url = url.trim();
+    if(!/^https?:\/\//i.test(url)) url = url.replace(/^stremio:\/\//i,"https://");
+    if(!url.endsWith(ADDON_MANIFEST_PATH))
+      url = url.replace(/\/+$/,"") + ADDON_MANIFEST_PATH;
+    if(this.installed().some(d=>d.transportUrl===url))
+      throw new AddonError("dupe","That add-on is already installed.");
+    const manifest = validateManifest(await new AddonHTTPTransport(url).manifest());
+    const descriptor = {transportUrl:url, manifest, flags:{official:false},
+      enabled:Object.fromEntries((manifest.resources||[])
+        .map(r=>[typeof r==="string"?r:r.name,true]))};
+    dispatch(["Ctx","InstallAddon",descriptor]);
+    return descriptor;
+  },
+  /* first addon that returns a meta wins — core's MetaDetails behaviour */
+  async meta(type, id){
+    const base = String(id).split(":")[0];
+    for(const d of this.supporting("meta", type, base)){
+      try{
+        const r = await this.transport(d).resource({resource:"meta",type,id:base,extra:[]});
+        if(r && r.meta) return {meta:cacheMeta(normalizeMeta(r.meta),d.transportUrl), addon:d};
+      }catch(e){ /* try the next addon */ }
+    }
+    return {meta:null, addon:null};
+  },
+  /* streams aggregate across every addon that supports the id */
+  async streams(type, id){
+    const ds = this.supporting("stream", type, id);
+    const results = await Promise.allSettled(
+      ds.map(d=>this.transport(d).resource({resource:"stream",type,id,extra:[]})));
+    const out=[], failed=[];
+    results.forEach((r,i)=>{
+      if(r.status==="rejected"){ failed.push({addon:ds[i], error:r.reason}); return; }
+      (r.value.streams||[]).forEach(s=>out.push(Object.assign({}, s, {_addon:ds[i]})));
+    });
+    return {streams:out, failed};
+  },
+  async subtitles(type, id){
+    const ds = this.supporting("subtitles", type, id);
+    const r = await Promise.allSettled(
+      ds.map(d=>this.transport(d).resource({resource:"subtitles",type,id,extra:[]})));
+    return r.flatMap(x=>x.status==="fulfilled" ? (x.value.subtitles||[]) : []);
+  },
+  /* the bundled Cinemeta manifest is a starting point; correct it from the live
+     endpoint in the background so its catalogs stay accurate over time */
+  async refreshManifests(){
+    await Promise.allSettled(this.installed().filter(d=>!d.builtin).map(async d=>{
+      try{
+        const m=validateManifest(await this.transport(d).manifest());
+        if(JSON.stringify(m)!==JSON.stringify(d.manifest)){
+          d.manifest=m; catalogCacheDrop(d.transportUrl); heroPool=[]; persist();
+        }
+      }catch(e){ /* offline or blocked — keep the bundled manifest */ }
+    }));
+  },
+  async catalog(d, type, catalogId, extra){
+    const key=ckey(d,type,catalogId,extra), hit=catalogCache.get(key), now=Date.now();
+    const isCinemeta=d.transportUrl===CINEMETA_DESC.transportUrl;
+    const hydrate=async metas=>{
+      if(!isCinemeta) return metas;
+      const small=metas.slice(0,6);
+      await Promise.allSettled(small.map(m=>ensureTrailer(m)));
+      return small;
+    };
+    const fetchFresh=async()=>{
+      const r=await this.transport(d).resource({resource:"catalog",type,id:catalogId,extra:extra||[]});
+      const metas=await hydrate((r.metas||[]).map(m=>cacheMeta(normalizeMeta(m),d.transportUrl)));
+      catalogCache.set(key,{t:Date.now(),metas});
+      catalogCachePersist();
+      return metas;
+    };
+    if(hit){
+      /* serve what we have immediately; refresh behind the user if it's aged out */
+      if(now-hit.t>CATALOG_TTL) fetchFresh().catch(()=>{});
+      return hydrate(hit.metas.map(m=>cacheMeta(normalizeMeta(m),d.transportUrl)));
+    }
+    return fetchFresh();
+  },
+  /* every catalog across installed addons that needs no required extra.
+     all=true returns them unfiltered, for the catalog preferences page */
+  boardCatalogs(all){
+    const out=[];
+    this.installed().forEach(d=>{
+      if(!this.enabled(d,"catalog")) return;
+      (d.manifest.catalogs||[]).forEach(c=>{
+        const required=(c.extra||[]).filter(e=>e.isRequired||e.is_required);
+        if(required.length) return;
+        if((c.extraRequired||[]).length) return;
+        out.push({descriptor:d, type:c.type, id:c.id, name:c.name||c.id});
+      });
+    });
+    const C=cp();
+    out.forEach(c=>{ const k=catKey(c); if(C.names[k]) c.name=C.names[k]; });
+    if(C.order&&C.order.length){
+      const pos=k=>{const i=C.order.indexOf(k);return i<0?999:i;};
+      out.sort((a,b)=>pos(catKey(a))-pos(catKey(b)));
+    }
+    return all ? out : out.filter(c=>C.hidden[catKey(c)]!==true);
+  }
+};
+function normalizeMeta(m){
+  if(!m) return m;
+  if(!m.pal) m.pal = PAL[Object.keys(PAL)[(String(m.id||"").length + (m.name||"").length) % 10]];
+  if(!m.links) m.links = [
+    ...(m.genres||[]).map(g=>L(g,"Genres")),
+    ...(m.cast||[]).map(c=>L(c,"Cast")),
+    ...(m.director?[m.director].flat():[]).map(d=>L(d,"Directors"))];
+  if(!m.behaviorHints) m.behaviorHints={};
+  if(!m.videos) m.videos=[];
+  if(!m.posterShape) m.posterShape="poster";
+  return m;
+}
+
+/* ----------------------------------------------------------------
+   StreamSource — src/types/resource/stream.rs
+   Implemented: Url, YouTube, External, PlayerFrame.
+   infoHash (Torrent) is recognised and reported, not resolved.
+   ---------------------------------------------------------------- */
+function streamSource(s){
+  if(s.url) return {type:"Url", url:s.url, playable:true};
+  if(s.ytId) return {type:"YouTube", ytId:s.ytId, playable:true};
+  if(s.playerFrameUrl) return {type:"PlayerFrame", url:s.playerFrameUrl, playable:true};
+  if(s.externalUrl) return {type:"External", url:s.externalUrl, playable:true, external:true};
+  if(s.infoHash) return {type:"Torrent", infoHash:s.infoHash, playable:false};
+  return {type:"Unknown", playable:false};
+}
+/* ----------------------------------------------------------------
+   STREAM PIPELINE
+   parse → filter → dedupe → sort (user-ordered keys) → limit → format
+   Operates on whatever streams installed add-ons return.
+   ---------------------------------------------------------------- */
+const RES_RE=/\b(2160p|4k|uhd|1080p|720p|480p|360p)\b/i;
+const HDR_RE=/\b(dolby[\s.]?vision|dovi|hdr10\+|hdr10|hlg|hdr)\b/i;
+const COD_RE=/\b(hevc|h\.?265|x265|av1|h\.?264|x264|avc|vp9|mpeg-?2|xvid)\b/i;
+const AUD_RE=/\b(atmos|truehd|dts[-\s.]?hd[-\s.]?ma|dts[-\s.]?hd|dts[-\s.]?x|dts|e-?ac-?3|ddp?5\.1|ac-?3|7\.1|5\.1|2\.0|stereo|flac|aac|opus|mp3)\b/i;
+const QUA_RE=/\b(remux|bluray|blu-ray|bdrip|brrip|web-?dl|web-?rip|webdl|web|hdtv|dvdrip|dvd|hdrip|screener|scr|telesync|ts|cam)\b/i;
+const LANG_RE=/\b(multi|dual[\s.]?audio|english|eng|spanish|spa|french|fre|fra|german|ger|deu|italian|ita|japanese|jpn|korean|kor|portuguese|por|russian|rus|hindi|hin|dubbed|subbed)\b/ig;
+
+const RES_ORDER=["2160p","1080p","720p","480p","360p","unknown"];
+const QUA_ORDER=["Remux","BluRay","WEB-DL","WEBRip","HDTV","DVD","HDRip","Screener","CAM","unknown"];
+const COD_ORDER=["AV1","HEVC","H.264","VP9","MPEG-2","XviD","unknown"];
+const AUD_ORDER=["Atmos","TrueHD","DTS-HD","DTS","EAC3","AC3","7.1","5.1","FLAC","AAC","Opus","Stereo","unknown"];
+const rank=(arr,v)=>{const i=arr.indexOf(v);return i<0?-1:arr.length-i;};
+
+const normRes=v=>!v?"unknown":/4k|uhd/i.test(v)?"2160p":v.toLowerCase();
+const normQua=v=>{if(!v)return "unknown";const s=v.toLowerCase().replace(/[-.\s]/g,"");
+  if(s==="remux")return "Remux"; if(s.startsWith("blu")||s==="bdrip"||s==="brrip")return "BluRay";
+  if(s.startsWith("webdl")||s==="web")return "WEB-DL"; if(s.startsWith("webrip"))return "WEBRip";
+  if(s==="hdtv")return "HDTV"; if(s.startsWith("dvd"))return "DVD"; if(s==="hdrip")return "HDRip";
+  if(s==="screener"||s==="scr")return "Screener"; if(s==="cam"||s==="ts"||s==="telesync")return "CAM";
+  return "unknown";};
+const normCod=v=>{if(!v)return "unknown";const s=v.toLowerCase().replace(/[.\s]/g,"");
+  if(s==="av1")return "AV1"; if(/hevc|h265|x265/.test(s))return "HEVC";
+  if(/h264|x264|avc/.test(s))return "H.264"; if(s==="vp9")return "VP9";
+  if(/mpeg2/.test(s))return "MPEG-2"; if(s==="xvid")return "XviD"; return "unknown";};
+const normAud=v=>{if(!v)return "unknown";const s=v.toLowerCase().replace(/[-.\s]/g,"");
+  if(s==="atmos")return "Atmos"; if(s==="truehd")return "TrueHD";
+  if(s.startsWith("dtshd")||s==="dtsx")return "DTS-HD"; if(s==="dts")return "DTS";
+  if(/^e?ac3$/.test(s)||s.startsWith("ddp"))return s.startsWith("e")||s.startsWith("ddp")?"EAC3":"AC3";
+  if(s==="71")return "7.1"; if(s==="51")return "5.1"; if(s==="flac")return "FLAC";
+  if(s==="aac")return "AAC"; if(s==="opus")return "Opus";
+  if(s==="20"||s==="stereo")return "Stereo"; return "unknown";};
+
+function parseStream(s){
+  if(s._p) return s._p;
+  const text=[s.name,s.title,s.description,s.behaviorHints&&s.behaviorHints.filename]
+    .filter(Boolean).join(" ");
+  const g=re=>{const m=text.match(re);return m?m[1]:null;};
+  const langs=[...new Set((text.match(LANG_RE)||[]).map(x=>x.toLowerCase()))];
+  const demo=s._demo;
+  const p={
+    res: demo?demo.res:normRes(g(RES_RE)),
+    quality: demo?"WEB-DL":normQua(g(QUA_RE)),
+    codec: demo?normCod(demo.codec):normCod(g(COD_RE)),
+    hdr: demo?demo.hdr:g(HDR_RE),
+    audio: demo?normAud(demo.audio):normAud(g(AUD_RE)),
+    size: (s.behaviorHints&&s.behaviorHints.videoSize)||(demo&&demo.size)||null,
+    langs,
+    cached: demo?demo.state==="instant":false,
+    filename: (s.behaviorHints&&s.behaviorHints.filename)||"",
+    addon: s._addon,
+    text
+  };
+  p.state = p.cached?"instant":"available";
+  Object.defineProperty(s,"_p",{value:p,enumerable:false});
+  return p;
+}
+const describeStream=s=>parseStream(s);   /* player still calls this */
+
+/* --- default preferences ------------------------------------- */
+const onAll=arr=>Object.fromEntries(arr.map(k=>[k,true]));
+const DEFAULT_STREAM_PREFS={
+  sort:["cached","resolution","quality","size","addon"],
+  resolutions:onAll(RES_ORDER),
+  qualities:Object.assign(onAll(QUA_ORDER),{CAM:false,Screener:false}),
+  codecs:onAll(COD_ORDER),
+  audio:onAll(AUD_ORDER),
+  excludeKeywords:"",
+  minSizeGB:0,
+  perResolutionLimit:0,
+  dedupe:true,
+  nameTemplate:"{addon}",
+  descTemplate:"{resolution} {quality} {codec} {audio}"
+};
+const SORT_KEYS={
+  cached:    {label:"Cached first",   cmp:(a,b)=>(b.cached?1:0)-(a.cached?1:0)},
+  resolution:{label:"Resolution",     cmp:(a,b)=>rank(RES_ORDER,b.res)-rank(RES_ORDER,a.res)},
+  quality:   {label:"Quality",        cmp:(a,b)=>rank(QUA_ORDER,b.quality)-rank(QUA_ORDER,a.quality)},
+  hdr:       {label:"HDR first",      cmp:(a,b)=>(b.hdr?1:0)-(a.hdr?1:0)},
+  codec:     {label:"Codec",          cmp:(a,b)=>rank(COD_ORDER,b.codec)-rank(COD_ORDER,a.codec)},
+  audio:     {label:"Audio",          cmp:(a,b)=>rank(AUD_ORDER,b.audio)-rank(AUD_ORDER,a.audio)},
+  size:      {label:"Size, largest",  cmp:(a,b)=>(b.size||0)-(a.size||0)},
+  sizeAsc:   {label:"Size, smallest", cmp:(a,b)=>(a.size||Infinity)-(b.size||Infinity)},
+  addon:     {label:"Add-on order",   cmp:(a,b)=>addonIndex(a)-addonIndex(b)},
+  language:  {label:"Preferred language", cmp:(a,b)=>langHit(b)-langHit(a)}
+};
+function addonIndex(p){
+  const i=model.ctx.profile.addons.findIndex(d=>p.addon&&d.transportUrl===p.addon.transportUrl);
+  return i<0?99:i;
+}
+function langHit(p){
+  const want=(model.ctx.profile.settings.subtitlesLanguage||"eng").slice(0,3);
+  return p.langs.some(l=>l.startsWith(want.slice(0,3))||l==="multi"||l==="dual audio")?1:0;
+}
+const sp=()=>Object.assign({},DEFAULT_STREAM_PREFS,model.ctx.profile.settings.streams||{});
+
+function applyStreamPipeline(streams){
+  const P=sp(), S=model.ctx.profile.settings;
+  let list=streams.map(s=>({s,p:parseStream(s)}));
+
+  /* -- filter -- */
+  const kw=(P.excludeKeywords||"").split(",").map(x=>x.trim().toLowerCase()).filter(Boolean);
+  const capGB=parseFloat(S.maxSize), minGB=parseFloat(P.minSizeGB)||0;
+  list=list.filter(({p})=>{
+    if(P.resolutions[p.res]===false) return false;
+    if(P.qualities[p.quality]===false) return false;
+    if(P.codecs[p.codec]===false) return false;
+    if(P.audio[p.audio]===false) return false;
+    if(kw.length && kw.some(k=>p.text.toLowerCase().includes(k))) return false;
+    if(p.size){
+      if(!isNaN(capGB) && p.size/1e9>capGB) return false;
+      if(minGB && p.size/1e9<minGB) return false;
+    }
+    return true;
+  });
+
+  /* -- dedupe: same release from several add-ons collapses to one -- */
+  if(P.dedupe){
+    const seen=new Map();
+    list.forEach(item=>{
+      const {p}=item;
+      const key=(p.filename||"").toLowerCase().replace(/[^a-z0-9]/g,"")
+        || [p.res,p.quality,p.codec,p.audio,p.size].join("|");
+      const prev=seen.get(key);
+      if(!prev) seen.set(key,Object.assign(item,{dupes:1}));
+      else prev.dupes++;
+    });
+    list=[...seen.values()];
+  }
+
+  /* -- sort: pinned quality first, then the user's key order -- */
+  const keys=(P.sort||[]).filter(k=>SORT_KEYS[k]);
+  const pin=S.preferredQuality!=="Auto"?S.preferredQuality.replace("4K","2160p"):null;
+  list.sort((A,B)=>{
+    if(pin){
+      const d=(B.p.res===pin?1:0)-(A.p.res===pin?1:0);
+      if(d) return d;
+    }
+    for(const k of keys){ const d=SORT_KEYS[k].cmp(A.p,B.p); if(d) return d; }
+    return 0;
+  });
+
+  /* -- cap per resolution -- */
+  const lim=+P.perResolutionLimit||0;
+  if(lim>0){
+    const count={};
+    list=list.filter(({p})=>{count[p.res]=(count[p.res]||0)+1;return count[p.res]<=lim;});
+  }
+  return list;
+}
+function formatStream(item,tpl){
+  const {p}=item;
+  const tok={
+    addon:(p.addon&&p.addon.manifest.name)||item.s.name||"Source",
+    title:(item.s.title||"").split("\n")[0]||"",
+    resolution:p.res==="unknown"?"":p.res,
+    quality:p.quality==="unknown"?"":p.quality,
+    codec:p.codec==="unknown"?"":p.codec,
+    audio:p.audio==="unknown"?"":p.audio,
+    hdr:p.hdr||"",
+    size:p.size?gb(p.size):"",
+    lang:p.langs.slice(0,2).join("/"),
+    filename:p.filename,
+    count:item.dupes>1?`×${item.dupes}`:""
+  };
+  return tpl.replace(/\{(\w+)\}/g,(_,k)=>tok[k]!==undefined?tok[k]:"")
+            .replace(/\s{2,}/g," ").replace(/^[\s·-]+|[\s·-]+$/g,"").trim();
+}
+const gb=b=>b?(b/1e9).toFixed(1)+" GB":"";
+const availabilityLabel=s=>s==="instant"?"Instant":s==="available"?"Available":s==="preparing"?"Preparing":"Unavailable";
+
+/* ================================================================
+   CTX  —  Profile / LibraryBucket / StreamsBucket
+   ================================================================ */
+const DEFAULT_SETTINGS={
+  interfaceLanguage:"eng", streamingServerUrl:"http://127.0.0.1:11470/",
+  bingeWatching:true, playInBackground:true, hardwareDecoding:true,
+  subtitlesLanguage:"eng", subtitlesSize:100,
+  preferredQuality:"Auto", preferHDR:true, preferredCodec:"Auto", maxSize:"50 GB",
+  autoPickStream:true, showTechnicalDetails:false, resumeBehavior:"Always ask",
+  seekTimeDuration:10000, reducedMotion:false,
+  spotlight:true, spotlightAudio:false, spotlightDelay:4
+};
+const storedAddons = Env.getStorage("addonDescriptors", null);
+const model={
+  ctx:{
+    profile:{
+      auth:null,
+      addons: storedAddons && storedAddons.length
+        ? storedAddons.map(d=>d.transportUrl==="atrium://demo/manifest.json"
+            ? Object.assign({},DEMO_DESC,{enabled:d.enabled}) : d)
+        : DEFAULT_ADDONS.map(d=>Object.assign({},d)),
+      settings: Object.assign({},DEFAULT_SETTINGS,Env.getStorage("settings",{}))
+    },
+    library:{items:Env.getStorage("library",{})},
+    streams:{items:Env.getStorage("streams",{})},
+    searchHistory:{items:Env.getStorage("searchHistory",[])}
+  },
+  continueWatchingPreview:{libraryItems:[]},
+  board:{catalogs:[]},
+  discover:{selected:{type:"movie"},catalog:[]},
+  library:{selected:{type:null}},
+  search:{selected:null,catalogs:[]},
+  metaDetails:{metaItem:null,selectedVideoId:null,season:1,streams:[]},
+  player:{selected:null,metaItem:null,video:null,stream:null,timeOffset:0,duration:0,paused:true,nextVideo:null}
+};
+function persist(){
+  Env.setStorage("addonDescriptors", model.ctx.profile.addons.map(d=>
+    d.builtin?{transportUrl:d.transportUrl,builtin:true,enabled:d.enabled}
+             :{transportUrl:d.transportUrl,manifest:d.manifest,flags:d.flags,enabled:d.enabled}));
+  Env.setStorage("settings",model.ctx.profile.settings);
+  Env.setStorage("library",model.ctx.library.items);
+  Env.setStorage("streams",model.ctx.streams.items);
+  Env.setStorage("searchHistory",model.ctx.searchHistory.items);
+}
+function libraryItemFrom(m){
+  return {_id:m.id,name:m.name,type:m.type,poster:m.poster,posterShape:m.posterShape,
+    removed:false,temp:false,_ctime:Env.now(),_mtime:Env.now(),
+    state:{lastWatched:null,timeWatched:0,timeOffset:0,overallTimeWatched:0,timesWatched:0,
+      flaggedWatched:0,duration:0,video_id:null,watched:null,noNotif:false}};
+}
+const libItem=id=>model.ctx.library.items[id];
+const inLibrary=id=>{const i=libItem(id);return !!i&&!i.removed&&!i.temp;};
+
+/* meta cache — entries carry the transportUrl that supplied them (_src)
+   so they can be pruned when that add-on is removed */
+const metaCache=Object.create(null);
+DEMO.forEach(m=>{m._src="atrium://demo/manifest.json";metaCache[m.id]=m;});
+const cacheMeta=(m,src)=>{
+  if(!m||!m.id) return m;
+  if(src) m._src=src;
+  const prev=metaCache[m.id];
+  if(prev&&!m._src&&prev._src) m._src=prev._src;
+  metaCache[m.id]=m;return m;
+};
+const cachedMeta=id=>metaCache[String(id).split(":")[0]]||null;
+/* keep anything the user put in their library — it still has to render there */
+function pruneMetaCache(transportUrl){
+  Object.keys(metaCache).forEach(id=>{
+    if(metaCache[id]._src===transportUrl && !model.ctx.library.items[id]) delete metaCache[id];
+  });
+}
+
+/* catalog cache — stale-while-revalidate, persisted between launches */
+const CATALOG_TTL=15*60*1000, CATALOG_MAX=24;
+const catalogCache=new Map(Object.entries(Env.getStorage("catalogCache",{})));
+const ckey=(d,type,id,extra)=>
+  `${d.transportUrl}|${type}|${id}|${(extra||[]).map(e=>e.join("=")).join("&")}`;
+function catalogCachePersist(){
+  const obj={};
+  [...catalogCache.entries()]
+    .sort((a,b)=>b[1].t-a[1].t).slice(0,CATALOG_MAX)
+    .forEach(([k,v])=>obj[k]=v);
+  Env.setStorage("catalogCache",obj);
+}
+function catalogCacheDrop(transportUrl){
+  [...catalogCache.keys()].forEach(k=>{ if(k.startsWith(transportUrl+"|")) catalogCache.delete(k); });
+  catalogCachePersist();
+}
+
+/* ================================================================
+   RUNTIME
+   ================================================================ */
+function dispatch(action){
+  const [group,name,payload]=action;
+  if(group==="Ctx") return ctxUpdate(name,payload);
+  if(group==="MetaDetails"){
+    if(name==="SelectSeason") model.metaDetails.season=payload;
+    if(name==="SelectVideo") model.metaDetails.selectedVideoId=payload;
+    return;
+  }
+  if(group==="Player") return playerUpdate(name,payload);
+  if(group==="Unload") model.metaDetails={metaItem:null,selectedVideoId:null,season:1,streams:[]};
+}
+function ctxUpdate(name,p){
+  const lib=model.ctx.library.items;
+  switch(name){
+    case "AddToLibrary": lib[p.id]=Object.assign(libraryItemFrom(p),lib[p.id]||{},{removed:false,temp:false,_mtime:Env.now()}); cacheMeta(p); break;
+    case "RemoveFromLibrary": if(lib[p]){lib[p].removed=true;lib[p]._mtime=Env.now();} break;
+    case "RewindLibraryItem": if(lib[p]) lib[p].state.timeOffset=0; break;
+    case "InstallAddon":
+      if(!model.ctx.profile.addons.some(d=>d.transportUrl===p.transportUrl)){
+        model.ctx.profile.addons.push(p);
+        catalogCacheDrop(p.transportUrl);   /* a reinstall shouldn't serve old rows */
+      }
+      break;
+    case "UninstallAddon":{
+      const i=model.ctx.profile.addons.findIndex(d=>d.transportUrl===p.transportUrl);
+      if(i>=0){
+        model.ctx.profile.addons.splice(i,1);
+        catalogCacheDrop(p.transportUrl);
+        pruneMetaCache(p.transportUrl);
+      }
+      break; }
+    case "UpdateSettings": Object.assign(model.ctx.profile.settings,p); break;
+    case "PushSearchHistory":
+      model.ctx.searchHistory.items=[p,...model.ctx.searchHistory.items.filter(x=>x!==p)].slice(0,12); break;
+  }
+  persist(); refreshContinueWatching();
+}
+function refreshContinueWatching(){
+  model.continueWatchingPreview.libraryItems=Object.values(model.ctx.library.items)
+    .filter(i=>!i.removed&&i.state.timeOffset>0&&i.state.timeOffset<i.state.duration*0.92)
+    .sort((a,b)=>new Date(b.state.lastWatched||0)-new Date(a.state.lastWatched||0));
+}
+
+/* ================================================================
+   HELPERS
+   ================================================================ */
+const el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;};
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const mins=n=>n>=60?`${Math.floor(n/60)}h ${n%60}m`:`${n}m`;
+const clock=s=>{s=Math.max(0,Math.round(s));const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;
+  return (h?h+":":"")+String(m).padStart(h?2:1,"0")+":"+String(x).padStart(2,"0")};
+const videosOf=m=>(m.videos||[]).filter(v=>v.season!==0);
+const videoById=vid=>{const m=cachedMeta(vid);return m?(m.videos||[]).find(v=>v.id===vid):null;};
+const runtimeMins=m=>parseInt(m.runtime)||0;
+function artDiv(m,named){const d=el("div","art");d.style.background=art(m.pal||PAL.ash);
+  if(m.poster||m.background){const i=el("img");i.src=m.poster||m.background;i.loading="lazy";
+    i.style.cssText="position:absolute;inset:0;width:100%;height:100%;object-fit:cover";
+    i.onerror=()=>i.remove();d.appendChild(i);}
+  else if(named)d.appendChild(el("div","art-name",esc(m.name).toUpperCase()));
+  return d;}
+let bdCur=null;
+function setBackdrop(m){
+  if(!m||bdCur===m.id)return;bdCur=m.id;
+  const bd=document.getElementById("backdrop"),layer=el("div","bd-layer");
+  layer.style.background=art(m.pal||PAL.ash);
+  if(m.background){const i=el("img");i.src=m.background;
+    i.style.cssText="position:absolute;inset:0;width:100%;height:100%;object-fit:cover";
+    i.onerror=()=>i.remove();layer.appendChild(i);}
+  layer.appendChild(el("div","bd-grain"));
+  bd.appendChild(layer);requestAnimationFrame(()=>layer.classList.add("on"));
+  while(bd.children.length>2)bd.removeChild(bd.firstChild);
+}
+
+/* ================================================================
+   FOCUS MANAGER
+   ================================================================ */
+const FM={
+  wantCol:0,cur:null,
+  scope(){
+    if(!document.getElementById("player").hidden)return document.getElementById("player");
+    if(!document.getElementById("sources").hidden)return document.getElementById("sources");
+    if(document.body.classList.contains("sidebar-open"))return document.getElementById("sidebar");
+    return document.querySelector(".page:not([hidden])");
+  },
+  items(){
+    const s=this.scope();if(!s)return[];
+    const own=[...s.querySelectorAll("[data-f]")].filter(e=>e.offsetParent!==null);
+    /* the glass top bar is row -1 of whatever page is showing */
+    if(s.classList&&s.classList.contains("page")){
+      const tb=document.getElementById("topbar");
+      if(tb&&!document.body.classList.contains("sidebar-open"))
+        return [...tb.querySelectorAll("[data-f]")].filter(e=>e.offsetParent!==null).concat(own);
+    }
+    return own;
+  },
+  rows(){const m=new Map();this.items().forEach(e=>{const r=+e.dataset.row;
+    if(!m.has(r))m.set(r,[]);m.get(r).push(e)});
+    [...m.values()].forEach(a=>a.sort((x,y)=>(+x.dataset.col)-(+y.dataset.col)));return m;},
+  set(e,scroll=true){
+    if(!e)return;
+    this.items().forEach(x=>{x.classList.remove("focused");x.classList.remove("lit")});
+    e.classList.add("focused");
+    if(e.classList.contains("glass"))e.classList.add("lit");
+    this.cur=e;
+    HoverTrailer.focus(e);
+    if(e.dataset.meta&&!e.classList.contains("card")&&!document.body.classList.contains("in-detail")){
+      const m=cachedMeta(e.dataset.meta); if(m) setBackdrop(m);
+    }
+    if(!scroll)return;
+    const rail=e.closest(".rail-scroll");
+    if(rail)rail.scrollTo({left:Math.max(0,e.offsetLeft-rail.clientWidth/2+e.offsetWidth/2),behavior:"smooth"});
+    const app=document.getElementById("app");
+    if(app.contains(e)){const r=e.getBoundingClientRect(),pad=innerHeight*.22;
+      if(r.top<pad)app.scrollBy({top:r.top-pad,behavior:"smooth"});
+      else if(r.bottom>innerHeight-pad*.6)app.scrollBy({top:r.bottom-innerHeight+pad*.6,behavior:"smooth"});}
+  },
+  first(){
+    const m=this.rows(),all=[...m.keys()].sort((a,b)=>a-b);
+    const k=all.filter(x=>x>=0).length?all.filter(x=>x>=0):all;
+    if(k.length){this.set(m.get(k[0])[0]);this.wantCol=0;}},
+  move(dir){
+    const map=this.rows(),keys=[...map.keys()].sort((a,b)=>a-b);
+    if(!keys.length)return;
+    if(!this.cur||!this.items().includes(this.cur)){this.first();return;}
+    const row=+this.cur.dataset.row,line=map.get(row)||[];
+    if(dir==="left"||dir==="right"){
+      const j=line.indexOf(this.cur)+(dir==="right"?1:-1);
+      if(j<0){if(this.scope().id!=="sidebar"&&document.getElementById("player").hidden
+                &&document.getElementById("sources").hidden)openSidebar();return;}
+      if(j>=line.length)return;
+      this.set(line[j]);this.wantCol=+line[j].dataset.col;return;
+    }
+    const nk=keys[keys.indexOf(row)+(dir==="down"?1:-1)];
+    if(nk===undefined)return;
+    const next=map.get(nk);
+    this.set(next.reduce((b,e)=>Math.abs(+e.dataset.col-this.wantCol)<Math.abs(+b.dataset.col-this.wantCol)?e:b,next[0]));
+  }
+};
+
+/* ================================================================
+   SIDEBAR
+   ================================================================ */
+/* ---- glass top bar ---- */
+const TABS=[{id:"board",label:"Home"},{id:"movies",label:"Movies"},
+  {id:"shows",label:"TV"},{id:"sports",label:"Sports"}];
+function buildTabs(){
+  const tb=document.getElementById("tabbar"),tr=document.getElementById("topright");
+  tb.innerHTML="";tr.innerHTML="";
+  TABS.forEach((t,i)=>{
+    const b=el("button","tab",t.label);
+    b.dataset.f="";b.dataset.row=-1;b.dataset.col=i;b.dataset.tab=t.id;
+    b.onclick=()=>go(t.id);
+    tb.appendChild(b);
+  });
+  const mk=(icon,id,col,fn)=>{
+    const b=el("button","iconbtn glass",icon);
+    b.dataset.f="";b.dataset.row=-1;b.dataset.col=col;b.dataset.tab=id;
+    b.onclick=fn;tr.appendChild(b);
+  };
+  mk("⌕","search",TABS.length,()=>go("search"));
+  mk("⚙","settings",TABS.length+1,()=>go("settings"));
+  syncTabs();
+}
+function syncTabs(){
+  document.querySelectorAll("#topbar [data-tab]").forEach(b=>
+    b.setAttribute("aria-current",String(b.dataset.tab===view)));
+}
+
+const NAV=[{id:"search",label:"Search",ic:"⌕"},{id:"board",label:"Home",ic:"⌂"},
+  {id:"discover",label:"Discover",ic:"✦"},{id:"movies",label:"Movies",ic:"▣"},
+  {id:"shows",label:"TV Shows",ic:"▤"},{id:"library",label:"Library",ic:"❑"},
+  {id:"continue",label:"Continue Watching",ic:"▷"}];
+const NAV2=[{id:"addons",label:"Add-ons",ic:"⧉"},{id:"settings",label:"Settings",ic:"⚙"}];
+function buildSidebar(){
+  const sb=document.getElementById("sidebar");sb.innerHTML="";
+  const p=el("div","sb-profile");
+  p.innerHTML=`<span class="sb-avatar">N</span><span class="sb-name">${model.ctx.profile.auth?"Account":"Guest"}</span>
+    <span class="sb-time">${new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})}</span>`;
+  sb.appendChild(p);
+  let r=0;
+  const add=it=>{const b=el("button","sb-item",`<span class="ic">${it.ic}</span><span>${it.label}</span>`);
+    b.dataset.f="";b.dataset.row=r++;b.dataset.col=0;
+    b.setAttribute("aria-current",String(view===it.id));
+    b.onclick=()=>{closeSidebar();go(it.id)};sb.appendChild(b)};
+  NAV.forEach(add);sb.appendChild(el("div","sb-head","My sources"));NAV2.forEach(add);
+}
+let returnFocus=null;
+function openSidebar(){
+  if(document.body.classList.contains("sidebar-open"))return;
+  Spotlight.stop();
+  returnFocus=FM.cur;document.body.classList.add("sidebar-open");buildSidebar();
+  FM.set(document.querySelector('#sidebar [aria-current="true"]')||document.querySelector("#sidebar .sb-item"),false);
+}
+function closeSidebar(){
+  if(!document.body.classList.contains("sidebar-open"))return;
+  document.body.classList.remove("sidebar-open");FM.cur=null;
+  if(returnFocus&&returnFocus.isConnected)FM.set(returnFocus,false);else FM.first();
+}
+
+/* ================================================================
+   CARDS / RAILS
+   ================================================================ */
+const shapeClass=s=>s==="landscape"?"land":s==="square"?"square":"poster";
+function card(m,kind,row,col,o={}){
+  cacheMeta(m);
+  const b=el("button","card "+kind);
+  b.dataset.f="";b.dataset.row=row;b.dataset.col=col;b.dataset.meta=m.id;
+  const th=el("div","thumb");th.appendChild(artDiv(m,true));
+  if(o.rank)th.appendChild(el("span","rank",String(o.rank)));
+  const li=o.libraryItem||libItem(m.id);
+  if(li&&li.state.duration&&li.state.timeOffset>0){
+    const bar=el("div","prog");
+    bar.innerHTML=`<i style="width:${Math.round(li.state.timeOffset/li.state.duration*100)}%"></i>`;
+    th.appendChild(bar);
+  }
+  b.appendChild(th);
+  const cap=el("div","cap");
+  cap.innerHTML=`<div class="cap-t">${esc(m.name)}</div><div class="cap-s">${esc(o.sub||[m.releaseInfo,m.type==="series"?"Series":"Film"].filter(Boolean).join(" · "))}</div>`;
+  b.appendChild(cap);
+  b.addEventListener("pointerenter",()=>HoverTrailer.enter(b,m));
+  b.addEventListener("pointerleave",()=>HoverTrailer.leave(b));
+  b.addEventListener("focus",()=>HoverTrailer.enter(b,m));
+  b.addEventListener("blur",()=>HoverTrailer.leave(b));
+  b.onclick=()=>{HoverTrailer.stop();o.onOpen?o.onOpen():openDetail(m.type,m.id)};
+  return b;
+}
+function rail(title,items,kind,row,o={}){
+  const w=el("section","rail"+(o.ranked?" ranked":"")+(o.alwaysCap?" always-cap":""));
+  const h=el("h2","rail-head",esc(title));
+  if(o.source) h.innerHTML += ` <span class="rail-src">${esc(o.source)}</span>`;
+  w.appendChild(h);
+  const sc=el("div","rail-scroll");
+  items.forEach((it,i)=>{const m=it.meta||it;
+    sc.appendChild(card(m,kind,row,i,{rank:o.ranked?i+1:null,sub:it.sub,libraryItem:it.libraryItem,onOpen:it.onOpen}))});
+  w.appendChild(sc);return w;
+}
+function skeletonRail(title,row,source){
+  const w=el("section","rail");
+  const h=el("h2","rail-head",esc(title));
+  if(source) h.innerHTML += ` <span class="rail-src">${esc(source)}</span>`;
+  w.appendChild(h);
+  const sc=el("div","rail-scroll");
+  for(let i=0;i<7;i++){const c=el("div","card poster");c.appendChild(el("div","thumb skel"));sc.appendChild(c)}
+  w.appendChild(sc);w.dataset.skeleton="";w.dataset.row=row;return w;
+}
+function railError(title,msg,row){
+  const w=el("section","rail");
+  w.appendChild(el("h2","rail-head",esc(title)));
+  w.appendChild(el("div","empty rail-err",esc(msg)));
+  return w;
+}
+
+/* ================================================================
+   SPOTLIGHT  —  hero trailer autoplay
+   Sources trailers from MetaItem.trailerStreams (Stream[]) or the
+   legacy `trailers` array. Bundled demo titles get a procedural
+   stand-in so the motion design is visible with no network.
+   ================================================================ */
+function youtubeId(value){
+  const raw=String(value||"").trim();
+  if(/^[\w-]{11}$/.test(raw)) return raw;
+  try{
+    const u=new URL(raw);
+    if(u.hostname==="youtu.be") return u.pathname.split("/").filter(Boolean)[0]||null;
+    if(/(^|\.)youtube(?:-nocookie)?\.com$/.test(u.hostname))
+      return u.searchParams.get("v")||u.pathname.match(/\/(?:embed|shorts)\/([\w-]{11})/)?.[1]||null;
+  }catch(e){}
+  return null;
+}
+function trailerOf(m){
+  if(!m) return null;
+  const streams=[...(m.trailerStreams||[]),...(m.trailers||[])];
+  for(const s of streams){
+    const id=youtubeId(s.ytId||((s.type==="Trailer"||!s.type)&&s.source));
+    if(id) return {kind:"yt", id};
+    if(s.url && /\.(mp4|webm|m3u8)(\?|$)/i.test(s.url)) return {kind:"url", url:s.url};
+  }
+  if(m._src==="atrium://demo/manifest.json") return {kind:"demo"};
+  return null;
+}
+/* catalog rows carry previews; trailers only live on the full meta */
+async function ensureTrailer(m){
+  if(!m || m._trailerChecked) return m;
+  if((m.trailerStreams&&m.trailerStreams.length)||(m.trailers&&m.trailers.length)
+     ||m._src==="atrium://demo/manifest.json"){ m._trailerChecked=true; return m; }
+  m._trailerChecked=true;
+  try{
+    const {meta}=await Addons.meta(m.type,m.id);
+    if(meta&&meta.id===m.id){
+      m.trailerStreams=meta.trailerStreams||[];
+      m.trailers=meta.trailers||[];
+      if(!m.background&&meta.background) m.background=meta.background;
+    }
+  }catch(e){}
+  return m;
+}
+
+function youtubeTrailerFrame(id,muted=true){
+  const f=el("iframe");
+  f.title="Trailer";
+  f.allow="autoplay; encrypted-media; picture-in-picture";
+  f.referrerPolicy="strict-origin-when-cross-origin";
+  f.setAttribute("frameborder","0");
+  const origin=location.protocol.startsWith("http")?`&origin=${encodeURIComponent(location.origin)}`:"";
+  f.src=`https://www.youtube.com/embed/${encodeURIComponent(id)}`
+      + `?autoplay=1&mute=${muted?1:0}&controls=0&loop=1&playsinline=1`
+      + `&playlist=${encodeURIComponent(id)}&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1&enablejsapi=1${origin}`;
+  f.addEventListener("load",()=>{
+    try{
+      f.contentWindow.postMessage(JSON.stringify({event:"command",func:"mute",args:[]}),"*");
+      f.contentWindow.postMessage(JSON.stringify({event:"command",func:"playVideo",args:[]}),"*");
+    }catch(e){}
+  });
+  return f;
+}
+
+const HoverTrailer={
+  delay:5000,timer:null,button:null,meta:null,layer:null,
+  enter(button,meta){
+    if(this.button===button&&(this.timer||this.layer))return;
+    this.stop();this.button=button;this.meta=meta;
+    this.timer=setTimeout(()=>this.play(button,meta),this.delay);
+  },
+  leave(button){
+    if(this.button===button&&!button.classList.contains("focused")&&document.activeElement!==button)this.stop();
+  },
+  focus(e){
+    if(e&&e.classList&&e.classList.contains("card")){
+      const m=cachedMeta(e.dataset.meta);if(m)this.enter(e,m);
+    }else this.stop();
+  },
+  async play(button,meta){
+    this.timer=null;
+    if(this.button!==button||!button.isConnected)return;
+    if(!button.matches(":hover")&&!button.classList.contains("focused")&&document.activeElement!==button)return this.stop();
+    button.classList.add("trailer-expanded");
+    button.closest(".rail-scroll")?.scrollTo({left:Math.max(0,button.offsetLeft-button.parentElement.clientWidth/2+button.offsetWidth/2),behavior:"smooth"});
+    await ensureTrailer(meta);
+    if(this.button!==button||!button.isConnected)return;
+    const t=trailerOf(meta);if(!t)return this.stop();
+    const layer=el("div","card-trailer");
+    if(t.kind==="yt") layer.appendChild(youtubeTrailerFrame(t.id,true));
+    else if(t.kind==="url"){
+      const v=el("video");v.src=t.url;v.autoplay=true;v.loop=true;v.playsInline=true;v.muted=true;
+      v.onerror=()=>this.stop();layer.appendChild(v);
+    }else return this.stop();
+    button.querySelector(".thumb")?.appendChild(layer);this.layer=layer;
+  },
+  stop(){
+    clearTimeout(this.timer);this.timer=null;
+    if(this.layer)this.layer.remove();
+    if(this.button)this.button.classList.remove("trailer-expanded");
+    this.layer=null;this.button=null;this.meta=null;
+  }
+};
+
+const Spotlight={
+  layer:null, meta:null, muted:true, timer:null,
+  active(){ return !!this.layer; },
+  enabled(){
+    const S=model.ctx.profile.settings;
+    return S.spotlight!==false && !S.reducedMotion;
+  },
+  async play(m){
+    if(!this.enabled()||view!=="board") return false;
+    if(document.body.classList.contains("sidebar-open")) return false;
+    await ensureTrailer(m);
+    const t=trailerOf(m);
+    if(!t||heroPool[heroIdx]!==m) return false;
+
+    this.stop();
+    this.meta=m;
+    this.muted=!model.ctx.profile.settings.spotlightAudio;
+    const layer=el("div","sl-layer");
+
+    if(t.kind==="yt"){
+      layer.appendChild(youtubeTrailerFrame(t.id,this.muted));
+    }else if(t.kind==="url"){
+      const v=el("video");
+      v.src=t.url; v.autoplay=true; v.loop=true; v.playsInline=true;
+      v.muted=this.muted; v.controls=false;
+      v.onerror=()=>this.stop();
+      layer.appendChild(v);
+    }else{
+      const d=el("div","sl-demo");
+      const p=m.pal||PAL.ash;
+      for(let i=0;i<4;i++){
+        const s=el("span");
+        s.style.background=art([p[(i)%4],p[(i+1)%4],p[2],p[3]]);
+        d.appendChild(s);
+      }
+      layer.appendChild(d);
+    }
+    document.getElementById("backdrop").appendChild(layer);
+    this.layer=layer;
+    requestAnimationFrame(()=>layer.classList.add("on"));
+    renderHero(heroIdx);            /* brings in the audio button */
+    return true;
+  },
+  toggleAudio(){
+    this.muted=!this.muted;
+    dispatch(["Ctx","UpdateSettings",{spotlightAudio:!this.muted}]);
+    const v=this.layer&&this.layer.querySelector("video");
+    if(v){ v.muted=this.muted; renderHero(heroIdx); return; }
+    const m=this.meta; this.stop(); if(m) this.play(m);   /* iframes need a reload */
+  },
+  stop(){
+    clearTimeout(this.timer);
+    const l=this.layer; this.layer=null; this.meta=null;
+    if(!l) return;
+    l.classList.remove("on");
+    setTimeout(()=>l.remove(),900);
+  }
+};
+
+/* ================================================================
+   BOARD
+   ================================================================ */
+let view="board",heroIdx=0,heroTimer=null,heroPool=[];
+function continueWatchingRail(){
+  return model.continueWatchingPreview.libraryItems.map(li=>{
+    const m=cachedMeta(li._id);if(!m)return null;
+    const v=li.state.video_id?videoById(li.state.video_id):null;
+    const left=Math.max(0,Math.round((li.state.duration-li.state.timeOffset)/60000));
+    return {meta:m,libraryItem:li,
+      sub:v?`S${v.season} E${v.episode} · ${v.title}`:`${left} min left`,
+      onOpen:()=>playVideo(m,v,li.state.timeOffset)};
+  }).filter(Boolean);
+}
+async function renderBoard(){
+  const p=document.getElementById("page-board");p.innerHTML="";
+  const hero=el("section","hero");hero.id="hero";p.appendChild(hero);
+  const dots=el("div","hero-dots");dots.id="herodots";p.appendChild(dots);
+  const rails=el("div","rails");p.appendChild(rails);
+  let row=1;
+  const cw=continueWatchingRail();
+  if(cw.length) rails.appendChild(rail("Continue Watching",cw,"land",row++,{alwaysCap:true}));
+
+  const catalogs=Addons.boardCatalogs();
+  if(!catalogs.length){
+    rails.appendChild(el("div","empty",`<b>No catalogs installed</b>Install an add-on that provides catalogs and your home screen fills in automatically.`));
+  }
+  const slots=catalogs.map(c=>{
+    const sk=skeletonRail(c.name,row,c.descriptor.manifest.name);
+    rails.appendChild(sk);return {c,sk,row:row++};
+  });
+  const libItems=Object.values(model.ctx.library.items).filter(i=>!i.removed&&!i.temp)
+    .map(i=>cachedMeta(i._id)).filter(Boolean);
+  if(libItems.length) rails.appendChild(rail("Your Library",libItems.map(m=>({meta:m})),"poster",row++));
+
+  if(!heroPool.length && !catalogs.length) renderHero(0);
+  await Promise.all(slots.map(async ({c,sk,row})=>{
+    try{
+      const metas=await Addons.catalog(c.descriptor,c.type,c.id,[]);
+      if(!metas.length){sk.remove();return;}
+      metas.forEach(cacheMeta);
+      if(!heroPool.length){heroPool=metas.slice(0,6);renderHero(0);buildDots();startHero();}
+      sk.replaceWith(rail(c.name,metas.map(m=>({meta:m})),shapeClass(metas[0].posterShape),row,
+        {source:c.descriptor.manifest.name}));
+    }catch(e){
+      sk.replaceWith(railError(c.name, e.kind==="network"
+        ? `${c.descriptor.manifest.name} is unreachable.` : (e.message||"This catalog failed to load."), row));
+    }
+    if(!FM.cur) FM.first();
+  }));
+  if(!heroPool.length){
+    const demo=Addons.installed().find(d=>d.builtin);
+    if(demo&&Addons.enabled(demo,"catalog")){
+      heroPool=DEMO.slice(0,6);renderHero(0);buildDots();startHero();
+    }
+  }
+  if(!FM.cur) FM.first();
+}
+function buildDots(){
+  const d=document.getElementById("herodots");if(!d)return;d.innerHTML="";
+  heroPool.forEach((_,i)=>{const s=el("span","hdot");if(i===heroIdx)s.classList.add("on");d.appendChild(s)});
+}
+function renderHero(i){
+  heroIdx=i;const m=(heroPool.length?heroPool:DEMO)[i];const hero=document.getElementById("hero");
+  if(!hero||!m)return;
+  cacheMeta(m);
+  const wasHero=FM.cur&&FM.cur.closest("#hero");
+  const li=libItem(m.id);
+  const resumeV=li&&li.state.video_id?videoById(li.state.video_id):null;
+  const lbl=resumeV?`Resume S${resumeV.season} E${resumeV.episode}`:(li&&li.state.timeOffset>0?"Resume":"Play");
+  const inner=el("div","hero-inner hero-fade");
+  inner.innerHTML=`
+    <h1 class="hero-title">${esc(m.name).toUpperCase()}</h1>
+    <div class="hero-meta"><span class="svc">AT</span>
+      <span>${m.type==="series"?"TV Show":"Movie"}</span>
+      ${linksOf(m,"Genres").slice(0,3).map(g=>`<span class="dot">·</span><span>${esc(g)}</span>`).join("")}
+      ${m.contentRating?`<span class="badge">${esc(m.contentRating)}</span>`:""}</div>
+    <p class="hero-desc">${esc(m.description||"")}</p>
+    ${m.tagline?`<div class="hero-tag">${esc(m.tagline)}</div>`:""}`;
+  const acts=el("div","hero-actions");
+  const bp=el("button","btn-play",`<span>▶</span><span>${lbl}</span>`);
+  bp.dataset.f="";bp.dataset.row=0;bp.dataset.col=0;
+  bp.onclick=()=>openDetailThenPlay(m,resumeV,li?li.state.timeOffset:0);
+  acts.appendChild(bp);
+  const mkb=(txt,col,fn,on)=>{const b=el("button","btn-round glass"+(on?" on":""),txt);
+    b.dataset.f="";b.dataset.row=0;b.dataset.col=col;b.onclick=fn;acts.appendChild(b)};
+  mkb(inLibrary(m.id)?"✓":"＋",1,()=>{toggleLibrary(m);renderHero(heroIdx);
+    FM.set(document.querySelector('#hero [data-col="1"]'),false)},inLibrary(m.id));
+  mkb("ⓘ",2,()=>openDetail(m.type,m.id));
+  mkb("›",3,()=>openDetail(m.type,m.id));
+  inner.appendChild(acts);
+  hero.innerHTML="";hero.appendChild(inner);
+  if(Spotlight.active()&&Spotlight.meta===m){
+    const ab=el("button","btn-round glass sl-audio",Spotlight.muted?"🔇":"🔊");
+    ab.dataset.f="";ab.dataset.row=0;ab.dataset.col=4;
+    ab.onclick=()=>Spotlight.toggleAudio();
+    hero.appendChild(ab);
+  }
+  document.querySelectorAll(".hdot").forEach((d,j)=>d.classList.toggle("on",j===i));
+  if(!document.body.classList.contains("in-detail")&&!Spotlight.active())setBackdrop(m);
+  if(wasHero)FM.set(hero.querySelector('[data-col="0"]'),false);
+}
+const SPOTLIGHT_MAX=32000;   /* how long a trailer holds the hero */
+function heroPaused(){
+  return view!=="board" || document.body.classList.contains("sidebar-open")
+      || !document.getElementById("player").hidden
+      || !document.getElementById("sources").hidden;
+}
+function startHero(){ scheduleHero(); }
+function scheduleHero(){
+  clearTimeout(heroTimer);
+  const S=model.ctx.profile.settings;
+  const dwell=Math.max(2,+S.spotlightDelay||4)*1000;
+  heroTimer=setTimeout(async ()=>{
+    if(heroPaused()) return scheduleHero();
+    const m=heroPool[heroIdx];
+    const played=Spotlight.enabled() ? await Spotlight.play(m) : false;
+    clearTimeout(heroTimer);
+    heroTimer=setTimeout(()=>{
+      Spotlight.stop();
+      if(heroPaused()) return scheduleHero();
+      /* sitting on the hero holds the slide, same as tvOS */
+      if(FM.cur&&FM.cur.closest("#hero")) return scheduleHero();
+      advanceHero();
+    }, played ? SPOTLIGHT_MAX : 6000);
+  }, dwell);
+}
+function advanceHero(){
+  if(!heroPool.length) return;
+  Spotlight.stop();
+  renderHero((heroIdx+1)%heroPool.length);
+  scheduleHero();
+}
+function toggleLibrary(m){dispatch(inLibrary(m.id)?["Ctx","RemoveFromLibrary",m.id]:["Ctx","AddToLibrary",m])}
+async function openDetailThenPlay(m,resumeV,offset){
+  if(m.type==="series"&&!resumeV&&!(m.videos||[]).length){ await openDetail(m.type,m.id); return; }
+  playVideo(m,resumeV||(m.type==="series"?videosOf(m)[0]:null),offset);
+}
+
+/* ================================================================
+   META DETAILS
+   ================================================================ */
+async function openDetail(type,id,videoId){
+  Spotlight.stop();
+  document.body.classList.add("in-detail");
+  show("metaDetails");
+  const cached=cachedMeta(id);
+  if(cached)setBackdrop(cached);
+  const p=document.getElementById("page-metaDetails");
+  p.innerHTML=`<div class="detail-hero"><div class="detail-inner"><h1 class="d-title skel-t">&nbsp;</h1></div></div>`;
+  const {meta,addon}=await Addons.meta(type,id);
+  if(!meta){
+    p.innerHTML="";
+    p.appendChild(el("div","pagehead","<h1>Not available</h1>"));
+    p.appendChild(el("div","empty",`<b>No add-on returned details for this title</b>The add-on that listed it may be offline, or no installed add-on provides meta for this id.`));
+    const b=el("button","chip glass","Back");b.dataset.f="";b.dataset.row=0;b.dataset.col=0;
+    b.onclick=()=>go("board");p.appendChild(el("div","filters")).appendChild(b);
+    FM.cur=null;FM.first();return;
+  }
+  cacheMeta(meta);
+  model.metaDetails.metaItem=meta;
+  model.metaDetails.metaAddon=addon;
+  model.metaDetails.selectedVideoId=videoId||meta.behaviorHints.defaultVideoId;
+  model.metaDetails.season=videoId&&String(videoId).includes(":")?+String(videoId).split(":")[1]:1;
+  setBackdrop(meta);
+  renderDetail();
+  location.hash=`/detail/${type}/${id}`+(videoId?`/${videoId}`:"");
+}
+function renderDetail(){
+  const m=model.metaDetails.metaItem;if(!m)return;
+  const p=document.getElementById("page-metaDetails");p.innerHTML="";
+  const li=libItem(m.id);
+  const resumeV=li&&li.state.video_id?videoById(li.state.video_id):null;
+  const vids=videosOf(m);
+
+  const h=el("section","detail-hero"),inner=el("div","detail-inner hero-fade");
+  const seasons=[...new Set(vids.map(v=>v.season))];
+  inner.innerHTML=`
+    <h1 class="d-title">${esc(m.name)}</h1>
+    <div class="hero-meta">${m.releaseInfo?`<span>${esc(m.releaseInfo)}</span>`:""}
+      ${m.contentRating?`<span class="badge">${esc(m.contentRating)}</span>`:""}
+      <span>${m.type==="series"?(seasons.length+" Season"+(seasons.length===1?"":"s")):esc(m.runtime||"")}</span>
+      ${linksOf(m,"Genres").slice(0,4).map(g=>`<span class="dot">·</span><span>${esc(g)}</span>`).join("")}
+      ${m.imdbRating?`<span class="dot">·</span><span>★ ${esc(m.imdbRating)}</span>`:""}</div>
+    <p class="d-desc">${esc(m.description||"")}</p>
+    <div class="d-credits">
+      ${linksOf(m,"Directors").length?`<b>Director</b> ${esc(linksOf(m,"Directors").join(", "))}<br>`:""}
+      ${linksOf(m,"Cast").length?`<b>Cast</b> ${esc(linksOf(m,"Cast").slice(0,6).join(", "))}<br>`:""}
+      ${model.metaDetails.metaAddon?`<b>Source</b> ${esc(model.metaDetails.metaAddon.manifest.name)}`:""}</div>`;
+  const acts=el("div","hero-actions");
+  const bp=el("button","btn-play",`<span>▶</span><span>${resumeV?`Resume S${resumeV.season} E${resumeV.episode}`:(li&&li.state.timeOffset>0?"Resume":"Play")}</span>`);
+  bp.dataset.f="";bp.dataset.row=0;bp.dataset.col=0;
+  bp.onclick=()=>playVideo(m,resumeV||(m.type==="series"?vids[0]:null),li?li.state.timeOffset:0);
+  acts.appendChild(bp);
+  const lb=el("button","btn-round glass"+(inLibrary(m.id)?" on":""),inLibrary(m.id)?"✓":"＋");
+  lb.dataset.f="";lb.dataset.row=0;lb.dataset.col=1;
+  lb.onclick=()=>{toggleLibrary(m);renderDetail();
+    FM.set(document.querySelector('#page-metaDetails [data-row="0"][data-col="1"]'),false)};
+  acts.appendChild(lb);
+  const mo=el("button","btn-round glass","⋯");
+  mo.dataset.f="";mo.dataset.row=0;mo.dataset.col=2;
+  mo.onclick=()=>openStreamPicker(m,resumeV,true);
+  acts.appendChild(mo);
+  inner.appendChild(acts);h.appendChild(inner);p.appendChild(h);
+
+  if(m.type==="series"&&vids.length){
+    const sel=el("div","seasons");
+    seasons.forEach((s,i)=>{
+      const c=el("button","chip glass","Season "+s);
+      c.dataset.f="";c.dataset.row=1;c.dataset.col=i;
+      c.setAttribute("aria-selected",String(s===model.metaDetails.season));
+      c.onclick=()=>{dispatch(["MetaDetails","SelectSeason",s]);renderDetail();
+        FM.set(document.querySelector(`#page-metaDetails [data-row="1"][data-col="${i}"]`),false)};
+      sel.appendChild(c);
+    });
+    p.appendChild(sel);
+    const list=el("div","eps");
+    vids.filter(v=>v.season===model.metaDetails.season).forEach((v,i)=>{
+      const b=el("button","ep glass");b.dataset.f="";b.dataset.row=2+i;b.dataset.col=0;
+      const th=el("div","ep-thumb");
+      th.appendChild(artDiv(v.thumbnail?{pal:m.pal,poster:v.thumbnail,name:v.title}:{pal:m.pal,name:""},false));
+      const watched=li&&li.state.video_id===v.id&&li.state.timeOffset>0;
+      if(watched){const bar=el("div","prog");
+        bar.innerHTML=`<i style="width:${Math.round(li.state.timeOffset/li.state.duration*100)}%"></i>`;th.appendChild(bar)}
+      b.appendChild(th);
+      const body=el("div","ep-body");
+      body.innerHTML=`<div class="ep-t">${v.episode}. ${esc(v.title||"Episode "+v.episode)}</div>
+        <div class="ep-d">${esc(v.overview||v.description||"")}</div>
+        <div class="ep-m">${v.released?new Date(v.released).toLocaleDateString():""}${watched?` · ${Math.round((li.state.duration-li.state.timeOffset)/60000)} min left`:""}</div>`;
+      b.appendChild(body);
+      b.onclick=()=>playVideo(m,v,watched?li.state.timeOffset:0);
+      list.appendChild(b);
+    });
+    p.appendChild(list);
+  }else{
+    const g=linksOf(m,"Genres");
+    const sim=Object.values(metaCache).filter(x=>x.id!==m.id&&linksOf(x,"Genres").some(y=>g.includes(y))).slice(0,10);
+    if(sim.length){const w=el("div","rails");w.appendChild(rail("More Like This",sim.map(x=>({meta:x})),"poster",1));p.appendChild(w)}
+  }
+  FM.cur=null;FM.first();
+}
+
+/* ================================================================
+   STREAM PICKER
+   ================================================================ */
+let pendingTime=0;
+function playVideo(m,video,timeOffset){pendingTime=timeOffset||0;openStreamPicker(m,video,false)}
+async function openStreamPicker(m,video,force){
+  Spotlight.stop();
+  const vid=video?video.id:m.id;
+  const ov=document.getElementById("sources");
+  const sheet=el("div","sheet glass");
+  sheet.innerHTML=`<h2>Finding sources</h2><div class="sub">${esc(m.name)}${video?` · S${video.season} E${video.episode}`:""}</div>`;
+  for(let i=0;i<3;i++){const s=el("div","src glass");s.appendChild(el("div","skel skel-line"));sheet.appendChild(s)}
+  ov.innerHTML="";ov.appendChild(sheet);ov.hidden=false;
+
+  const {streams,failed}=await Addons.streams(m.type,vid);
+  const playable=[],unsupported=[];
+  streams.forEach(s=>{ (streamSource(s).playable?playable:unsupported).push(s); });
+  const items=applyStreamPipeline(playable);
+  const filteredOut=playable.length-items.reduce((n,i)=>n+(i.dupes||1),0);
+
+  if(!items.length){
+    return errorSheet("No sources found", playable.length
+      ? `${playable.length} source${playable.length===1?"":"s"} came back but your filters excluded all of them. Loosen them in Settings › Source preferences.`
+      : unsupported.length
+        ? `${unsupported.length} source${unsupported.length===1?"":"s"} came back in a format this build doesn't play. It plays direct links, YouTube and external links.`
+        : failed.length
+          ? `${failed.length} add-on${failed.length===1?"":"s"} couldn't be reached. Check that they're online and allow browser requests.`
+          : "No installed add-on returned a playable source. Install a source add-on and try again.");
+  }
+  if(model.ctx.profile.settings.autoPickStream&&!force){
+    ov.hidden=true;ov.innerHTML="";
+    return startPlayback(m,video,items[0].s,pendingTime);
+  }
+
+  const P=sp();
+  const s2=el("div","sheet glass");
+  const addonCount=new Set(items.map(i=>i.p.addon&&i.p.addon.manifest.id)).size;
+  s2.innerHTML=`<h2>Play with</h2><div class="sub">${esc(m.name)}${video?` · S${video.season} E${video.episode}`:""} — ${items.length} source${items.length===1?"":"s"} from ${addonCount} add-on${addonCount===1?"":"s"}</div>`;
+  items.forEach((item,i)=>{
+    const p=item.p;
+    const b=el("button","src glass");
+    b.dataset.f="";b.dataset.row=i;b.dataset.col=0;
+    const nameLine=formatStream(item,P.nameTemplate)||"Source";
+    const descLine=formatStream(item,P.descTemplate)||streamSource(item.s).type;
+    const tech=model.ctx.profile.settings.showTechnicalDetails&&p.filename
+      ? `<div class="sspec" style="opacity:.55">${esc(p.filename)}</div>`:"";
+    b.innerHTML=`<div><div class="sname">${esc(nameLine)}${item.dupes>1?`<span class="dupes">×${item.dupes}</span>`:""}</div>
+      <div class="sspec">${esc(descLine)}</div>${tech}</div>
+      <div class="sright"><span class="${p.cached?"tagi":"taga"}">${p.cached?"⚡ ":""}${availabilityLabel(p.state)}</span>
+      ${p.size?`<div class="ssize">${gb(p.size)}</div>`:""}</div>`;
+    b.onclick=()=>{closeSources();startPlayback(m,video,item.s,pendingTime)};
+    s2.appendChild(b);
+  });
+  const notes=[];
+  if(filteredOut>0) notes.push(`${filteredOut} filtered out by your preferences.`);
+  if(unsupported.length) notes.push(`${unsupported.length} in an unsupported format.`);
+  failed.forEach(f=>notes.push(`${f.addon.manifest.name}: ${f.error.message||"unavailable"}`));
+  if(notes.length) s2.appendChild(el("div","sheet-note",esc(notes.join(" "))));
+  ov.innerHTML="";ov.appendChild(s2);ov.hidden=false;FM.cur=null;FM.first();
+}
+function closeSources(){const o=document.getElementById("sources");o.hidden=true;o.innerHTML="";FM.cur=null;FM.first()}
+function errorSheet(t,body){
+  const ov=document.getElementById("sources"),sheet=el("div","sheet glass");
+  sheet.innerHTML=`<h2>${esc(t)}</h2><div class="sub">${esc(body)}</div>`;
+  const b=el("button","src glass",`<div class="sname">Back</div>`);
+  b.dataset.f="";b.dataset.row=0;b.dataset.col=0;b.onclick=closeSources;
+  sheet.appendChild(b);ov.innerHTML="";ov.appendChild(sheet);ov.hidden=false;FM.cur=null;FM.first();
+}
+
+/* ================================================================
+   PLAYER
+   ================================================================ */
+let plTimer=null,hideTimer=null,upnextShown=false;
+function startPlayback(m,video,stream,timeOffset){
+  Spotlight.stop();
+  const src=streamSource(stream);
+  if(src.external){ window.open(src.url,"_blank","noopener"); return; }
+  const durMs=((video?38+((video.season*7+video.episode*11)%22):runtimeMins(m))||100)*60000;
+  model.player={selected:{stream,videoId:video?video.id:m.id},metaItem:m,video,stream,
+    timeOffset:timeOffset||0,duration:durMs,paused:false,nextVideo:video?nextVideoOf(m,video):null};
+  model.ctx.streams.items[m.id]={videoId:video?video.id:m.id,addon:stream._addon&&stream._addon.transportUrl,mtime:Env.now()};
+  if(!libItem(m.id))dispatch(["Ctx","AddToLibrary",m]);
+  upnextShown=false;
+  document.body.classList.add("playing");
+  document.getElementById("player").hidden=false;
+  renderPlayer();clearInterval(plTimer);plTimer=setInterval(tick,1000);
+  FM.cur=null;FM.first();armHide();
+}
+function nextVideoOf(m,v){
+  const all=videosOf(m),i=all.findIndex(x=>x.id===v.id);
+  return i>=0&&i+1<all.length?all[i+1]:null;
+}
+function renderPlayer(){
+  const P=model.player,p=document.getElementById("player");p.innerHTML="";
+  const stage=el("div","stage");stage.style.background=art(P.metaItem.pal||PAL.ash);p.appendChild(stage);
+  const d=describeStream(P.stream);
+  const ui=el("div","pl-ui");ui.id="plui";
+  ui.innerHTML=`<div class="pl-top"><span class="nav-chev">‹</span>
+    <div><div class="pl-title">${esc(P.metaItem.name)}</div>
+    <div class="pl-sub">${P.video?`S${P.video.season} E${P.video.episode} · ${esc(P.video.title||"")}`:esc(P.metaItem.runtime||"")} · ${esc([d.res,d.hdr].filter(Boolean).join(" "))} · ${esc(P.stream.name||"")}</div></div></div>`;
+  const c=el("div","pl-center");
+  const mkb=(cls,t,col,fn)=>{const b=el("button","pl-btn glass"+cls,t);
+    b.dataset.f="";b.dataset.row=0;b.dataset.col=col;b.onclick=fn;c.appendChild(b)};
+  mkb("","↺",0,()=>seek(-model.ctx.profile.settings.seekTimeDuration));
+  mkb(" big",P.paused?"▶":"❚❚",1,togglePlay);
+  mkb("","↻",2,()=>seek(model.ctx.profile.settings.seekTimeDuration));
+  ui.appendChild(c);
+  const bot=el("div","pl-bottom");
+  bot.innerHTML=`<div class="bar"><i id="plfill"></i><b id="plknob"></b></div>
+    <div class="times"><span id="plnow">0:00</span><span id="plend">0:00</span></div>`;
+  const tools=el("div","pl-tools");
+  ["Audio","Subtitles","Sources","Episodes","More"].forEach((t,i)=>{
+    const b=el("button","tool glass",t);b.dataset.f="";b.dataset.row=1;b.dataset.col=i;
+    b.onclick=()=>{if(t==="Sources"){exitPlayer(false);openStreamPicker(P.metaItem,P.video,true)}};
+    tools.appendChild(b)});
+  bot.appendChild(tools);ui.appendChild(bot);
+  const un=el("div","upnext glass");un.id="upnext";un.hidden=true;ui.appendChild(un);
+  p.appendChild(ui);paintPlayer();
+}
+function paintPlayer(){
+  const P=model.player,pct=P.duration?P.timeOffset/P.duration:0;
+  const f=document.getElementById("plfill"),k=document.getElementById("plknob");
+  if(f)f.style.width=(pct*100)+"%";if(k)k.style.left=(pct*100)+"%";
+  const n=document.getElementById("plnow"),e=document.getElementById("plend");
+  if(n)n.textContent=clock(P.timeOffset/1000);if(e)e.textContent=clock(P.duration/1000);
+}
+function tick(){
+  const P=model.player;if(P.paused)return;
+  dispatch(["Player","TimeChanged",{time:P.timeOffset+1000,duration:P.duration}]);
+  paintPlayer();
+  const left=P.duration-P.timeOffset;
+  if(P.nextVideo&&model.ctx.profile.settings.bingeWatching&&left<=45000&&left>0&&!upnextShown)showUpNext();
+  if(P.timeOffset>=P.duration)exitPlayer(true);
+}
+function playerUpdate(name,p){
+  const P=model.player;
+  if(name==="TimeChanged"){P.timeOffset=Math.min(p.duration,p.time);writeLibraryState();}
+  if(name==="PausedChanged")P.paused=p;
+  if(name==="Ended")exitPlayer(true);
+}
+function writeLibraryState(){
+  const P=model.player,li=libItem(P.metaItem.id);if(!li)return;
+  li.state.timeOffset=P.timeOffset;li.state.duration=P.duration;
+  li.state.video_id=P.video?P.video.id:null;
+  li.state.lastWatched=Env.now();li.state.timeWatched+=1000;li.state.overallTimeWatched+=1000;
+  li._mtime=Env.now();
+  if(P.timeOffset/P.duration>=0.92){li.state.flaggedWatched=1}
+  if(Math.round(P.timeOffset/1000)%5===0){persist();refreshContinueWatching()}
+}
+function togglePlay(){dispatch(["Player","PausedChanged",!model.player.paused]);
+  const b=document.querySelector(".pl-btn.big");if(b)b.textContent=model.player.paused?"▶":"❚❚";showUI()}
+function seek(ms){const P=model.player;P.timeOffset=Math.max(0,Math.min(P.duration,P.timeOffset+ms));paintPlayer();showUI()}
+function showUpNext(){
+  const P=model.player,n=P.nextVideo;if(!n)return;upnextShown=true;
+  const un=document.getElementById("upnext");
+  un.innerHTML=`<div class="k">Up next</div><div class="t">S${n.season} E${n.episode} · ${esc(n.title||"")}</div>`;
+  const b=el("button","btn-white","Play now");
+  b.dataset.f="";b.dataset.row=2;b.dataset.col=0;
+  b.onclick=()=>startPlayback(P.metaItem,n,P.stream,0);
+  un.appendChild(b);un.hidden=false;showUI();
+}
+function exitPlayer(ended){
+  writeLibraryState();persist();refreshContinueWatching();
+  clearInterval(plTimer);clearTimeout(hideTimer);
+  document.getElementById("player").hidden=true;
+  document.body.classList.remove("playing");
+  model.player.paused=true;
+  if(ended&&model.ctx.profile.settings.bingeWatching&&model.player.nextVideo){
+    startPlayback(model.player.metaItem,model.player.nextVideo,model.player.stream,0);return;
+  }
+  if(view==="board")renderBoard();else if(view==="metaDetails")renderDetail();
+  FM.cur=null;FM.first();
+}
+function showUI(){const u=document.getElementById("plui");if(u)u.classList.remove("hid");armHide()}
+function armHide(){clearTimeout(hideTimer);
+  hideTimer=setTimeout(()=>{const u=document.getElementById("plui");
+    if(u&&!model.player.paused)u.classList.add("hid")},3200)}
+
+/* ================================================================
+   SEARCH
+   ================================================================ */
+let searchType="All",searchQ="",searchSeq=0;
+function renderSearch(){
+  const p=document.getElementById("page-search");
+  p.innerHTML=`<div class="pagehead"><h1>Search</h1></div>`;
+  const f=el("div","searchfield glass");f.dataset.f="";f.dataset.row=0;f.dataset.col=0;
+  f.innerHTML=`<span>⌕</span><input id="q" placeholder="Movies, shows, people" autocomplete="off">`;
+  f.onclick=()=>f.querySelector("input").focus();
+  p.appendChild(f);
+  const fl=el("div","filters");
+  ["All","Movies","TV Shows"].forEach((t,i)=>{
+    const c=el("button","chip glass",t);c.dataset.f="";c.dataset.row=1;c.dataset.col=i;
+    c.setAttribute("aria-selected",String(t===searchType));
+    c.onclick=()=>{searchType=t;renderSearch();
+      FM.set(document.querySelector(`#page-search [data-row="1"][data-col="${i}"]`),false)};
+    fl.appendChild(c)});
+  p.appendChild(fl);
+  const res=el("div");res.id="results";p.appendChild(res);
+  drawResults();
+  const inp=p.querySelector("#q");inp.value=searchQ;
+  let t;
+  inp.addEventListener("input",e=>{searchQ=e.target.value;clearTimeout(t);t=setTimeout(drawResults,320)});
+  inp.addEventListener("change",e=>{if(e.target.value)dispatch(["Ctx","PushSearchHistory",e.target.value])});
+}
+async function drawResults(){
+  const res=document.getElementById("results");if(!res)return;
+  const seq=++searchSeq;
+  res.innerHTML="";
+  if(!searchQ){
+    const w=el("div","rails");let row=2;
+    const hist=model.ctx.searchHistory.items;
+    if(hist.length){
+      const hw=el("section","rail");hw.appendChild(el("h2","rail-head","Recent searches"));
+      const sc=el("div","rail-scroll");
+      hist.forEach((h,i)=>{const c=el("button","chip glass",esc(h));
+        c.dataset.f="";c.dataset.row=row;c.dataset.col=i;
+        c.onclick=()=>{searchQ=h;renderSearch()};sc.appendChild(c)});
+      hw.appendChild(sc);w.appendChild(hw);row++;
+    }
+    const pool=Object.values(metaCache).slice(0,16);
+    if(pool.length) w.appendChild(rail("Suggested",pool.map(m=>({meta:m})),"poster",row++));
+    res.appendChild(w);FM.cur||FM.first();return;
+  }
+  res.appendChild(el("div","empty","Searching…"));
+
+  /* fan out to every installed addon with a search-capable catalog */
+  const types = searchType==="Movies"?["movie"]:searchType==="TV Shows"?["series"]:["movie","series"];
+  const jobs=[];
+  Addons.installed().forEach(d=>{
+    (d.manifest.catalogs||[]).forEach(c=>{
+      if(!types.includes(c.type)) return;
+      const ex=(c.extra||[]).map(e=>e.name).concat(c.extraSupported||[]);
+      if(!ex.includes("search")) return;
+      jobs.push(Addons.catalog(d,c.type,c.id,[["search",searchQ]]).then(metas=>({d,metas})));
+    });
+  });
+  const out=await Promise.allSettled(jobs);
+  if(seq!==searchSeq) return;
+  const seen=new Set(),metas=[];
+  out.forEach(r=>{ if(r.status!=="fulfilled")return;
+    r.value.metas.forEach(m=>{ if(seen.has(m.id))return; seen.add(m.id); cacheMeta(m); metas.push(m); }); });
+  res.innerHTML="";
+  if(!metas.length){
+    res.appendChild(el("div","empty",`<b>Nothing matched “${esc(searchQ)}”</b>${jobs.length?"Try a different title.":"No installed add-on provides a searchable catalog."}`));
+    FM.cur=null;FM.first();return;
+  }
+  const g=el("div","grid");
+  metas.forEach((m,i)=>g.appendChild(card(m,shapeClass(m.posterShape),2+Math.floor(i/6),i%6)));
+  res.appendChild(g);FM.cur=null;FM.first();
+}
+
+/* ================================================================
+   DISCOVER
+   ================================================================ */
+let discType="movie";
+async function renderDiscover(){
+  const p=document.getElementById("page-discover");
+  p.innerHTML=`<div class="pagehead"><h1>Discover</h1></div>`;
+  const fl=el("div","filters");
+  [["movie","Movies"],["series","TV Shows"]].forEach(([t,lbl],i)=>{
+    const c=el("button","chip glass",lbl);c.dataset.f="";c.dataset.row=0;c.dataset.col=i;
+    c.setAttribute("aria-selected",String(t===discType));
+    c.onclick=()=>{discType=t;renderDiscover()};
+    fl.appendChild(c)});
+  p.appendChild(fl);
+  const w=el("div","rails");p.appendChild(w);
+  const cats=Addons.boardCatalogs().filter(c=>c.type===discType);
+  if(!cats.length){
+    w.appendChild(el("div","empty",`<b>No ${discType==="movie"?"movie":"series"} catalogs</b>Install an add-on that provides catalogs for this type.`));
+    FM.cur=null;FM.first();return;
+  }
+  let row=1;
+  const slots=cats.map(c=>{const sk=skeletonRail(c.name,row,c.descriptor.manifest.name);
+    w.appendChild(sk);return {c,sk,row:row++}});
+  FM.cur=null;FM.first();
+  await Promise.all(slots.map(async ({c,sk,row})=>{
+    try{
+      const metas=await Addons.catalog(c.descriptor,c.type,c.id,[]);
+      metas.forEach(cacheMeta);
+      if(!metas.length){sk.remove();return}
+      sk.replaceWith(rail(c.name,metas.map(m=>({meta:m})),shapeClass(metas[0].posterShape),row,
+        {source:c.descriptor.manifest.name}));
+    }catch(e){ sk.replaceWith(railError(c.name,e.message||"Failed to load.",row)); }
+    if(!FM.cur)FM.first();
+  }));
+}
+
+/* ================================================================
+   SPORTS  —  live/channel catalogs from installed addons
+   ================================================================ */
+const SPORT_TYPES=["tv","channel","sports","live"];
+async function renderSports(){
+  const p=document.getElementById("page-sports");
+  p.innerHTML=`<div class="pagehead"><h1>Sports</h1></div>`;
+  const w=el("div","rails");p.appendChild(w);
+  const cats=Addons.boardCatalogs().filter(c=>SPORT_TYPES.includes(String(c.type).toLowerCase()));
+  if(!cats.length){
+    w.appendChild(el("div","empty",`<b>No live or sports catalogs</b>Install an add-on that provides <code>tv</code> or <code>channel</code> catalogs — an IPTV/M3U bridge or a live-events provider — and its channels appear here.`));
+    const b=el("button","chip glass","Open Add-ons");
+    b.dataset.f="";b.dataset.row=1;b.dataset.col=0;b.onclick=()=>go("addons");
+    const f=el("div","filters");f.appendChild(b);p.appendChild(f);
+    FM.cur=null;FM.first();return;
+  }
+  let row=1;
+  const slots=cats.map(c=>{const sk=skeletonRail(c.name,row,c.descriptor.manifest.name);
+    w.appendChild(sk);return {c,sk,row:row++}});
+  FM.cur=null;FM.first();
+  await Promise.all(slots.map(async ({c,sk,row})=>{
+    try{
+      const metas=await Addons.catalog(c.descriptor,c.type,c.id,[]);
+      metas.forEach(cacheMeta);
+      if(!metas.length){sk.remove();return}
+      sk.replaceWith(rail(c.name,metas.map(m=>({meta:m})),"land",row,
+        {source:c.descriptor.manifest.name,alwaysCap:true}));
+    }catch(e){ sk.replaceWith(railError(c.name,e.message||"Failed to load.",row)); }
+    if(!FM.cur)FM.first();
+  }));
+}
+
+/* ================================================================
+   SOURCE PREFERENCES  —  filter / sort / dedupe / format
+   ================================================================ */
+function setStreamPref(patch){
+  dispatch(["Ctx","UpdateSettings",{streams:Object.assign({},sp(),patch)}]);
+}
+function toggleRow(row,label,sub,value,onClick){
+  const b=el("button","setrow glass");
+  b.dataset.f="";b.dataset.row=row;b.dataset.col=0;
+  b.innerHTML=`<span class="lbl">${esc(label)}${sub?`<span class="sub">${esc(sub)}</span>`:""}</span><span class="val">${esc(value)}</span>`;
+  b.onclick=onClick;return b;
+}
+function chipGroup(row,keys,state,onToggle){
+  const wrap=el("div","chipgroup");
+  keys.forEach((k,i)=>{
+    const c=el("button","chip glass tiny"+(state[k]===false?" off":""),k==="unknown"?"Unknown":k);
+    c.dataset.f="";c.dataset.row=row;c.dataset.col=i;
+    c.setAttribute("aria-selected",String(state[k]!==false));
+    c.onclick=()=>onToggle(k);
+    wrap.appendChild(c);
+  });
+  return wrap;
+}
+function renderSourcePrefs(){
+  const p=document.getElementById("page-sourceprefs");
+  p.innerHTML=`<div class="pagehead"><h1>Source preferences</h1></div>`;
+  const P=sp(); let row=0;
+  const redraw=r=>{renderSourcePrefs();
+    FM.set(document.querySelector(`#page-sourceprefs [data-row="${r}"]`),false)};
+
+  /* ---- sort priority ---- */
+  p.appendChild(el("div","sechead","Sort priority"));
+  p.appendChild(el("div","empty addon-hint","Applied top to bottom. Select a row to move it up; the last row wraps to the bottom."));
+  const sw=el("div","sets");
+  P.sort.forEach((k,i)=>{
+    const r=row++;
+    sw.appendChild(toggleRow(r,`${i+1}. ${SORT_KEYS[k].label}`,"",i===0?"Top":"▲",()=>{
+      const arr=[...P.sort];
+      if(i===0){ arr.push(arr.shift()); } else { [arr[i-1],arr[i]]=[arr[i],arr[i-1]]; }
+      setStreamPref({sort:arr});redraw(r);
+    }));
+  });
+  const unused=Object.keys(SORT_KEYS).filter(k=>!P.sort.includes(k));
+  unused.forEach(k=>{
+    const r=row++;
+    sw.appendChild(toggleRow(r,SORT_KEYS[k].label,"Not used","＋",()=>{
+      setStreamPref({sort:[...P.sort,k]});redraw(r);
+    }));
+  });
+  if(P.sort.length>1){
+    const r=row++;
+    sw.appendChild(toggleRow(r,"Remove last key",SORT_KEYS[P.sort[P.sort.length-1]].label,"−",()=>{
+      setStreamPref({sort:P.sort.slice(0,-1)});redraw(r);
+    }));
+  }
+  p.appendChild(sw);
+
+  /* ---- filters ---- */
+  const group=(title,keys,field)=>{
+    p.appendChild(el("div","sechead",title));
+    const r=row++;
+    p.appendChild(chipGroup(r,keys,P[field],k=>{
+      const next=Object.assign({},P[field]);next[k]=next[k]===false;
+      setStreamPref({[field]:next});redraw(r);
+    }));
+  };
+  group("Resolutions",RES_ORDER,"resolutions");
+  group("Quality",QUA_ORDER,"qualities");
+  group("Codecs",COD_ORDER,"codecs");
+  group("Audio",AUD_ORDER,"audio");
+
+  p.appendChild(el("div","sechead","Limits"));
+  const lw=el("div","sets");
+  const LIMS=[0,1,2,3,5,10];
+  let r=row++;
+  lw.appendChild(toggleRow(r,"Max per resolution","Caps how many of each resolution are listed",
+    P.perResolutionLimit?String(P.perResolutionLimit):"Unlimited",()=>{
+      const i=LIMS.indexOf(+P.perResolutionLimit);
+      setStreamPref({perResolutionLimit:LIMS[(i+1)%LIMS.length]});redraw(r);}));
+  const MINS=[0,1,2,4,8];
+  r=row++;
+  lw.appendChild(toggleRow(r,"Minimum size","Hides very small files",
+    P.minSizeGB?P.minSizeGB+" GB":"None",()=>{
+      const i=MINS.indexOf(+P.minSizeGB);
+      setStreamPref({minSizeGB:MINS[(i+1)%MINS.length]});redraw(r);}));
+  r=row++;
+  lw.appendChild(toggleRow(r,"Merge duplicates","Collapses the same release from several add-ons",
+    P.dedupe?"On":"Off",()=>{setStreamPref({dedupe:!P.dedupe});redraw(r);}));
+  p.appendChild(lw);
+
+  /* ---- text fields ---- */
+  const textField=(label,field,placeholder,hint)=>{
+    p.appendChild(el("div","sechead",label));
+    if(hint) p.appendChild(el("div","empty addon-hint",hint));
+    const r=row++;
+    const f=el("div","searchfield glass prefinput");
+    f.dataset.f="";f.dataset.row=r;f.dataset.col=0;
+    f.innerHTML=`<input value="${esc(P[field]||"")}" placeholder="${esc(placeholder)}" spellcheck="false" autocomplete="off">`;
+    const inp=f.querySelector("input");
+    f.onclick=()=>inp.focus();
+    inp.addEventListener("change",()=>setStreamPref({[field]:inp.value}));
+    inp.addEventListener("keydown",e=>{if(e.key==="Enter"){e.stopPropagation();e.preventDefault();
+      setStreamPref({[field]:inp.value});inp.blur();redraw(r);}});
+    p.appendChild(f);
+  };
+  textField("Exclude keywords","excludeKeywords","comma, separated",
+    "Any source whose name, title or filename contains one of these is hidden.");
+  textField("Title format","nameTemplate","{addon}",
+    "Tokens: {addon} {title} {resolution} {quality} {codec} {audio} {hdr} {size} {lang} {filename} {count}");
+  textField("Detail format","descTemplate","{resolution} {quality} {codec} {audio}","");
+
+  /* ---- preview ---- */
+  p.appendChild(el("div","sechead","Preview"));
+  const sample={s:{name:"Example Add-on",title:"Sample",behaviorHints:{filename:"Title.2026.2160p.WEB-DL.HEVC.Atmos.mkv",videoSize:18400000000}},
+    dupes:2};
+  sample.p=parseStream(sample.s);
+  sample.p.addon={manifest:{name:"Example Add-on"}};
+  const pv=el("div","src glass preview");
+  pv.innerHTML=`<div><div class="sname">${esc(formatStream(sample,P.nameTemplate)||"—")}</div>
+    <div class="sspec">${esc(formatStream(sample,P.descTemplate)||"—")}</div></div>
+    <div class="sright"><span class="taga">Available</span><div class="ssize">18.4 GB</div></div>`;
+  p.appendChild(pv);
+
+  const dw=el("div","sets");
+  r=row++;
+  dw.appendChild(toggleRow(r,"Reset to defaults","",  "Reset",()=>{
+    dispatch(["Ctx","UpdateSettings",{streams:Object.assign({},DEFAULT_STREAM_PREFS)}]);
+    renderSourcePrefs();FM.first();}));
+  p.appendChild(dw);
+  FM.cur=null;FM.first();
+}
+
+/* ================================================================
+   CATALOG PREFERENCES  —  show / hide / reorder / rename
+   ================================================================ */
+const catKey=c=>`${c.descriptor.transportUrl}|${c.type}|${c.id}`;
+const cp=()=>Object.assign({order:[],hidden:{},names:{}},model.ctx.profile.settings.catalogs||{});
+function setCatalogPref(patch){
+  dispatch(["Ctx","UpdateSettings",{catalogs:Object.assign({},cp(),patch)}]);
+}
+function renderCatalogPrefs(){
+  const p=document.getElementById("page-catalogprefs");
+  p.innerHTML=`<div class="pagehead"><h1>Catalogs</h1></div>`;
+  p.appendChild(el("div","empty addon-hint","Order here is the order rails appear on Home and Discover. Select a row to move it up."));
+  const C=cp();
+  const all=Addons.boardCatalogs(true);
+  if(!all.length){
+    p.appendChild(el("div","empty","<b>No catalogs</b>Install an add-on that provides catalogs."));
+    FM.cur=null;FM.first();return;
+  }
+  let row=0;
+  const w=el("div","sets");
+  all.forEach((c,i)=>{
+    const k=catKey(c), r=row++;
+    const hidden=C.hidden[k]===true;
+    const b=el("button","setrow glass"+(hidden?" dim":""));
+    b.dataset.f="";b.dataset.row=r;b.dataset.col=0;
+    b.innerHTML=`<span class="lbl">${esc(C.names[k]||c.name)}
+      <span class="sub">${esc(c.descriptor.manifest.name)} · ${esc(c.type)}</span></span>
+      <span class="val">${hidden?"Hidden":"▲"}</span>`;
+    b.onclick=()=>{
+      const order=all.map(catKey);
+      if(i>0){[order[i-1],order[i]]=[order[i],order[i-1]];}
+      else{order.push(order.shift());}
+      setCatalogPref({order});heroPool=[];renderCatalogPrefs();
+      FM.set(document.querySelector(`#page-catalogprefs [data-row="${r}"]`),false);
+    };
+    w.appendChild(b);
+    const t=el("button","setrow glass sub-action");
+    t.dataset.f="";t.dataset.row=row++;t.dataset.col=0;
+    t.innerHTML=`<span class="lbl sub-lbl">${hidden?"Show on Home":"Hide from Home"}</span><span class="val">${hidden?"Show":"Hide"}</span>`;
+    t.onclick=()=>{
+      const h=Object.assign({},C.hidden);h[k]=!hidden;
+      setCatalogPref({hidden:h});heroPool=[];renderCatalogPrefs();
+      FM.set(document.querySelector(`#page-catalogprefs [data-row="${t.dataset.row}"]`),false);
+    };
+    w.appendChild(t);
+  });
+  p.appendChild(w);
+  const rs=el("button","setrow glass");
+  rs.dataset.f="";rs.dataset.row=row++;rs.dataset.col=0;
+  rs.innerHTML=`<span class="lbl">Reset catalog order</span><span class="val">Reset</span>`;
+  rs.onclick=()=>{setCatalogPref({order:[],hidden:{},names:{}});heroPool=[];renderCatalogPrefs();FM.first()};
+  p.appendChild(el("div","sets")).appendChild(rs);
+  FM.cur=null;FM.first();
+}
+
+/* ================================================================
+   LIBRARY
+   ================================================================ */
+let libTab="Watchlist";
+function renderLibrary(){
+  const p=document.getElementById("page-library");
+  p.innerHTML=`<div class="pagehead"><h1>Library</h1></div>`;
+  const fl=el("div","filters");
+  ["Watchlist","Movies","TV Shows","Continue Watching","Watched"].forEach((t,i)=>{
+    const c=el("button","chip glass",t);c.dataset.f="";c.dataset.row=0;c.dataset.col=i;
+    c.setAttribute("aria-selected",String(t===libTab));
+    c.onclick=()=>{libTab=t;renderLibrary();
+      FM.set(document.querySelector(`#page-library [data-row="0"][data-col="${i}"]`),false)};
+    fl.appendChild(c)});
+  p.appendChild(fl);
+  let items=Object.values(model.ctx.library.items).filter(i=>!i.removed);
+  if(libTab==="Movies")items=items.filter(i=>i.type==="movie");
+  if(libTab==="TV Shows")items=items.filter(i=>i.type==="series");
+  if(libTab==="Continue Watching")items=items.filter(i=>i.state.timeOffset>0&&i.state.flaggedWatched===0);
+  if(libTab==="Watched")items=items.filter(i=>i.state.flaggedWatched===1);
+  items.sort((a,b)=>new Date(b._mtime)-new Date(a._mtime));
+  if(!items.length){
+    p.appendChild(el("div","empty",`<b>Nothing here yet</b>Add a title with the ＋ button anywhere in the app. Your library and watch progress are stored on this device.`));
+    FM.cur=null;FM.first();return;
+  }
+  const g=el("div","grid");
+  items.forEach((li,i)=>{const m=cachedMeta(li._id)||{id:li._id,name:li.name,type:li.type,posterShape:li.posterShape,poster:li.poster,pal:PAL.ash};
+    g.appendChild(card(m,shapeClass(m.posterShape),1+Math.floor(i/6),i%6,{libraryItem:li}))});
+  p.appendChild(g);FM.cur=null;FM.first();
+}
+
+/* ================================================================
+   ADD-ONS
+   ================================================================ */
+let addonBusy=false,addonMsg=null;
+
+/* shared install-by-URL control — used by Add-ons and by Settings */
+function installField(row,rerender,placeholder){
+  const f=el("div","searchfield glass addon-install");
+  f.dataset.f="";f.dataset.row=row;f.dataset.col=0;
+  f.innerHTML=`<span>⧉</span><input class="addonurl" placeholder="${esc(placeholder||"Paste an add-on manifest URL")}" autocomplete="off" spellcheck="false">
+    <span class="pillbtn addonbtn">${addonBusy?"Adding…":"Add"}</span>`;
+  const input=f.querySelector(".addonurl");
+  const run=async()=>{
+    const v=input.value.trim();
+    if(!v||addonBusy)return;
+    addonBusy=true;addonMsg=null;
+    f.querySelector(".addonbtn").textContent="Adding…";
+    try{ const d=await Addons.install(v); addonMsg={ok:true,text:`Installed ${d.manifest.name}.`}; heroPool=[]; }
+    catch(e){ addonMsg={ok:false,text:e.message||"Couldn't install that add-on."}; }
+    addonBusy=false;rerender();
+  };
+  f.onclick=()=>input.focus();
+  input.addEventListener("keydown",e=>{
+    if(e.key==="Enter"){e.stopPropagation();e.preventDefault();run()}});
+  f.querySelector(".addonbtn").onclick=e=>{e.stopPropagation();run()};
+  return f;
+}
+function addonMsgNode(){
+  return addonMsg ? el("div","empty addon-msg"+(addonMsg.ok?" ok":""),esc(addonMsg.text)) : null;
+}
+
+function setAddonResource(d,res,on){
+  d.enabled=Object.assign({},d.enabled||{},{[res]:on});
+  if(res==="catalog"){ catalogCacheDrop(d.transportUrl); heroPool=[]; }
+  persist();
+}
+
+function renderAddons(){
+  const p=document.getElementById("page-addons");
+  p.innerHTML=`<div class="pagehead"><h1>Add-ons</h1></div>`;
+  let row=0;
+
+  p.appendChild(installField(row++,()=>{renderAddons();
+    FM.set(document.querySelector("#page-addons .addon-install"),false)}));
+  const msg=addonMsgNode(); if(msg)p.appendChild(msg);
+  p.appendChild(el("div","empty addon-hint",
+    `Any add-on following the Stremio v2 protocol works — the manifest URL ends in <code>/manifest.json</code>. Catalogs, meta, streams and subtitles it declares are merged into the app automatically.`));
+
+  const installed=Addons.installed();
+  const section=(title,list,isInstalled)=>{
+    if(!list.length)return;
+    p.appendChild(el("div","sechead",title));
+    const w=el("div","sets");
+    list.forEach(d=>{
+      const m=d.manifest;
+      const b=el("button","addon glass");b.dataset.f="";b.dataset.row=row++;b.dataset.col=0;
+      const logo=(m.logo&&/^https?:/.test(m.logo))?`<img src="${esc(m.logo)}" alt="">`:(m.logo||"⧉");
+      b.innerHTML=`<span class="ai" style="background:${esc(m.color||"#3A4A5E")}">${logo}</span>
+        <span class="ab"><span class="an">${esc(m.name)}${d.builtin?' <span class="capt">bundled</span>':""}</span>
+        <span class="au">${esc(m.id)} · v${esc(m.version)}</span>
+        <span class="ad">${esc(m.description||"")}</span>
+        <span class="caps">${(m.resources||[]).map(c=>`<span class="capt">${esc(typeof c==="string"?c:c.name)}</span>`).join("")}
+          ${(m.types||[]).map(t=>`<span class="capt alt">${esc(t)}</span>`).join("")}</span></span>
+        <span class="pillbtn ${isInstalled?"done":""}">${isInstalled?"Remove":"Install"}</span>`;
+      b.onclick=()=>{
+        dispatch(["Ctx",isInstalled?"UninstallAddon":"InstallAddon",d]);
+        heroPool=[];renderAddons();
+        FM.set(document.querySelector(`#page-addons [data-row="${b.dataset.row}"]`),false);
+      };
+      w.appendChild(b);
+      /* per-resource toggles: use an add-on for catalogs but not streams, etc. */
+      if(isInstalled){
+        const res=(m.resources||[]).map(c=>typeof c==="string"?c:c.name);
+        const r=row++;
+        const grp=el("div","chipgroup inset");
+        res.forEach((rn,ri)=>{
+          const on=Addons.enabled(d,rn);
+          const c=el("button","chip glass tiny"+(on?"":" off"),rn);
+          c.dataset.f="";c.dataset.row=r;c.dataset.col=ri;
+          c.setAttribute("aria-selected",String(on));
+          c.onclick=()=>{
+            setAddonResource(d,rn,!on);renderAddons();
+            FM.set(document.querySelector(`#page-addons [data-row="${r}"][data-col="${ri}"]`),false);
+          };
+          grp.appendChild(c);
+        });
+        w.appendChild(grp);
+      }
+    });
+    p.appendChild(w);
+  };
+  section("Installed",installed,true);
+  section("Available",DIRECTORY.filter(d=>!installed.some(x=>x.transportUrl===d.transportUrl)),false);
+  FM.cur=null;FM.first();
+}
+
+/* ================================================================
+   SETTINGS
+   ================================================================ */
+const SCHEMA=[
+  ["Playback",[
+    ["bingeWatching","Autoplay next episode","Starts the next episode automatically",[true,false]],
+    ["resumeBehavior","Resume behavior","What happens when you reopen a partly watched title",["Always ask","Always resume","Start over"]],
+    ["seekTimeDuration","Skip interval","",[10000,15000,30000]],
+    ["hardwareDecoding","Hardware decoding","",[true,false]]
+  ]],
+  ["Sources",[
+    ["autoPickStream","Pick the best source automatically","Skips the source list when one clearly wins",[true,false]],
+    ["preferredQuality","Preferred quality","",["Auto","4K","1080p","720p"]],
+    ["preferHDR","Prefer HDR","",[true,false]],
+    ["preferredCodec","Preferred codec","",["Auto","HEVC","AV1","H264"]],
+    ["maxSize","Maximum file size","",["Unlimited","80 GB","50 GB","25 GB","10 GB"]]
+  ]],
+  ["Subtitles",[
+    ["subtitlesLanguage","Language","",["eng","spa","fra","deu"]],
+    ["subtitlesSize","Size","",[75,100,125,150]]
+  ]],
+  ["Spotlight",[
+    ["spotlight","Trailer autoplay","Plays a trailer behind the hero after a moment",[true,false]],
+    ["spotlightAudio","Start with sound","Otherwise trailers begin muted",[false,true]],
+    ["spotlightDelay","Start after","",[2,4,6,8]]
+  ]],
+  ["Appearance",[
+    ["reducedMotion","Reduced motion","Turns off artwork drift and card scaling",[true,false]],
+    ["showTechnicalDetails","Show technical source details","Filename and container in the source list",[true,false]]
+  ]]
+];
+function renderSettings(){
+  const p=document.getElementById("page-settings");
+  p.innerHTML=`<div class="pagehead"><h1>Settings</h1></div>`;
+  let row=0;
+  const back=()=>{renderSettings();
+    FM.set(document.querySelector("#page-settings .addon-install"),false)};
+
+  /* ---- Add-ons ---- */
+  p.appendChild(el("div","sechead","Add-ons"));
+  p.appendChild(installField(row++,back));
+  const msg=addonMsgNode(); if(msg)p.appendChild(msg);
+  p.appendChild(el("div","empty addon-hint",
+    `Paste any Stremio v2 manifest URL — it ends in <code>/manifest.json</code>. Whatever catalogs, meta, streams or subtitles it declares get merged into the app.`));
+
+  const aw=el("div","sets");
+  Addons.installed().forEach(d=>{
+    const m=d.manifest;
+    const b=el("button","setrow glass");b.dataset.f="";b.dataset.row=row++;b.dataset.col=0;
+    const res=(m.resources||[]).map(c=>typeof c==="string"?c:c.name).join(" · ");
+    b.innerHTML=`<span class="lbl">${esc(m.name)}<span class="sub">v${esc(m.version)} · ${esc(res)}</span></span>
+      <span class="val">Remove</span>`;
+    b.onclick=()=>{
+      dispatch(["Ctx","UninstallAddon",d]);heroPool=[];
+      addonMsg={ok:true,text:`Removed ${m.name}.`};renderSettings();
+      FM.set(document.querySelector("#page-settings .addon-install"),false);
+    };
+    aw.appendChild(b);
+  });
+  const browse=el("button","setrow glass");
+  browse.dataset.f="";browse.dataset.row=row++;browse.dataset.col=0;
+  browse.innerHTML=`<span class="lbl">Browse add-ons<span class="sub">Official and community sources</span></span><span class="val">›</span>`;
+  browse.onclick=()=>go("addons");
+  aw.appendChild(browse);
+  p.appendChild(aw);
+
+  SCHEMA.forEach(([sec,rows])=>{
+    p.appendChild(el("div","sechead",sec));
+    const w=el("div","sets");
+    if(sec==="Sources"){
+      const sp1=el("button","setrow glass");
+      sp1.dataset.f="";sp1.dataset.row=row++;sp1.dataset.col=0;
+      const P=sp();
+      const offCount=["resolutions","qualities","codecs","audio"]
+        .reduce((n,f)=>n+Object.values(P[f]).filter(v=>v===false).length,0);
+      sp1.innerHTML=`<span class="lbl">Source preferences<span class="sub">Sort order, filters, duplicates, display format${offCount?` · ${offCount} filtered`:""}</span></span><span class="val">›</span>`;
+      sp1.onclick=()=>go("sourceprefs");
+      w.appendChild(sp1);
+      const sp2=el("button","setrow glass");
+      sp2.dataset.f="";sp2.dataset.row=row++;sp2.dataset.col=0;
+      const C=cp(), hidden=Object.values(C.hidden).filter(Boolean).length;
+      sp2.innerHTML=`<span class="lbl">Catalogs<span class="sub">Order and visibility of Home rails${hidden?` · ${hidden} hidden`:""}</span></span><span class="val">›</span>`;
+      sp2.onclick=()=>go("catalogprefs");
+      w.appendChild(sp2);
+    }
+    rows.forEach(([key,lbl,sub,opts])=>{
+      const b=el("button","setrow glass");b.dataset.f="";b.dataset.row=row++;b.dataset.col=0;
+      const v=model.ctx.profile.settings[key];
+      const disp=typeof v==="boolean"?(v?"On":"Off"):(key==="seekTimeDuration"?v/1000+"s":key==="spotlightDelay"?v+"s":key==="subtitlesSize"?v+"%":v);
+      b.innerHTML=`<span class="lbl">${lbl}${sub?`<span class="sub">${sub}</span>`:""}</span><span class="val">${disp}</span>`;
+      b.onclick=()=>{const i=opts.indexOf(v);
+        dispatch(["Ctx","UpdateSettings",{[key]:opts[(i+1)%opts.length]}]);
+        renderSettings();
+        FM.set(document.querySelector(`#page-settings [data-row="${b.dataset.row}"]`),false)};
+      w.appendChild(b);
+    });
+    p.appendChild(w);
+  });
+  p.appendChild(el("div","sechead","Storage"));
+  const w=el("div","sets"),b=el("button","setrow glass");
+  b.dataset.f="";b.dataset.row=row++;b.dataset.col=0;
+  const n=Object.keys(model.ctx.library.items).length;
+  b.innerHTML=`<span class="lbl">Clear library and watch history<span class="sub">${n} item${n===1?"":"s"} stored on this device</span></span><span class="val">Clear</span>`;
+  b.onclick=()=>{model.ctx.library.items={};model.ctx.streams.items={};persist();
+    refreshContinueWatching();renderSettings();FM.first()};
+  w.appendChild(b);
+  const rc=el("button","setrow glass");
+  rc.dataset.f="";rc.dataset.row=row++;rc.dataset.col=0;
+  const cn=catalogCache.size;
+  const newest=cn?Math.max(...[...catalogCache.values()].map(v=>v.t)):0;
+  const age=newest?Math.round((Date.now()-newest)/60000):0;
+  rc.innerHTML=`<span class="lbl">Refresh catalogs<span class="sub">${cn?`${cn} cached · newest ${age} min old`:"Nothing cached yet"}</span></span><span class="val">Refresh</span>`;
+  rc.onclick=()=>{catalogCache.clear();catalogCachePersist();heroPool=[];renderSettings();FM.first()};
+  w.appendChild(rc);
+  p.appendChild(w);
+
+  p.appendChild(el("div","sechead","About"));
+  const dw=el("div","sets");
+  const sandboxed = location.hostname.endsWith("claude.ai") || location.ancestorOrigins?.length>0
+                 || window.top!==window.self;
+  const diag=el("div","empty addon-hint");
+  diag.innerHTML = sandboxed
+    ? `<b>Running sandboxed</b>This page is embedded in another site, so its content-security policy blocks requests to other domains. Add-on installs will fail here no matter how the add-on is configured. Save <code>index.html</code> and serve it locally — <code>python3 -m http.server</code>, then open <code>localhost:8000</code> — and add-ons work normally. Serve it rather than opening the file directly: a <code>file://</code> page has a null origin that most add-on servers reject.`
+    : `<b>Running standalone</b>Add-on requests go straight from this page to the add-on. If one fails, the add-on either isn't sending <code>Access-Control-Allow-Origin</code> or isn't reachable. Check with <code>curl -i &lt;manifest URL&gt;</code>.`;
+  p.appendChild(diag);
+  const pr=el("button","setrow glass");
+  pr.dataset.f="";pr.dataset.row=row++;pr.dataset.col=0;
+  pr.innerHTML=`<span class="lbl">Origin<span class="sub">${esc(location.origin)}</span></span><span class="val">${sandboxed?"Sandboxed":"Direct"}</span>`;
+  pr.onclick=()=>{};
+  dw.appendChild(pr);
+  p.appendChild(dw);
+  FM.cur=null;FM.first();
+}
+
+/* ================================================================
+   ROUTER
+   ================================================================ */
+const PAGE={board:"page-board",metaDetails:"page-metaDetails",search:"page-search",
+  discover:"page-discover",sports:"page-sports",library:"page-library",
+  addons:"page-addons",settings:"page-settings",
+  sourceprefs:"page-sourceprefs",catalogprefs:"page-catalogprefs"};
+function show(v){
+  view=v;
+  const t=PAGE[v]||"page-board";
+  document.querySelectorAll(".page").forEach(p=>p.hidden=p.id!==t);
+  document.getElementById("app").scrollTo({top:0,behavior:"auto"});
+  syncTabs();
+}
+function go(id){
+  Spotlight.stop();
+  if(id!=="metaDetails")document.body.classList.remove("in-detail");
+  if(id==="movies"){discType="movie";show("discover");view="movies";syncTabs();renderDiscover();location.hash="/discover/movie";}
+  else if(id==="shows"){discType="series";show("discover");view="shows";syncTabs();renderDiscover();location.hash="/discover/series";}
+  else if(id==="continue"){libTab="Continue Watching";show("library");view="continue";syncTabs();renderLibrary();location.hash="/continuewatching";}
+  else{
+    show(id);
+    ({board:renderBoard,search:renderSearch,discover:renderDiscover,sports:renderSports,
+      library:renderLibrary,addons:renderAddons,settings:renderSettings,
+      sourceprefs:renderSourcePrefs,catalogprefs:renderCatalogPrefs}[id]||(()=>{}))();
+    location.hash="/"+(id==="board"?"board":id);
+  }
+  FM.cur=null;FM.first();
+}
+function back(){
+  if(!document.getElementById("player").hidden){exitPlayer(false);return}
+  if(!document.getElementById("sources").hidden){closeSources();return}
+  if(document.body.classList.contains("sidebar-open")){closeSidebar();return}
+  if(view==="metaDetails"){dispatch(["Unload"]);document.body.classList.remove("in-detail");go("board");return}
+  if(view!=="board"){go("board");return}
+  openSidebar();
+}
+
+/* ================================================================
+   INPUT
+   ================================================================ */
+const KEYS={ArrowUp:"up",ArrowDown:"down",ArrowLeft:"left",ArrowRight:"right"};
+document.addEventListener("keydown",e=>{
+  if(document.activeElement&&document.activeElement.tagName==="INPUT"){
+    if(e.key==="Escape"||e.key==="ArrowDown")document.activeElement.blur();
+    else if(e.key!=="ArrowUp")return;
+  }
+  if(!document.getElementById("player").hidden)showUI();
+  const d=KEYS[e.key];
+  if(d){e.preventDefault();FM.move(d);return}
+  if(e.key==="Enter"||e.key===" "){e.preventDefault();
+    if(FM.cur)FM.cur.click();else if(!document.getElementById("player").hidden)togglePlay();return}
+  if(e.key==="Escape"||e.key==="Backspace"||e.key==="GoBack"){e.preventDefault();back();return}
+  if(e.key==="m"||e.key==="ContextMenu"){e.preventDefault();openSidebar()}
+});
+document.addEventListener("pointerover",e=>{
+  const t=e.target.closest("[data-f]");
+  if(t&&t!==FM.cur&&FM.items().includes(t))FM.set(t,false);
+});
+document.getElementById("player").addEventListener("pointermove",showUI);
+document.getElementById("dim").addEventListener("click",closeSidebar);
+
+/* ================================================================
+   BOOT
+   ================================================================ */
+(function boot(){
+  if(!Object.keys(model.ctx.library.items).length){
+    const s=DEMO[0],v=videosOf(s)[9];
+    dispatch(["Ctx","AddToLibrary",s]);
+    Object.assign(model.ctx.library.items[s.id].state,
+      {timeOffset:14*60000,duration:41*60000,video_id:v.id,lastWatched:Env.now(),timeWatched:14*60000});
+    const f=DEMO[3];
+    dispatch(["Ctx","AddToLibrary",f]);
+    Object.assign(model.ctx.library.items[f.id].state,
+      {timeOffset:52*60000,duration:141*60000,lastWatched:new Date(Date.now()-864e5).toISOString()});
+    persist();
+  }
+  refreshContinueWatching();
+  buildTabs();
+  buildSidebar();
+  Addons.refreshManifests();   /* background; corrects bundled manifests */
+  const h=location.hash.slice(1).split("/").filter(Boolean);
+  if(h[0]==="detail"&&h[1]&&h[2]){show("metaDetails");openDetail(h[1],h[2],h[3]);}
+  else go("board");
+})();
+</script>
+</body>
+</html>
