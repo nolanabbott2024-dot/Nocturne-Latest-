@@ -1,4 +1,4 @@
-import { setFocus } from "@noriginmedia/norigin-spatial-navigation";
+import { doesFocusableExist,setFocus } from "@noriginmedia/norigin-spatial-navigation";
 import { useCallback, type RefObject } from "react";
 
 const SAFE_LEFT=.20,SAFE_RIGHT=.80;
@@ -33,20 +33,28 @@ export function useHorizontalRail(opts:{
 
   const onArrow=useCallback((index:number,direction:string)=>{
     if(direction!=="left"&&direction!=="right")return true;
+
     if(direction==="left"&&index===0){
       requestAnimationFrame(()=>void setFocus(leftExitFocusKey));
       return false;
     }
+
     const target=index+(direction==="right"?1:-1);
     if(target<0||target>=count)return false;
-    ensureIndexVisible?.(target);
+
     const key=keyAt(target);
-    let tries=0;
-    const focusWhenReady=()=>{
-      void setFocus(key);
-      if(tries++<4)requestAnimationFrame(focusWhenReady);
+    // If the adjacent target already exists, let Norigin's geometry move there.
+    if(doesFocusableExist(key))return true;
+
+    // Only bridge the focus manually when virtualization has not mounted it yet.
+    ensureIndexVisible?.(target);
+    let cancelled=false,tries=0;
+    const focusWhenMounted=()=>{
+      if(cancelled)return;
+      if(doesFocusableExist(key)){void setFocus(key);cancelled=true;return}
+      if(tries++<30)window.setTimeout(focusWhenMounted,16);
     };
-    requestAnimationFrame(focusWhenReady);
+    window.setTimeout(focusWhenMounted,0);
     return false;
   },[count,keyAt,leftExitFocusKey,ensureIndexVisible]);
 
