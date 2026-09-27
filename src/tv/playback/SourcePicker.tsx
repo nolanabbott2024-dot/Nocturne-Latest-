@@ -7,12 +7,13 @@ import type { PlayableSource } from "../../data/playback";
 
 export function SourcePicker({sources,route,onPick,onClose}:{sources:PlayableSource[];route:string;onPick:(s:PlayableSource)=>void;onClose:()=>void}){
   const first=`${route}:source:0`;
-  useEffect(()=>{requestAnimationFrame(()=>setFocus(first))},[first]);
+  const close=()=>{onClose();requestAnimationFrame(()=>{void setFocus(`${route}:action:sources`)})};
+  useEffect(()=>{requestAnimationFrame(()=>{void setFocus(first)});return()=>{requestAnimationFrame(()=>{void setFocus(`${route}:action:sources`)})}},[first,route]);
   return <div className="source-overlay">
     <FocusBoundary id={`${route}:sources`} preferredChildFocusKey={first} trap>
       <div className="source-sheet"><header><h2>Choose a Source</h2><p>{sources.length} playable sources</p></header>
         <div className="source-list">{sources.map((s,i)=><SourceButton key={s.url+"-"+i} source={s} i={i} route={route} onPick={()=>onPick(s)}/>)}</div>
-        <SourceClose route={route} onClose={onClose}/>
+        <SourceClose route={route} onClose={close}/>
       </div>
     </FocusBoundary>
   </div>
