@@ -27,10 +27,10 @@ export default function App(){
  const [controls,setControls]=useState(true);
  const [browserPlaying,setBrowserPlaying]=useState(true);
  const videoRef=useRef<TVVideoHandle|null>(null);
- const nav=useNavigationStore();
- const addons=useProviderStore(s=>s.addons);
- const go=(name:string)=>{BackStack.push({route:route.name,focusKey:nav.focusedKey,scrollY:nav.scrollHistory[route.name]?.y||0});setRoute({name})};
- const open=(item:MediaItem)=>{BackStack.push({route:route.name,focusKey:nav.focusedKey,scrollY:nav.scrollHistory[route.name]?.y||0});setRoute({name:"details",item})};
+  const addons=useProviderStore(s=>s.addons);
+ const snapshot=()=>{const nav=useNavigationStore.getState();return {route:route.name,focusKey:nav.focusedKey,scrollY:nav.scrollHistory[route.name]?.y||0}};
+ const go=(name:string)=>{BackStack.push(snapshot());setRoute({name})};
+ const open=(item:MediaItem)=>{BackStack.push(snapshot());setRoute({name:"details",item})};
  const resume=async(e:LibraryEntry)=>{
    const source=await resolvePlayableStream(e.item,e.videoId||e.item.id,addons);
    if(source?.url){if(!playNative(source.url,e.item.name,source.headers||{},e.item,e.videoId||e.item.id))setPlayer({src:source.url,title:e.item.name,headers:source.headers})}
