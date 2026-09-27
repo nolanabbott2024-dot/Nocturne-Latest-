@@ -35,7 +35,7 @@ export default function App(){
    const source=await resolvePlayableStream(e.item,e.videoId||e.item.id,addons);
    if(source?.url){if(!playNative(source.url,e.item.name,source.headers||{},e.item,e.videoId||e.item.id))setPlayer({src:source.url,title:e.item.name,headers:source.headers})}
  };
- const back=()=>{if(player){if(controls){setControls(false);requestAnimationFrame(()=>{void setFocus("player:surface")});return}setPlayer(null);setControls(true);return}const snap=BackStack.pop();if(snap){setRoute({name:snap.route});setTimeout(()=>snap.focusKey&&useNavigationStore.getState().setFocus(snap.focusKey,snap.route),0)}};
+ const back=()=>{if(player){if(controls){setControls(false);requestAnimationFrame(()=>{void setFocus("player:surface")});return}const restore=useNavigationStore.getState().pageFocusHistory[route.name];setPlayer(null);setControls(true);requestAnimationFrame(()=>{if(restore)void setFocus(restore)});return}const snap=BackStack.pop();if(snap){setRoute({name:snap.route});setTimeout(()=>snap.focusKey&&void setFocus(snap.focusKey),0)}};
  useEffect(()=>installRemoteAdapter((a)=>{if(a==="back")back();if(player&&a!=="back")setControls(true)}),[player,controls,route.name]);
  useEffect(()=>{if(player&&controls){const id=requestAnimationFrame(()=>{void setFocus("player:player:play")});return()=>cancelAnimationFrame(id)}},[player,controls]);
  return <div className="app-shell"><TVSidebar route={route.name} onRoute={go}/><div className="app-content"><AnimatePresence mode="wait">
