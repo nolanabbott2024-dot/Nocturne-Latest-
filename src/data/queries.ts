@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useQueries,useQuery } from "@tanstack/react-query";
 import { useProviderStore } from "../stores/providerStore";
 import { loadAddon,loadCatalog } from "./stremio";
+import { buildPageRows } from "./catalogPlans";
 import type { Catalog } from "../types/tv";
 
 export function useAddons(){
@@ -20,5 +21,15 @@ export function useCatalog(c:Catalog|undefined,extra:Record<string,string>={}){
     queryFn:({signal})=>loadCatalog(c!,extra,signal),
     enabled:!!c,
     staleTime:10*60_000,gcTime:30*60_000,retry:1
+  });
+}
+
+export function usePlannedRows(args:{route:string;type?:"movie"|"series";catalogs:Catalog[];netflixBase?:string}){
+  const signature=useMemo(()=>args.catalogs.map(c=>`${c.baseUrl}|${c.type}|${c.id}`).join("::"),[args.catalogs]);
+  return useQuery({
+    queryKey:["planned-rows",args.route,args.type||"mixed",args.netflixBase||"",signature],
+    queryFn:({signal})=>buildPageRows({...args,signal}),
+    enabled:args.catalogs.length>0,
+    staleTime:20*60_000,gcTime:60*60_000,retry:1
   });
 }
