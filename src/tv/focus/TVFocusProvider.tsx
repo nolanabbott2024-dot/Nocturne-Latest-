@@ -1,5 +1,5 @@
 import { PropsWithChildren, useEffect } from "react";
-import { getCurrentFocusKey, init, setFocus } from "@noriginmedia/norigin-spatial-navigation-core";
+import { init, setFocus } from "@noriginmedia/norigin-spatial-navigation-core";
 import { useNavigationStore } from "../../stores/navigationStore";
 import { usePlaybackStore } from "../../stores/playbackStore";
 
@@ -17,7 +17,7 @@ export function TVFocusProvider({children}:PropsWithChildren){
   const remembered=useNavigationStore(s=>s.focusedKey);
   useEffect(()=>{
     window.__NOCTURNE_TV__={
-      focus:()=>getCurrentFocusKey()||null,
+      focus:()=>useNavigationStore.getState().focusedKey,
       trailer:()=>usePlaybackStore.getState().trailerState
     };
     if(remembered){
