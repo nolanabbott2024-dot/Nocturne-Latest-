@@ -1,4 +1,4 @@
-import { useMemo,useState } from "react";
+import { useEffect,useMemo,useState } from "react";
 import { FocusContext,useFocusable } from "@noriginmedia/norigin-spatial-navigation-react";
 import { setFocus } from "@noriginmedia/norigin-spatial-navigation-core";
 import { motion } from "motion/react";
@@ -43,6 +43,6 @@ function KeyButton({k,index,onPress,onFocus,onRight}:any){
 function SearchRow({c,q,onOpen,keyboardFocus,onFirst}:any){
  const r=useCatalog(c,{search:q});
  const items=r.data||[];
- if(items.length&&onFirst)onFirst(`search:search-${c.id}:${items[0].type}:${items[0].id}`);
+ useEffect(()=>{if(items.length&&onFirst)onFirst(`search:search-${c.id}:${items[0].type}:${items[0].id}`)},[items[0]?.id,onFirst,c.id]);
  return items.length?<TVRow id={"search-"+c.id} title={c.name} items={items} route="search" onOpen={onOpen} leftExitFocusKey={keyboardFocus}/>:null;
 }
