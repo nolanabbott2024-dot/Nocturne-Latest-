@@ -1,5 +1,5 @@
-import { FocusContext,useFocusable } from "@noriginmedia/norigin-spatial-navigation-react";
-import { setFocus } from "@noriginmedia/norigin-spatial-navigation-core";
+import { FocusContext,useFocusable } from "@noriginmedia/norigin-spatial-navigation";
+import { setFocus } from "@noriginmedia/norigin-spatial-navigation";
 import type { MediaItem } from "../../types/tv";
 import { TVTop10Card } from "./TVTop10Card";
 
