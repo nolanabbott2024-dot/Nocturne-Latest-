@@ -3,14 +3,16 @@
  --card-w:clamp(142px,10.8vw,206px);--safe-left:20%;--safe-right:80%;
  font-family:Inter,-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;color:#fff;background:var(--bg);
 }
-*{box-sizing:border-box}html,body,#root{width:100%;height:100%;margin:0;background:var(--bg);overflow:hidden}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body,#root{width:100%;height:100%;margin:0;background:var(--bg);overflow:hidden;outline:none!important}
+body *:focus{outline:none!important}
 button,input{font:inherit}button{color:inherit;border:0;background:none;padding:0;outline:none}
-button:focus{outline:none}.app-shell{display:flex;width:100%;height:100%;background:#050506}.app-content{flex:1;min-width:0;height:100%;overflow:hidden}
+button:focus,button:focus-visible{outline:none!important}.app-shell{display:flex;width:100%;height:100%;background:#050506}.app-content{flex:1;min-width:0;height:100%;overflow:hidden}
 .tv-page{height:100%;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth;padding-left:72px;background:#050506;scrollbar-width:none}
 .tv-page::-webkit-scrollbar,.tv-row-scroll::-webkit-scrollbar{display:none}
 .tv-sidebar{position:fixed;z-index:100;left:14px;top:16px;bottom:16px;display:flex;flex-direction:column;gap:5px;padding:12px 8px;border-radius:28px;overflow:hidden;background:rgba(22,22,25,.56);backdrop-filter:blur(28px) saturate(160%);box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 20px 60px rgba(0,0,0,.45)}
-.sidebar-item{height:52px;display:flex;align-items:center;gap:14px;border-radius:19px;padding:0 16px;white-space:nowrap;flex:none}
-.sidebar-item span{opacity:0;transition:opacity .15s}.tv-sidebar.open .sidebar-item span{opacity:1}.sidebar-item.active{background:rgba(255,255,255,.12)}
+.sidebar-item{height:52px;display:flex;align-items:center;justify-content:flex-start;gap:14px;border-radius:19px;padding:0 16px;white-space:nowrap;flex:none;color:#fff;min-width:56px}
+.sidebar-item svg{display:block;flex:0 0 22px;opacity:1!important;color:currentColor}
+.sidebar-item span{opacity:0;transition:opacity .15s}.tv-sidebar:not(.open) .sidebar-item{justify-content:center;padding:0}.tv-sidebar.open .sidebar-item span{opacity:1}.sidebar-item.active{background:rgba(255,255,255,.12)}
 .tv-hero{height:min(66vh,650px);min-height:430px;position:relative;display:flex;align-items:flex-end;padding:100px var(--pad) 56px;overflow:hidden}
 .hero-backdrop,.details-backdrop{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .hero-scrim,.details-scrim{position:absolute;inset:0;background:linear-gradient(90deg,rgba(5,5,6,.96) 0%,rgba(5,5,6,.58) 42%,rgba(5,5,6,.08) 72%),linear-gradient(0deg,#050506 0%,transparent 44%)}
