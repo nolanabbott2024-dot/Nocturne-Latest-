@@ -6,6 +6,11 @@ on:
     branches: [main]
     paths:
       - "android-apk/**"
+      - "src/**"
+      - "index.html"
+      - "package.json"
+      - "tsconfig.json"
+      - "vite.config.ts"
       - ".github/workflows/build-android-apk.yml"
 
 permissions:
@@ -19,6 +24,17 @@ jobs:
         working-directory: android-apk
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Build React TV frontend
+        working-directory: ${{ github.workspace }}
+        run: |
+          npm install
+          npm run build
+          rm -rf android-apk/app/src/main/assets/web
+          mkdir -p android-apk/app/src/main/assets/web
+          cp -R dist/. android-apk/app/src/main/assets/web/
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
