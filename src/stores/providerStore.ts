@@ -17,13 +17,23 @@ function loadStored():AddonDescriptor[]{
 type ProviderState={
   addons:AddonDescriptor[];
   setAddons:(a:AddonDescriptor[])=>void;
-  install:(url:string)=>void;
+  install:(url:string,manifest?:any)=>void;
   remove:(url:string)=>void;
+  toggle:(url:string)=>void;
 };
 
 export const useProviderStore=create<ProviderState>((set,get)=>({
   addons:loadStored(),
   setAddons:(addons)=>{localStorage.setItem("addonDescriptors",JSON.stringify(addons));set({addons});},
-  install:(transportUrl)=>{const addons=get().addons;if(addons.some(a=>a.transportUrl===transportUrl))return;get().setAddons([...addons,{transportUrl,enabled:true}]);},
-  remove:(url)=>get().setAddons(get().addons.filter(a=>a.transportUrl!==url))
+  install:(transportUrl,manifest)=>{
+    const addons=get().addons;
+    const existing=addons.find(a=>a.transportUrl===transportUrl);
+    if(existing){
+      get().setAddons(addons.map(a=>a.transportUrl===transportUrl?{...a,manifest:manifest||a.manifest,enabled:true}:a));
+      return;
+    }
+    get().setAddons([...addons,{transportUrl,manifest,enabled:true}]);
+  },
+  remove:(url)=>get().setAddons(get().addons.filter(a=>a.transportUrl!==url)),
+  toggle:(url)=>get().setAddons(get().addons.map(a=>a.transportUrl===url?{...a,enabled:a.enabled===false?true:false}:a))
 }));
