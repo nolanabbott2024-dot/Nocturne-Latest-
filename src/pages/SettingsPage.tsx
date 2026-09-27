@@ -1,6 +1,6 @@
 import { useEffect,useState } from "react";
 import { AnimatePresence,motion } from "motion/react";
-import { setFocus } from "@noriginmedia/norigin-spatial-navigation-core";
+import { setFocus } from "@noriginmedia/norigin-spatial-navigation";
 import { TVPage } from "../tv/navigation/TVPage";
 import { TVDialog } from "../tv/feedback/TVDialog";
 import { useProviderStore } from "../stores/providerStore";
