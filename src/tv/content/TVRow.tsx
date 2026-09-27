@@ -44,7 +44,7 @@ export function TVRow({id,title,items,route,onOpen,onSettled,leftExitFocusKey}:{
         <div className="tv-row-inner" style={{width:virtual.getTotalSize(),height:320,position:"relative"}}>
           {virtual.getVirtualItems().map(v=><div key={items[v.index].id} style={{position:"absolute",left:v.start,top:0,width:v.size,paddingRight:18}}>
             <TVPosterCard item={items[v.index]} route={route} rowId={id} onOpen={onOpen} onSettled={onSettled} onSpatialFocus={(layout)=>onSpatialFocus(layout,v.index)}
-              onArrowPress={(direction)=>{if(direction==="left"&&v.index===0&&leftExitFocusKey){void setFocus(leftExitFocusKey);return false}return true}}/>
+              onArrowPress={(direction)=>{if(direction==="left"&&v.index===0){void setFocus(leftExitFocusKey||`sidebar:${route}`);return false}return true}}/>
           </div>)}
         </div>
       </div>
