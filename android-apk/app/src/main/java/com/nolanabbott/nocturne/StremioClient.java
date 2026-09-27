@@ -16,6 +16,7 @@ import java.util.List;
 
 final class StremioClient {
     static final String CINEMETA = "https://v3-cinemeta.strem.io/manifest.json";
+    static final String BUILTIN_STREAM_ADDON = "https://aiostreamsfortheweebsstable.midnightignite.me/stremio/1e44d8b6-8a9a-4103-8e1b-046e3312653e/eyJpIjoiMlVQSWQ1K254WVB6TDRiZFVVYUQ4dz09IiwiZSI6ImYxYU5FZy9uNUU4NmxpNU9CV1FoczNUUTdaRm1VVDdLOUNGbTZaamRqTkU9IiwidCI6ImEifQ/manifest.json";
 
     static final class Addon {
         String id, name, version, logo, description, manifestUrl, baseUrl;
