@@ -3,6 +3,7 @@ package com.nolanabbott.nocturne;
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.View;
@@ -149,6 +150,16 @@ public class MainActivity extends Activity {
                     intent.putExtra("videoId", resolvedVideo);
                     intent.putExtra("profile", "default");
                     intent.putExtra("headers", headersJson == null || headersJson.isEmpty() ? "{}" : headersJson);
+                    startActivity(intent);
+                } catch (Exception ignored) { }
+            });
+        }
+
+        @JavascriptInterface public void openExternal(String url) {
+            if (url == null || url.trim().isEmpty()) return;
+            runOnUiThread(() -> {
+                try {
+                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
                     startActivity(intent);
                 } catch (Exception ignored) { }
             });
