@@ -65,10 +65,19 @@ async function enrich(items:MediaItem[],signal?:AbortSignal,limit=42){
   return all;
 }
 function pageDedupe(rows:PlannedRow[],perRow=20){
+  const curated=new Set(["mcu","star-wars","harry-potter","horror-icons","mission-impossible","nolan","top-gun","alien","matrix"]);
+  const priority=(r:PlannedRow)=>curated.has(r.id)?0:r.kind==="top10"?1:2;
+  const indexed=rows.map((r,i)=>({r,i})).sort((a,b)=>priority(a.r)-priority(b.r)||a.i-b.i);
   const used=new Set<string>();
-  return rows.map(r=>({...r,items:r.items.filter(x=>{
-    if(used.has(x.id))return false;used.add(x.id);return true;
-  }).slice(0,perRow)})).filter(r=>r.items.length>=3);
+  const resolved=new Map<string,MediaItem[]>();
+  for(const {r} of indexed){
+    const items=r.items.filter(x=>{
+      if(used.has(x.id))return false;
+      used.add(x.id);return true;
+    }).slice(0,perRow);
+    resolved.set(r.id,items);
+  }
+  return rows.map(r=>({...r,items:resolved.get(r.id)||[]})).filter(r=>r.items.length>=3);
 }
 
 export async function buildPageRows(args:{
@@ -144,8 +153,8 @@ export async function buildPageRows(args:{
 
   if(route==="home"){
     const homeRows=rows.filter(r=>[
-      "trending","new-releases","popular-week","critically-acclaimed","netflix-us-movie","netflix-us-series",
-      "mcu","star-wars","horror-icons","nolan"
+      "netflix-global-movie","netflix-global-series","netflix-us-movie","netflix-us-series",
+      "trending","new-releases","popular-week","critically-acclaimed"
     ].includes(r.id));
     return pageDedupe(homeRows,18);
   }
