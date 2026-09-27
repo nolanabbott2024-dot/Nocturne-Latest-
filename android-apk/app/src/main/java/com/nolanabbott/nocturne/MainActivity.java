@@ -124,20 +124,26 @@ public class MainActivity extends Activity {
     }
 
     private final class NativeBridge {
-        @JavascriptInterface public void play(String url, String title, String headersJson) {
+        @JavascriptInterface public void play(String url, String title, String headersJson, String itemJson, String videoId) {
             if (url == null || url.trim().isEmpty()) return;
             runOnUiThread(() -> {
                 try {
-                    JSONObject item = new JSONObject();
-                    item.put("id", "web:" + Integer.toHexString((title == null ? url : title).hashCode()));
-                    item.put("type", "movie");
-                    item.put("name", title == null || title.isEmpty() ? "Nocturne" : title);
+                    JSONObject item;
+                    try {
+                        item = itemJson == null || itemJson.isEmpty() ? new JSONObject() : new JSONObject(itemJson);
+                    } catch (Exception ignored) {
+                        item = new JSONObject();
+                    }
+                    if (!item.has("id")) item.put("id", "web:" + Integer.toHexString((title == null ? url : title).hashCode()));
+                    if (!item.has("type")) item.put("type", "movie");
+                    if (!item.has("name")) item.put("name", title == null || title.isEmpty() ? "Nocturne" : title);
+                    String resolvedVideo = videoId == null || videoId.isEmpty() ? item.optString("id") : videoId;
 
                     Intent intent = new Intent(MainActivity.this, PlayerActivity.class);
                     intent.putExtra("url", url);
-                    intent.putExtra("title", title == null ? "Nocturne" : title);
+                    intent.putExtra("title", title == null ? item.optString("name", "Nocturne") : title);
                     intent.putExtra("itemJson", item.toString());
-                    intent.putExtra("videoId", item.getString("id"));
+                    intent.putExtra("videoId", resolvedVideo);
                     intent.putExtra("profile", "default");
                     intent.putExtra("headers", headersJson == null || headersJson.isEmpty() ? "{}" : headersJson);
                     startActivity(intent);
@@ -179,10 +185,45 @@ public class MainActivity extends Activity {
         return super.dispatchKeyEvent(event);
     }
 
+
+    private void syncNativeProgressToWeb() {
+        if (web == null || !seeded) return;
+        try {
+            LibraryStore store = new LibraryStore(this);
+            JSONObject merged = new JSONObject();
+            for (StremioClient.Item item : store.list("continue")) {
+                String videoId = store.lastVideo(item);
+                long pos = store.position(item.type, videoId);
+                long dur = store.duration(item.type, videoId);
+                JSONObject entry = item.toJson();
+                entry.put("_id", item.id);
+                entry.put("id", item.id);
+                entry.put("removed", false);
+                entry.put("temp", true);
+                JSONObject state = new JSONObject();
+                state.put("timeOffset", pos);
+                state.put("duration", dur);
+                state.put("video_id", videoId);
+                state.put("lastWatched", System.currentTimeMillis());
+                entry.put("state", state);
+                merged.put(item.id, entry);
+            }
+            String script =
+                "(function(){try{" +
+                "var existing={};try{existing=JSON.parse(localStorage.getItem('library')||'{}')}catch(e){};" +
+                "var incoming=" + merged.toString() + ";" +
+                "Object.keys(incoming).forEach(function(k){var old=existing[k]||{};existing[k]=Object.assign({},old,incoming[k],{state:Object.assign({},old.state||{},incoming[k].state||{})});});" +
+                "localStorage.setItem('library',JSON.stringify(existing));" +
+                "window.dispatchEvent(new CustomEvent('nocturne-library-sync'));" +
+                "}catch(e){}})();";
+            web.evaluateJavascript(script, null);
+        } catch (Exception ignored) { }
+    }
+
     @Override protected void onResume() {
         super.onResume();
         immersive();
-        if (web != null) web.onResume();
+        if (web != null) { web.onResume(); syncNativeProgressToWeb(); }
     }
 
     @Override protected void onPause() {
