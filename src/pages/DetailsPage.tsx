@@ -18,7 +18,7 @@ export function DetailsPage({seed,onBack,onPlay}:{
  const [item,setItem]=useState(seed);
  const [busy,setBusy]=useState(false);
  const [watchlisted,setWatchlisted]=useState(()=>isWatchlisted(seed.id));
- const [sources,setSources]=useState<{items:PlayableSource[];videoId:string}|null>(null);
+ const [sources,setSources]=useState<{items:PlayableSource[];videoId:string;loading:boolean}|null>(null);
  const [trailerOpen,setTrailerOpen]=useState(false);
  const addons=useProviderStore(s=>s.addons);
  const route="details:"+item.id;
@@ -46,23 +46,27 @@ export function DetailsPage({seed,onBack,onPlay}:{
  },[busy,item,addons,playSource]);
 
  const chooseSources=useCallback(async(id=item.id)=>{
-   if(busy)return;setBusy(true);
+   if(busy)return;
+   setSources({items:[],videoId:id,loading:true});
    const controller=new AbortController();
    try{
      const playable=await resolvePlayableSources(item,id,addons,controller.signal);
-     if(playable.length)setSources({items:playable,videoId:id});
-   }finally{setBusy(false)}
+     setSources({items:playable,videoId:id,loading:false});
+   }catch{
+     setSources({items:[],videoId:id,loading:false});
+   }
  },[busy,item,addons]);
 
  const toggle=useCallback(()=>setWatchlisted(toggleWatchlist(item)),[item]);
+ const firstEpisodeFocusKey=item.type==="series"&&item.videos?.length?`${route}:episode:${item.videos[0].id}`:undefined;
 
  return <TVPage route={route} initialFocusKey={`${route}:action:play`}>
    <TVDetailsHero item={item} route={route}
      onPlay={()=>play()} onWatchlist={toggle} watchlisted={watchlisted}
-     onTrailer={()=>setTrailerOpen(true)} onSources={()=>chooseSources()}/>
+     onTrailer={()=>setTrailerOpen(true)} onSources={()=>chooseSources()} episodeFocusKey={firstEpisodeFocusKey}/>
    <TVEpisodeRail item={item} route={route} onPlay={(ep:Episode)=>play(ep.id)}/>
    <AnimatePresence>
-     {sources&&<SourcePicker sources={sources.items} route={route} onPick={s=>playSource(s,sources.videoId)} onClose={()=>setSources(null)}/>}
+     {sources&&<SourcePicker sources={sources.items} loading={sources.loading} route={route} onPick={s=>playSource(s,sources.videoId)} onClose={()=>setSources(null)}/>} 
      {trailerOpen&&<DetailsTrailerOverlay item={item} route={route} onClose={()=>setTrailerOpen(false)}/>}
    </AnimatePresence>
  </TVPage>
