@@ -1,5 +1,5 @@
 import { PropsWithChildren, useEffect } from "react";
-import { init, setFocus } from "@noriginmedia/norigin-spatial-navigation-core";
+import { init, setFocus } from "@noriginmedia/norigin-spatial-navigation";
 import { useNavigationStore } from "../../stores/navigationStore";
 import { usePlaybackStore } from "../../stores/playbackStore";
 
