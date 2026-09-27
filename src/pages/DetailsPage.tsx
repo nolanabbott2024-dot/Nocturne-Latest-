@@ -8,7 +8,7 @@ import { resolvePlayableStream } from "../data/playback";
 import { toggleWatchlist } from "../data/library";
 import type { MediaItem,Episode } from "../types/tv";
 
-export function DetailsPage({seed,onBack,onPlay}:{seed:MediaItem;onBack:()=>void;onPlay:(url:string,title:string)=>void}){
+export function DetailsPage({seed,onBack,onPlay}:{seed:MediaItem;onBack:()=>void;onPlay:(url:string,title:string,headers?:Record<string,string>)=>void}){
  const [item,setItem]=useState(seed);
  const [busy,setBusy]=useState(false);
  const addons=useProviderStore(s=>s.addons);
@@ -23,7 +23,7 @@ export function DetailsPage({seed,onBack,onPlay}:{seed:MediaItem;onBack:()=>void
    const c=new AbortController();
    try{
      const source=await resolvePlayableStream(item,id,addons,c.signal);
-     if(source?.url)onPlay(source.url,item.name);
+     if(source?.url)onPlay(source.url,item.name,source.headers||{});
    }finally{setBusy(false)}
  };
  return <TVPage route={"details:"+item.id}>
