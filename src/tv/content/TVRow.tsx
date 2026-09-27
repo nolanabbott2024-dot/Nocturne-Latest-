@@ -1,4 +1,5 @@
 import { FocusContext,useFocusable } from "@noriginmedia/norigin-spatial-navigation-react";
+import { setFocus } from "@noriginmedia/norigin-spatial-navigation-core";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useCallback,useRef } from "react";
 import type { MediaItem } from "../../types/tv";
@@ -12,7 +13,7 @@ function keepVerticallyComfortable(el:HTMLElement){
   if(r.top<top)page.scrollBy({top:r.top-top-24,behavior:"smooth"});
   else if(r.bottom>bottom)page.scrollBy({top:r.bottom-bottom+24,behavior:"smooth"});
 }
-export function TVRow({id,title,items,route,onOpen,onSettled}:{id:string;title:string;items:MediaItem[];route:string;onOpen:(m:MediaItem)=>void;onSettled?:(m:MediaItem)=>void}){
+export function TVRow({id,title,items,route,onOpen,onSettled,leftExitFocusKey}:{id:string;title:string;items:MediaItem[];route:string;onOpen:(m:MediaItem)=>void;onSettled?:(m:MediaItem)=>void;leftExitFocusKey?:string}){
   const {ref,focusKey}=useFocusable({focusKey:`row:${route}:${id}`,trackChildren:true,saveLastFocusedChild:true});
   const scroller=useRef<HTMLDivElement|null>(null);
   const virtual=useVirtualizer({horizontal:true,count:items.length,getScrollElement:()=>scroller.current,estimateSize:()=>190,overscan:8});
@@ -42,7 +43,8 @@ export function TVRow({id,title,items,route,onOpen,onSettled}:{id:string;title:s
       <div className="tv-row-scroll" ref={scroller}>
         <div className="tv-row-inner" style={{width:virtual.getTotalSize(),height:320,position:"relative"}}>
           {virtual.getVirtualItems().map(v=><div key={items[v.index].id} style={{position:"absolute",left:v.start,top:0,width:v.size,paddingRight:18}}>
-            <TVPosterCard item={items[v.index]} route={route} rowId={id} onOpen={onOpen} onSettled={onSettled} onSpatialFocus={(layout)=>onSpatialFocus(layout,v.index)}/>
+            <TVPosterCard item={items[v.index]} route={route} rowId={id} onOpen={onOpen} onSettled={onSettled} onSpatialFocus={(layout)=>onSpatialFocus(layout,v.index)}
+              onArrowPress={(direction)=>{if(direction==="left"&&v.index===0&&leftExitFocusKey){void setFocus(leftExitFocusKey);return false}return true}}/>
           </div>)}
         </div>
       </div>
