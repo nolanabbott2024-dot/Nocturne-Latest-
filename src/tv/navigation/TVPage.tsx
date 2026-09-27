@@ -1,5 +1,6 @@
 import { PropsWithChildren,useEffect,useRef } from "react";
-import { FocusContext,setFocus,useFocusable } from "@noriginmedia/norigin-spatial-navigation";
+import { FocusContext,useFocusable } from "@noriginmedia/norigin-spatial-navigation-react";
+import { setFocus } from "@noriginmedia/norigin-spatial-navigation-core";
 import { motion } from "motion/react";
 import { useNavigationStore } from "../../stores/navigationStore";
 
@@ -8,7 +9,7 @@ export function TVPage({route,children}:PropsWithChildren<{route:string}>){
   const remembered=useNavigationStore(s=>s.pageFocusHistory[route]);
   const scroll=useNavigationStore(s=>s.scrollHistory[route]);
   const saveScroll=useNavigationStore(s=>s.saveScroll);
-  const node=useRef<HTMLDivElement|null>(null);
+  const node=useRef<HTMLElement|null>(null);
   useEffect(()=>{
     const el=node.current;if(!el)return;
     if(scroll)requestAnimationFrame(()=>el.scrollTo(scroll.x,scroll.y));
