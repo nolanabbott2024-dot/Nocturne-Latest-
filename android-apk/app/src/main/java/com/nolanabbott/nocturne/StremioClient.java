@@ -18,18 +18,21 @@ final class StremioClient {
     static final String CINEMETA = "https://v3-cinemeta.strem.io/manifest.json";
 
     static final class Addon {
-        String name, manifestUrl, baseUrl;
+        String id, name, version, logo, description, manifestUrl, baseUrl;
         final List<Catalog> catalogs = new ArrayList<>();
         final List<String> resources = new ArrayList<>();
+        final List<String> types = new ArrayList<>();
+        final List<String> idPrefixes = new ArrayList<>();
     }
 
     static final class Catalog {
         String type, id, name, addonName, baseUrl;
-        boolean searchable;
+        boolean searchable, requiresExtra;
     }
 
     static final class Item {
         String id, type, name, poster, background, logo, description, releaseInfo, genres, imdbRating, sourceBase;
+        String runtime, contentRating, cast, directors, trailerUrl, trailerYtId;
         final List<Video> videos = new ArrayList<>();
 
         JSONObject toJson() {
@@ -39,6 +42,8 @@ final class StremioClient {
                 o.put("poster", poster); o.put("background", background); o.put("logo", logo);
                 o.put("description", description); o.put("releaseInfo", releaseInfo);
                 o.put("genres", genres); o.put("imdbRating", imdbRating); o.put("sourceBase", sourceBase);
+                o.put("runtime", runtime); o.put("contentRating", contentRating); o.put("cast", cast);
+                o.put("directors", directors); o.put("trailerUrl", trailerUrl); o.put("trailerYtId", trailerYtId);
             } catch (Exception ignored) { }
             return o;
         }
@@ -50,6 +55,9 @@ final class StremioClient {
             i.logo = nullable(o.optString("logo")); i.description = nullable(o.optString("description"));
             i.releaseInfo = nullable(o.optString("releaseInfo")); i.genres = nullable(o.optString("genres"));
             i.imdbRating = nullable(o.optString("imdbRating")); i.sourceBase = nullable(o.optString("sourceBase"));
+            i.runtime = nullable(o.optString("runtime")); i.contentRating = nullable(o.optString("contentRating"));
+            i.cast = nullable(o.optString("cast")); i.directors = nullable(o.optString("directors"));
+            i.trailerUrl = nullable(o.optString("trailerUrl")); i.trailerYtId = nullable(o.optString("trailerYtId"));
             return i;
         }
     }
@@ -59,17 +67,23 @@ final class StremioClient {
     }
 
     static final class Stream {
-        String name, title, url, externalUrl, ytId;
+        String name, title, description, url, externalUrl, ytId, infoHash, filename;
+        long videoSize;
         String label() {
             String a = name == null || name.isEmpty() ? "Stream" : name;
             return title == null || title.isEmpty() ? a : a + " — " + title;
         }
     }
 
+    static final class Subtitle { String id, url, lang; }
+
     static Addon loadAddon(String manifestUrl) throws Exception {
         JSONObject manifest = getJson(manifestUrl);
         Addon a = new Addon();
+        a.id = manifest.optString("id", manifestUrl);
         a.name = manifest.optString("name", "Stremio addon");
+        a.version = manifest.optString("version", ""); a.logo = nullable(manifest.optString("logo"));
+        a.description = nullable(manifest.optString("description"));
         a.manifestUrl = manifestUrl;
         int slash = manifestUrl.lastIndexOf('/');
         a.baseUrl = slash >= 0 ? manifestUrl.substring(0, slash + 1) : manifestUrl;
@@ -79,6 +93,10 @@ final class StremioClient {
             if (r instanceof String) a.resources.add((String) r);
             else if (r instanceof JSONObject) a.resources.add(((JSONObject) r).optString("name"));
         }
+        JSONArray types = manifest.optJSONArray("types");
+        if (types != null) for (int i = 0; i < types.length(); i++) a.types.add(types.optString(i));
+        JSONArray prefixes = manifest.optJSONArray("idPrefixes");
+        if (prefixes != null) for (int i = 0; i < prefixes.length(); i++) a.idPrefixes.add(prefixes.optString(i));
         JSONArray catalogs = manifest.optJSONArray("catalogs");
         if (catalogs != null) for (int x = 0; x < catalogs.length(); x++) {
             JSONObject c = catalogs.optJSONObject(x);
@@ -90,7 +108,7 @@ final class StremioClient {
             if (extra != null) for (int y = 0; y < extra.length(); y++) {
                 Object e = extra.opt(y);
                 if (e instanceof String && "search".equals(e)) cat.searchable = true;
-                if (e instanceof JSONObject && "search".equals(((JSONObject) e).optString("name"))) cat.searchable = true;
+                if (e instanceof JSONObject) { JSONObject eo=(JSONObject)e; if("search".equals(eo.optString("name")))cat.searchable=true; if(eo.optBoolean("isRequired",eo.optBoolean("is_required",false)))cat.requiresExtra=true; }
             }
             if (!cat.type.isEmpty() && !cat.id.isEmpty()) a.catalogs.add(cat);
         }
@@ -126,10 +144,25 @@ final class StremioClient {
         if (arr != null) for (int i = 0; i < arr.length(); i++) {
             JSONObject s = arr.optJSONObject(i); if (s == null) continue;
             Stream stream = new Stream();
-            stream.name = s.optString("name"); stream.title = s.optString("title");
+            stream.name = s.optString("name"); stream.title = s.optString("title"); stream.description = s.optString("description");
             stream.url = nullable(s.optString("url")); stream.externalUrl = nullable(s.optString("externalUrl"));
-            stream.ytId = nullable(s.optString("ytId"));
-            if (stream.url != null || stream.externalUrl != null || stream.ytId != null) out.add(stream);
+            stream.ytId = nullable(s.optString("ytId")); stream.infoHash = nullable(s.optString("infoHash"));
+            JSONObject hints = s.optJSONObject("behaviorHints");
+            if (hints != null) { stream.filename = nullable(hints.optString("filename")); stream.videoSize = hints.optLong("videoSize", 0); }
+            if (stream.url != null || stream.externalUrl != null || stream.ytId != null || stream.infoHash != null) out.add(stream);
+        }
+        return out;
+    }
+
+    static boolean supports(Addon a,String resource,String type,String id){if(!a.resources.contains(resource))return false;if(!a.types.isEmpty()&&!a.types.contains(type))return false;if(!a.idPrefixes.isEmpty()){boolean ok=false;String base=id==null?"":id.split(":")[0];for(String p:a.idPrefixes)if(base.startsWith(p)){ok=true;break;}if(!ok)return false;}return true;}
+
+    static List<Subtitle> loadSubtitles(Addon addon, String type, String id) throws Exception {
+        JSONObject o = getJson(addon.baseUrl + "subtitles/" + seg(type) + "/" + seg(id) + ".json");
+        JSONArray arr = o.optJSONArray("subtitles"); List<Subtitle> out = new ArrayList<>();
+        if (arr != null) for (int i = 0; i < arr.length(); i++) {
+            JSONObject s = arr.optJSONObject(i); if (s == null) continue; Subtitle sub = new Subtitle();
+            sub.id = s.optString("id"); sub.url = nullable(s.optString("url")); sub.lang = s.optString("lang", "und");
+            if (sub.url != null) out.add(sub);
         }
         return out;
     }
@@ -141,6 +174,14 @@ final class StremioClient {
         item.background = nullable(m.optString("background")); item.logo = nullable(m.optString("logo"));
         item.description = nullable(m.optString("description")); item.releaseInfo = nullable(m.optString("releaseInfo"));
         item.imdbRating = nullable(m.optString("imdbRating"));
+        item.runtime = nullable(m.optString("runtime")); item.contentRating = nullable(m.optString("contentRating"));
+        item.cast = join(m.optJSONArray("cast"), 6); item.directors = join(m.optJSONArray("director"), 3);
+        if (item.directors == null) item.directors = join(m.optJSONArray("directors"), 3);
+        if(item.directors==null)item.directors=nullable(m.optString("director"));
+        JSONArray trailers = m.optJSONArray("trailerStreams"); if (trailers == null) trailers = m.optJSONArray("trailers");
+        if (trailers != null && trailers.length() > 0) {
+            JSONObject t = trailers.optJSONObject(0); if (t != null) { item.trailerUrl = nullable(t.optString("url")); item.trailerYtId = nullable(t.optString("ytId")); if(item.trailerYtId==null)item.trailerYtId=nullable(t.optString("source")); }
+        }
         JSONArray genres = m.optJSONArray("genres");
         if (genres != null) {
             StringBuilder g = new StringBuilder();
@@ -177,5 +218,6 @@ final class StremioClient {
     }
 
     private static String seg(String value) { return Uri.encode(value == null ? "" : value, ""); }
+    private static String join(JSONArray a, int max) { if (a == null || a.length() == 0) return null; StringBuilder s = new StringBuilder(); for (int i = 0; i < Math.min(max, a.length()); i++) { if (i > 0) s.append(", "); s.append(a.optString(i)); } return s.toString(); }
     private static String nullable(String s) { return s == null || s.isEmpty() || "null".equals(s) ? null : s; }
 }
