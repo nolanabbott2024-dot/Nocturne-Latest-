@@ -28,6 +28,8 @@ import java.util.Set;
 public class MainActivity extends Activity {
     private WebView web;
     private boolean seeded;
+    private long lastRepeatDispatchAt;
+    private int lastRepeatKeyCode = -1;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -200,8 +202,16 @@ public class MainActivity extends Activity {
         }
 
         if (key != null) {
-            final String type = event.getAction() == KeyEvent.ACTION_UP ? "keyup" : "keydown";
             final boolean repeat = event.getRepeatCount() > 0;
+            if (event.getAction() == KeyEvent.ACTION_DOWN && repeat) {
+                long now = android.os.SystemClock.uptimeMillis();
+                if (lastRepeatKeyCode == event.getKeyCode() && now - lastRepeatDispatchAt < 42) return true;
+                lastRepeatKeyCode = event.getKeyCode();
+                lastRepeatDispatchAt = now;
+            } else if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                lastRepeatKeyCode = -1;
+            }
+            final String type = event.getAction() == KeyEvent.ACTION_UP ? "keyup" : "keydown";
             final String script =
                 "window.dispatchEvent(new KeyboardEvent(" + JSONObject.quote(type) + ",{" +
                 "key:" + JSONObject.quote(key) + "," +
