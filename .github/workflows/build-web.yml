@@ -21,8 +21,23 @@ jobs:
         with:
           node-version: "22"
       - run: npm install
-      - run: npm run build
-      - uses: actions/upload-artifact@v4
+      - name: Build
+        shell: bash
+        run: |
+          set +e
+          npm run build 2>&1 | tee build.log
+          code=${PIPESTATUS[0]}
+          exit $code
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nocturne-Web-build-log
+          path: build.log
+          if-no-files-found: warn
+      - name: Upload web build
+        if: success()
+        uses: actions/upload-artifact@v4
         with:
           name: Nocturne-Web-TV
           path: dist
