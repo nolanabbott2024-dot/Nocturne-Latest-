@@ -100,6 +100,7 @@ test("Large rails remain virtualized",async({page})=>{
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("ArrowDown");
   await page.waitForTimeout(250);
-  const cardCount=await page.locator(".tv-card").count();
-  expect(cardCount).toBeLessThan(40);
+  const counts=await page.locator(".tv-row-scroll .tv-row-inner").evaluateAll(rows=>rows.map(r=>r.querySelectorAll(".tv-card").length));
+  expect(counts.length).toBeGreaterThan(0);
+  for(const count of counts)expect(count).toBeLessThan(30);
 });
