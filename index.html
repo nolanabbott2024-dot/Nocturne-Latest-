@@ -252,7 +252,7 @@ body.sidebar-open #sidebar{transform:none;opacity:1}
 .rail-scroll{display:flex;gap:clamp(10px,.95vw,20px);padding:14px var(--pad) 8px;
   overflow-x:auto;overflow-y:visible;scroll-behavior:smooth;-webkit-overflow-scrolling:touch}
 .card{flex:none;position:relative;text-align:left;transform-origin:center;
-  transition:transform 230ms var(--spring),filter 230ms var(--ease)}
+  transition:width 420ms var(--spring),transform 230ms var(--spring),filter 230ms var(--ease)}
 .card .thumb{border-radius:var(--r-card);overflow:hidden;position:relative;background:#141418;
   box-shadow:0 2px 14px rgba(0,0,0,.45);transition:box-shadow 230ms var(--ease)}
 .card.poster{width:clamp(108px,10.2vw,190px)}
@@ -262,6 +262,9 @@ body.sidebar-open #sidebar{transform:none;opacity:1}
 .card.square{width:clamp(130px,12vw,210px)}
 .card.square .thumb{aspect-ratio:1/1}
 .card.focused{transform:scale(1.075);filter:brightness(1.1);z-index:5}
+.card.trailer-expanded{width:clamp(280px,38vw,520px)!important;transform:scale(1.04);z-index:20}
+.card.trailer-expanded .thumb{aspect-ratio:16/9!important}
+.card.trailer-expanded .cap{opacity:1}
 /* glass rim lensing on the focused card */
 .card.focused .thumb{box-shadow:0 26px 52px rgba(0,0,0,.75)}
 .card .thumb::after{
@@ -1290,7 +1293,7 @@ const FM={
     if(e.classList.contains("glass"))e.classList.add("lit");
     this.cur=e;
     HoverTrailer.focus(e);
-    if(e.dataset.meta&&!document.body.classList.contains("in-detail")){
+    if(e.dataset.meta&&!e.classList.contains("card")&&!document.body.classList.contains("in-detail")){
       const m=cachedMeta(e.dataset.meta); if(m) setBackdrop(m);
     }
     if(!scroll)return;
@@ -1491,7 +1494,13 @@ function youtubeTrailerFrame(id,muted=true){
   const origin=location.protocol.startsWith("http")?`&origin=${encodeURIComponent(location.origin)}`:"";
   f.src=`https://www.youtube.com/embed/${encodeURIComponent(id)}`
       + `?autoplay=1&mute=${muted?1:0}&controls=0&loop=1&playsinline=1`
-      + `&playlist=${encodeURIComponent(id)}&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1${origin}`;
+      + `&playlist=${encodeURIComponent(id)}&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1&enablejsapi=1${origin}`;
+  f.addEventListener("load",()=>{
+    try{
+      f.contentWindow.postMessage(JSON.stringify({event:"command",func:"mute",args:[]}),"*");
+      f.contentWindow.postMessage(JSON.stringify({event:"command",func:"playVideo",args:[]}),"*");
+    }catch(e){}
+  });
   return f;
 }
 
@@ -1502,7 +1511,9 @@ const HoverTrailer={
     this.stop();this.button=button;this.meta=meta;
     this.timer=setTimeout(()=>this.play(button,meta),this.delay);
   },
-  leave(button){if(this.button===button)this.stop()},
+  leave(button){
+    if(this.button===button&&!button.classList.contains("focused")&&document.activeElement!==button)this.stop();
+  },
   focus(e){
     if(e&&e.classList&&e.classList.contains("card")){
       const m=cachedMeta(e.dataset.meta);if(m)this.enter(e,m);
@@ -1512,6 +1523,8 @@ const HoverTrailer={
     this.timer=null;
     if(this.button!==button||!button.isConnected)return;
     if(!button.matches(":hover")&&!button.classList.contains("focused")&&document.activeElement!==button)return this.stop();
+    button.classList.add("trailer-expanded");
+    button.closest(".rail-scroll")?.scrollTo({left:Math.max(0,button.offsetLeft-button.parentElement.clientWidth/2+button.offsetWidth/2),behavior:"smooth"});
     await ensureTrailer(meta);
     if(this.button!==button||!button.isConnected)return;
     const t=trailerOf(meta);if(!t)return this.stop();
@@ -1526,6 +1539,7 @@ const HoverTrailer={
   stop(){
     clearTimeout(this.timer);this.timer=null;
     if(this.layer)this.layer.remove();
+    if(this.button)this.button.classList.remove("trailer-expanded");
     this.layer=null;this.button=null;this.meta=null;
   }
 };
