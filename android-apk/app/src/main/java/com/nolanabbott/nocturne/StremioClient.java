@@ -90,6 +90,31 @@ final class StremioClient {
         return parseAddon(manifestUrl,manifest);
     }
 
+    static Addon loadAddonFlexible(String enteredUrl) throws Exception {
+        String normalized = enteredUrl == null ? "" : enteredUrl.trim().replaceFirst("^stremio://", "https://");
+        while (normalized.endsWith("/")) normalized = normalized.substring(0, normalized.length() - 1);
+        List<String> candidates = new ArrayList<>();
+        if (normalized.endsWith("/manifest.json")) {
+            candidates.add(normalized);
+        } else {
+            candidates.add(normalized);
+            candidates.add(normalized + "/manifest.json");
+        }
+        Exception last = null;
+        for (String candidate : candidates) {
+            try {
+                JSONObject manifest = getJson(candidate);
+                if (!manifest.has("id") || !manifest.has("name")) {
+                    throw new IllegalArgumentException("Response is not a Stremio manifest");
+                }
+                return parseAddon(candidate, manifest);
+            } catch (Exception e) {
+                last = e;
+            }
+        }
+        throw last != null ? last : new IllegalStateException("Unable to load addon manifest");
+    }
+
     static Addon parseAddon(String manifestUrl, JSONObject manifest) throws Exception {
         if(!manifestUrl.endsWith("/manifest.json")) throw new IllegalArgumentException("The addon URL must end in /manifest.json");
         if(!manifest.has("id")||!manifest.has("name"))throw new IllegalArgumentException("This is not a Stremio manifest");
@@ -233,7 +258,11 @@ final class StremioClient {
         StringBuilder body = new StringBuilder(); String line;
         while ((line = reader.readLine()) != null) body.append(line);
         reader.close(); c.disconnect();
-        if (status < 200 || status >= 300) throw new IllegalStateException("HTTP " + status);
+        if (status < 200 || status >= 300) {
+            String detail = body.toString().replaceAll("\\s+", " ").trim();
+            if (detail.length() > 180) detail = detail.substring(0, 180) + "…";
+            throw new IllegalStateException("HTTP " + status + (detail.isEmpty() ? "" : " · " + detail));
+        }
         return new JSONObject(body.toString());
     }
 
