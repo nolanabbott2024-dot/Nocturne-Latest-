@@ -4,12 +4,12 @@ import { TVHero } from "../tv/content/TVHero";
 import { TVRow } from "../tv/content/TVRow";
 import { TVTop10Row } from "../tv/content/TVTop10Row";
 import { TVContinueRow } from "../tv/content/TVContinueRow";
-import { useAddons,usePlannedRows } from "../data/queries";
+import { useAddons,usePrimaryRows,useCuratedRows } from "../data/queries";
 import { isCinemetaCatalog,loadMetaEnriched } from "../data/stremio";
 import { continueWatching,type LibraryEntry } from "../data/library";
 import type { MediaItem } from "../types/tv";
 import { useContentStore } from "../stores/contentStore";
-import type { PlannedRow } from "../data/catalogPlans";
+import { dedupePlannedRows,type PlannedRow } from "../data/catalogPlans";
 
 export function CollectionPage({
   route,type,onOpen,onResume
@@ -21,10 +21,12 @@ export function CollectionPage({
  useEffect(()=>{const sync=()=>setLibraryRevision(x=>x+1);window.addEventListener("nocturne-library-sync",sync);return()=>window.removeEventListener("nocturne-library-sync",sync)},[]);
  const catalogs=useMemo(()=>addons.flatMap(a=>a.catalogs).filter(c=>!isCinemetaCatalog(c)&&(!type||c.type===type)),[addons,type]);
  const netflixBase=useMemo(()=>addons.find(a=>a.manifest?.id==="pw.ers.netflix-catalog")?.baseUrl,[addons]);
- const planned=usePlannedRows({route,type,catalogs,netflixBase});
+ const primary=usePrimaryRows({route,type,catalogs,netflixBase});
+ const curated=useCuratedRows({route,type,catalogs});
+ const rows=useMemo(()=>dedupePlannedRows([...(primary.data||[]),...(curated.data||[])],20),[primary.data,curated.data]);
  const cont=useMemo(()=>route==="home"?continueWatching():[],[route,libraryRevision]);
  return <TVPage route={route} initialFocusKey={`${route}:hero:play`}>
-   <Rows route={route} rows={planned.data||[]} onOpen={onOpen} cont={cont} onResume={onResume}/>
+   <Rows route={route} rows={rows} onOpen={onOpen} cont={cont} onResume={onResume}/>
  </TVPage>
 }
 
