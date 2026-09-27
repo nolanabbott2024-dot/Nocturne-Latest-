@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { AddonDescriptor } from "../types/tv";
 
 const CINEMETA="https://v3-cinemeta.strem.io/manifest.json";
+const NETFLIX_CATALOG="https://7a82163c306e-stremio-netflix-catalog-addon.baby-beamup.club/bmZ4LGRucCxhbXAsYXRwLGhibSxwbXAscGNwLGhsdSxzdHosZHBlOjpVUzoxNzkwNTM0OTc0NzI0OjA6MDpVUw%3D%3D/manifest.json";
 const configured=import.meta.env.VITE_DEFAULT_STREAM_ADDON as string|undefined;
 
 function loadStored():AddonDescriptor[]{
@@ -9,9 +10,10 @@ function loadStored():AddonDescriptor[]{
     const old=JSON.parse(localStorage.getItem("addonDescriptors")||"[]");
     const urls=(old||[]).map((x:any)=>({transportUrl:x.transportUrl||x.manifestUrl,manifest:x.manifest,enabled:x.enabled!==false})).filter((x:any)=>x.transportUrl);
     if(!urls.some((x:any)=>x.transportUrl===CINEMETA))urls.unshift({transportUrl:CINEMETA,enabled:true});
+    if(!urls.some((x:any)=>x.transportUrl===NETFLIX_CATALOG))urls.push({transportUrl:NETFLIX_CATALOG,enabled:true});
     if(configured&&!urls.some((x:any)=>x.transportUrl===configured))urls.push({transportUrl:configured,enabled:true});
     return urls;
-  }catch{return [{transportUrl:CINEMETA,enabled:true},...(configured?[{transportUrl:configured,enabled:true}]:[])];}
+  }catch{return [{transportUrl:CINEMETA,enabled:true},{transportUrl:NETFLIX_CATALOG,enabled:true},...(configured?[{transportUrl:configured,enabled:true}]:[])];}
 }
 
 type ProviderState={
