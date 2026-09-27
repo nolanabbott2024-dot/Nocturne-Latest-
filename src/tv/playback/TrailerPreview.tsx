@@ -42,10 +42,8 @@ export function TrailerPreview({item}:{item:MediaItem}){
   if(failed)return null;
   if(src)return <video ref={ref} className="trailer-preview" muted={!previewAudio} playsInline onError={()=>setFailed(true)}/>;
   if(yt){
-    const mute=previewAudio?0:1;
-    return <iframe className="trailer-preview trailer-youtube"
-      src={`https://www.youtube.com/embed/${encodeURIComponent(yt)}?autoplay=1&controls=0&rel=0&playsinline=1&mute=${mute}`}
-      allow="autoplay; encrypted-media" title="Trailer preview"/>;
+    return <img className="trailer-preview trailer-youtube-poster"
+      src={`https://i.ytimg.com/vi/${encodeURIComponent(yt)}/hqdefault.jpg`} alt="Trailer artwork"/>;
   }
   return null;
 }
