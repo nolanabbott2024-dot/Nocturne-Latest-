@@ -1,4 +1,5 @@
 import { useEffect,useState } from "react";
+import { setFocus } from "@noriginmedia/norigin-spatial-navigation-core";
 import { TVPage } from "../tv/navigation/TVPage";
 import { TVDetailsHero } from "../tv/detail/TVDetailsHero";
 import { TVEpisodeRail } from "../tv/detail/TVEpisodeRail";
@@ -12,6 +13,7 @@ export function DetailsPage({seed,onBack,onPlay}:{seed:MediaItem;onBack:()=>void
  const [item,setItem]=useState(seed);
  const [busy,setBusy]=useState(false);
  const addons=useProviderStore(s=>s.addons);
+ useEffect(()=>{const id=requestAnimationFrame(()=>{void setFocus(`details:${seed.id}:action:play`)});return()=>cancelAnimationFrame(id)},[seed.id]);
  useEffect(()=>{
    if(!seed.sourceBase)return;
    const c=new AbortController();
