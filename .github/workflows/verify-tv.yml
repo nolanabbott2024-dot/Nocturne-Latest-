@@ -1,0 +1,30 @@
+name: Verify TV Navigation
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "playwright.config.ts"
+      - "package.json"
+      - ".github/workflows/verify-tv.yml"
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:tv
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nocturne-TV-playwright
+          path: playwright-report
+          if-no-files-found: ignore
