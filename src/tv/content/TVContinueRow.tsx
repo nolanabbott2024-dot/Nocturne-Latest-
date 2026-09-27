@@ -1,4 +1,4 @@
-import { FocusContext,useFocusable } from "@noriginmedia/norigin-spatial-navigation-react";
+import { FocusContext,useFocusable } from "@noriginmedia/norigin-spatial-navigation";
 import type { LibraryEntry } from "../../data/library";
 import { TVContinueCard } from "./TVContinueCard";
 
