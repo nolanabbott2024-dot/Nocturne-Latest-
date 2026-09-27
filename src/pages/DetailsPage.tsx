@@ -5,7 +5,7 @@ import { TVDetailsHero } from "../tv/detail/TVDetailsHero";
 import { TVEpisodeRail } from "../tv/detail/TVEpisodeRail";
 import { SourcePicker } from "../tv/playback/SourcePicker";
 import { useProviderStore } from "../stores/providerStore";
-import { loadMeta } from "../data/stremio";
+import { loadMetaEnriched } from "../data/stremio";
 import { resolvePlayableStream, resolvePlayableSources, type PlayableSource } from "../data/playback";
 import { toggleWatchlist } from "../data/library";
 import type { MediaItem,Episode } from "../types/tv";
@@ -21,9 +21,8 @@ export function DetailsPage({seed,onBack,onPlay}:{
  const route="details:"+item.id;
 
  useEffect(()=>{
-   if(!seed.sourceBase)return;
    const c=new AbortController();
-   loadMeta(seed.sourceBase,seed.type,seed.id,c.signal).then(setItem).catch(()=>{});
+   loadMetaEnriched(seed,c.signal).then(setItem).catch(()=>{});
    return()=>c.abort();
  },[seed.id,seed.sourceBase,seed.type]);
 
