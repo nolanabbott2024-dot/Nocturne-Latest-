@@ -18,12 +18,21 @@ export function CollectionPage({
 }){
  const addons=useAddons();
  const [libraryRevision,setLibraryRevision]=useState(0);
+ const [providerReady,setProviderReady]=useState(route==="home");
+ const [curatedReady,setCuratedReady]=useState(route==="home");
  useEffect(()=>{const sync=()=>setLibraryRevision(x=>x+1);window.addEventListener("nocturne-library-sync",sync);return()=>window.removeEventListener("nocturne-library-sync",sync)},[]);
+ useEffect(()=>{
+   if(route==="home"){setProviderReady(true);setCuratedReady(true);return}
+   setProviderReady(false);setCuratedReady(false);
+   const p=window.setTimeout(()=>setProviderReady(true),700);
+   const c=window.setTimeout(()=>setCuratedReady(true),2200);
+   return()=>{window.clearTimeout(p);window.clearTimeout(c)};
+ },[route]);
  const catalogs=useMemo(()=>addons.flatMap(a=>a.catalogs).filter(c=>!isCinemetaCatalog(c)&&(!type||c.type===type)),[addons,type]);
  const netflixBase=useMemo(()=>addons.find(a=>a.manifest?.id==="pw.ers.netflix-catalog")?.baseUrl,[addons]);
  const primary=usePrimaryRows({route,type,catalogs,netflixBase});
- const providers=useProviderRows({route,type,catalogs});
- const curated=useCuratedRows({route,type,catalogs});
+ const providers=useProviderRows({route,type,catalogs,enabled:providerReady});
+ const curated=useCuratedRows({route,type,catalogs,enabled:curatedReady});
  const rows=useMemo(()=>dedupePlannedRows([...(primary.data||[]),...(providers.data||[]),...(curated.data||[])],20),[primary.data,providers.data,curated.data]);
  const cont=useMemo(()=>route==="home"?continueWatching():[],[route,libraryRevision]);
  return <TVPage route={route} initialFocusKey={`${route}:hero:play`}>
