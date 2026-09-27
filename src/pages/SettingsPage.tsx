@@ -43,12 +43,12 @@ export function SettingsPage(){
    {addons.map((a,i)=><ProviderRow key={a.transportUrl} addon={a} i={i} onToggle={()=>toggle(a.transportUrl)} onRemove={()=>remove(a.transportUrl)}/>)}
 
    <h2>Playback</h2>
-   <ChoiceSetting id="quality" label="Preferred Quality" value={settings.preferredQuality||"Auto"} choices={["Auto","2160p","1080p","720p"]} onChange={v=>update({preferredQuality:v})}/>
-   <ChoiceSetting id="size" label="Maximum File Size" value={String(settings.maxSizeGB??50)+" GB"} choices={["10","25","50","100","0"]} format={v=>v==="0"?"Unlimited":v+" GB"} onChange={v=>update({maxSizeGB:Number(v)})}/>
-   <ToggleSetting id="dedupe" label="Merge Duplicate Sources" value={settings.dedupe!==false} onChange={v=>update({dedupe:v})}/>
-   <ToggleSetting id="previews" label="Trailer Previews" value={settings.previews!==false} onChange={v=>update({previews:v})}/>
-   <ToggleSetting id="preview-audio" label="Trailer Audio" value={settings.previewAudio!==false} onChange={v=>update({previewAudio:v})}/>
-   <ToggleSetting id="motion" label="Reduced Motion" value={!!settings.reducedMotion} onChange={v=>update({reducedMotion:v})}/>
+   <ChoiceSetting id="quality" label="Preferred Quality" value={settings.preferredQuality||"Auto"} choices={["Auto","2160p","1080p","720p"]} onChange={(v:string)=>update({preferredQuality:v})}/>
+   <ChoiceSetting id="size" label="Maximum File Size" value={String(settings.maxSizeGB??50)+" GB"} choices={["10","25","50","100","0"]} format={(v:string)=>v==="0"?"Unlimited":v+" GB"} onChange={(v:string)=>update({maxSizeGB:Number(v)})}/>
+   <ToggleSetting id="dedupe" label="Merge Duplicate Sources" value={settings.dedupe!==false} onChange={(v:boolean)=>update({dedupe:v})}/>
+   <ToggleSetting id="previews" label="Trailer Previews" value={settings.previews!==false} onChange={(v:boolean)=>update({previews:v})}/>
+   <ToggleSetting id="preview-audio" label="Trailer Audio" value={settings.previewAudio!==false} onChange={(v:boolean)=>update({previewAudio:v})}/>
+   <ToggleSetting id="motion" label="Reduced Motion" value={!!settings.reducedMotion} onChange={(v:boolean)=>update({reducedMotion:v})}/>
   </section>
   <AnimatePresence>{installOpen&&<TVDialog id="install-addon-dialog" initialFocusKey="settings:addon-url" onClose={()=>setInstallOpen(false)}>
     <h2>Install Add-on</h2><p className="dialog-copy">Paste a Stremio manifest URL. Nocturne will verify it before saving.</p>
