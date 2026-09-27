@@ -204,8 +204,13 @@ public class MainActivity extends Activity {
     }
 
     private void enrich(StremioClient.Item item, ItemCallback callback) {
-        StremioClient.Addon metaAddon = firstResource("meta"); if (metaAddon == null) return;
-        network.execute(() -> { try { StremioClient.Item full = StremioClient.loadMeta(metaAddon, item.type, item.id); runOnUiThread(() -> callback.done(full)); } catch (Exception ignored) { } });
+        StremioClient.Addon metaAddon = null;
+        if (item.sourceBase != null) synchronized (addons) {
+            for (StremioClient.Addon a : addons) if (item.sourceBase.equals(a.baseUrl) && a.resources.contains("meta")) { metaAddon = a; break; }
+        }
+        if (metaAddon == null) metaAddon = firstResource("meta"); if (metaAddon == null) return;
+        StremioClient.Addon selected = metaAddon;
+        network.execute(() -> { try { StremioClient.Item full = StremioClient.loadMeta(selected, item.type, item.id); runOnUiThread(() -> callback.done(full)); } catch (Exception ignored) { } });
     }
 
     private void openDetails(StremioClient.Item seed) {

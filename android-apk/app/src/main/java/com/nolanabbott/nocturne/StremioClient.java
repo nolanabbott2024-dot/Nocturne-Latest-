@@ -29,7 +29,7 @@ final class StremioClient {
     }
 
     static final class Item {
-        String id, type, name, poster, background, logo, description, releaseInfo, genres, imdbRating;
+        String id, type, name, poster, background, logo, description, releaseInfo, genres, imdbRating, sourceBase;
         final List<Video> videos = new ArrayList<>();
 
         JSONObject toJson() {
@@ -38,7 +38,7 @@ final class StremioClient {
                 o.put("id", id); o.put("type", type); o.put("name", name);
                 o.put("poster", poster); o.put("background", background); o.put("logo", logo);
                 o.put("description", description); o.put("releaseInfo", releaseInfo);
-                o.put("genres", genres); o.put("imdbRating", imdbRating);
+                o.put("genres", genres); o.put("imdbRating", imdbRating); o.put("sourceBase", sourceBase);
             } catch (Exception ignored) { }
             return o;
         }
@@ -49,7 +49,7 @@ final class StremioClient {
             i.poster = nullable(o.optString("poster")); i.background = nullable(o.optString("background"));
             i.logo = nullable(o.optString("logo")); i.description = nullable(o.optString("description"));
             i.releaseInfo = nullable(o.optString("releaseInfo")); i.genres = nullable(o.optString("genres"));
-            i.imdbRating = nullable(o.optString("imdbRating"));
+            i.imdbRating = nullable(o.optString("imdbRating")); i.sourceBase = nullable(o.optString("sourceBase"));
             return i;
         }
     }
@@ -109,14 +109,14 @@ final class StremioClient {
         List<Item> out = new ArrayList<>();
         if (metas != null) for (int i = 0; i < metas.length(); i++) {
             JSONObject m = metas.optJSONObject(i);
-            if (m != null) out.add(parseItem(m, c.type));
+            if (m != null) { Item item = parseItem(m, c.type); item.sourceBase = c.baseUrl; out.add(item); }
         }
         return out;
     }
 
     static Item loadMeta(Addon addon, String type, String id) throws Exception {
         JSONObject o = getJson(addon.baseUrl + "meta/" + seg(type) + "/" + seg(id) + ".json");
-        return parseItem(o.optJSONObject("meta"), type);
+        Item item = parseItem(o.optJSONObject("meta"), type); item.sourceBase = addon.baseUrl; return item;
     }
 
     static List<Stream> loadStreams(Addon addon, String type, String id) throws Exception {
