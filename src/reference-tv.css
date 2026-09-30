@@ -233,3 +233,38 @@
 .hub-detail-switch-btn{font-size:1.05vw;font-weight:800;padding:.55vw .85vw;border-radius:.35vw;color:#fff;cursor:pointer}
 .hub-detail-switch-btn.active{background:rgba(255,255,255,.12)}
 .hub-detail-switch-btn.is-focused{background:#fff;color:#111}
+
+
+/* Smooth portrait -> landscape expansion. */
+.tv-row-slot{
+  transition:
+    left .34s cubic-bezier(.22,.78,.2,1),
+    width .34s cubic-bezier(.22,.78,.2,1);
+  will-change:left,width;
+}
+.reference-card .card-media{
+  overflow:hidden;
+  transform-origin:center center;
+  transition:border-radius .28s ease,box-shadow .28s ease;
+}
+.reference-card .card-art{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  transition:
+    opacity .32s cubic-bezier(.22,.78,.2,1),
+    transform .38s cubic-bezier(.22,.78,.2,1);
+  will-change:opacity,transform;
+}
+.reference-card .card-art-portrait{opacity:1;transform:scale(1)}
+.reference-card .card-art-landscape{opacity:0;transform:scale(1.035)}
+.reference-card.is-expanded .card-art-portrait{opacity:0;transform:scale(1.03)}
+.reference-card.is-expanded .card-art-landscape{opacity:1;transform:scale(1)}
+.reference-card-title,.reference-card-shade,.card-monogram{
+  transition:opacity .22s ease,transform .28s cubic-bezier(.22,.78,.2,1);
+}
+.reference-card:not(.is-expanded) .reference-card-title{opacity:0;transform:translateY(.5vw)}
+.reference-card.is-expanded .reference-card-title{opacity:1;transform:translateY(0)}
+.reference-card.is-expanded .card-monogram{opacity:0}
