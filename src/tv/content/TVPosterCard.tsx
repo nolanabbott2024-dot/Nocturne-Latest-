@@ -29,7 +29,7 @@ export const TVPosterCard=memo(function TVPosterCard({item,route,rowId,onOpen,on
   onMouseEnter={()=>focusSelf()} onClick={()=>onOpen(item)}>
    <div className="card-media">
     {(item.poster||item.background)&&<img className="card-art card-art-portrait" src={item.poster||item.background} loading="lazy" decoding="async" alt=""/>}
-    {(item.background||item.poster)&&<img className="card-art card-art-landscape" src={item.background||item.poster} loading="lazy" decoding="async" alt=""/>}
+    {expanded&&(item.background||item.poster)&&<img className="card-art card-art-landscape" src={item.background||item.poster} decoding="async" alt=""/>}
     {trailerReady&&focused&&<TrailerPreview item={expanded?item:previewItem}/>}
     <div className="reference-card-shade"/>
     <span className="card-monogram" aria-hidden="true">N</span>
