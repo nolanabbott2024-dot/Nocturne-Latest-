@@ -28,8 +28,8 @@ export function TVDetailsHero({item,route,onPlay,onWatchlist,onSources,watchlist
  item:MediaItem;route:string;onPlay:()=>void;onWatchlist:()=>void;onSources:()=>void;watchlisted?:boolean;onPanel:(p:Panel)=>void
 }){
  const isSeries=item.type==="series";
- const firstTab=isSeries?"episodes":"details";
- const focusTabs=()=>{void import("@noriginmedia/norigin-spatial-navigation").then(({setFocus})=>setFocus(`${route}:overview-tab:${firstTab}`))};
+ const firstSeason=item.videos?.[0]?.season||1;
+ const focusTabs=()=>{void import("@noriginmedia/norigin-spatial-navigation").then(({setFocus})=>setFocus(isSeries&&item.videos?.length?`${route}:season:${firstSeason}`:`${route}:overview-tab:details`))};
  return <section className="details-hero title-overview">
    <AnimatePresence mode="sync"><motion.img key={item.background||item.poster} className="details-backdrop" src={item.background||item.poster} initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} transition={{duration:.38}}/></AnimatePresence>
    <div className="details-scrim"/>
@@ -43,7 +43,6 @@ export function TVDetailsHero({item,route,onPlay,onWatchlist,onSources,watchlist
     </div>
     <div className="title-overview-tabs">
       <ChevronDown className="title-tabs-caret"/>
-      {isSeries&&<PanelButton panel="episodes" label="Episodes" route={route} onPanel={onPanel}/>}
       <PanelButton panel="details" label="Details" route={route} onPanel={onPanel}/>
       <PanelButton panel="audio" label="Audio & Subtitles" route={route} onPanel={onPanel}/>
       <PanelButton panel="related" label="More Like This" route={route} onPanel={onPanel}/>
