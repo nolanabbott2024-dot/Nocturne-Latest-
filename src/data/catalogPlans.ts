@@ -49,6 +49,42 @@ function roundRobin(groups:MediaItem[][],limit=70){
 function yearOf(x:MediaItem){const m=String(x.releaseInfo||"").match(/(19|20)\d{2}/);return m?Number(m[0]):0}
 function ratingOf(x:MediaItem){const n=Number(x.imdbRating);return Number.isFinite(n)?n:0}
 
+const GENRE_ROWS:{id:string;title:string;match:RegExp}[]=[
+  {id:"action",title:"Action",match:/\baction\b/i},
+  {id:"adventure",title:"Adventure",match:/\badventure\b/i},
+  {id:"animation",title:"Animation",match:/\banimation\b|\banime\b/i},
+  {id:"comedy",title:"Comedy",match:/\bcomedy\b/i},
+  {id:"crime",title:"Crime",match:/\bcrime\b/i},
+  {id:"documentary",title:"Documentaries",match:/\bdocumentary\b/i},
+  {id:"drama",title:"Drama",match:/\bdrama\b/i},
+  {id:"family",title:"Family",match:/\bfamily\b|\bkids?\b/i},
+  {id:"fantasy",title:"Fantasy",match:/\bfantasy\b/i},
+  {id:"history",title:"History & Period",match:/\bhistory\b|\bhistorical\b/i},
+  {id:"horror",title:"Horror",match:/\bhorror\b/i},
+  {id:"music",title:"Music & Musicals",match:/\bmusic\b|\bmusical\b/i},
+  {id:"mystery",title:"Mystery",match:/\bmystery\b/i},
+  {id:"romance",title:"Romance",match:/\bromance\b/i},
+  {id:"sci-fi",title:"Sci-Fi",match:/sci[- ]?fi|science fiction/i},
+  {id:"thriller",title:"Thrillers",match:/\bthriller\b|\bsuspense\b/i},
+  {id:"war",title:"War",match:/\bwar\b/i},
+  {id:"western",title:"Westerns",match:/\bwestern\b/i},
+  {id:"reality",title:"Reality",match:/\breality\b/i},
+  {id:"sports",title:"Sports",match:/\bsport/i},
+  {id:"biography",title:"Biographical",match:/\bbiograph/i},
+  {id:"news",title:"News",match:/\bnews\b/i},
+  {id:"talk",title:"Talk & Variety",match:/\btalk\b|\bvariety\b/i}
+];
+
+function genreRows(items:MediaItem[],type:"movie"|"series"):PlannedRow[]{
+  return GENRE_ROWS.map(g=>({
+    id:`genre-${type}-${g.id}`,
+    title:type==="series"&&g.id==="animation"?"Animated & Anime Series":g.title,
+    kind:"standard" as const,
+    type,
+    items:uniq(items.filter(x=>(x.genres||[]).some(name=>g.match.test(name))))
+  })).filter(r=>r.items.length>=3);
+}
+
 async function mapLimit<T,R>(items:T[],limit:number,work:(item:T)=>Promise<R>):Promise<R[]>{
   const out=new Array<R>(items.length);let next=0;
   const workers=Array.from({length:Math.min(limit,items.length)},async()=>{
@@ -80,6 +116,12 @@ export function dedupePlannedRows(rows:PlannedRow[],perRow=20){
   const indexed=rows.map((r,i)=>({r,i})).sort((a,b)=>priority(a.r)-priority(b.r)||a.i-b.i);
   const usedIds=new Set<string>(),usedTitles=new Set<string>();const resolved=new Map<string,MediaItem[]>();
   for(const {r} of indexed){
+    // Genre shelves intentionally overlap: one title may belong to Action + Sci-Fi,
+    // but it must never repeat within the same shelf.
+    if(r.id.startsWith("genre-")){
+      resolved.set(r.id,uniq(r.items).slice(0,perRow));
+      continue;
+    }
     const items=uniq(r.items).filter(x=>{
       const titleKey=normalizedTitle(x);
       if(usedIds.has(x.id)||usedTitles.has(titleKey))return false;
@@ -161,8 +203,8 @@ export async function buildCuratedRows(args:{
 
   const relevant=catalogs.filter(c=>!type||c.type===type).slice(0,6);
   const loaded=await Promise.all(relevant.map(c=>loadCatalog(c,{},signal).catch(()=>[])));
-  const merged=roundRobin(loaded,48);
-  const enriched=await enrich(merged,signal,32);
+  const merged=roundRobin(loaded,90);
+  const enriched=await enrich(merged,signal,72);
   const active=type?enriched.filter(x=>x.type===type):enriched;
   const acclaimed=[...active].filter(x=>ratingOf(x)>=7.5).sort((a,b)=>ratingOf(b)-ratingOf(a));
   const genericType=(type||"movie") as "movie"|"series";
@@ -186,14 +228,12 @@ export async function buildCuratedRows(args:{
       {id:"alien",title:"Alien Universe",kind:"standard",type:"movie",items:alien},
       {id:"matrix",title:"The Matrix Collection",kind:"standard",type:"movie",items:matrix}
     );
+    rows.push(...genreRows(active,"movie"));
   }else{
     rows.push(
-      {id:"crime-thrillers",title:"Crime & Thriller Series",kind:"standard",type:"series",items:active.filter(x=>(x.genres||[]).some(g=>/crime|thriller/i.test(g)))},
-      {id:"sci-fi-tv",title:"Sci-Fi & Fantasy TV",kind:"standard",type:"series",items:active.filter(x=>(x.genres||[]).some(g=>/sci-fi|fantasy/i.test(g)))},
-      {id:"comedy-tv",title:"Comedy Series",kind:"standard",type:"series",items:active.filter(x=>(x.genres||[]).some(g=>/comedy/i.test(g)))},
-      {id:"drama-tv",title:"Prestige Drama",kind:"standard",type:"series",items:active.filter(x=>ratingOf(x)>=7.4&&(x.genres||[]).some(g=>/drama/i.test(g)))},
-      {id:"mystery-tv",title:"Mystery & Suspense",kind:"standard",type:"series",items:active.filter(x=>(x.genres||[]).some(g=>/mystery|thriller/i.test(g)))}
+      {id:"prestige-drama",title:"Prestige Drama",kind:"standard",type:"series",items:active.filter(x=>ratingOf(x)>=7.4&&(x.genres||[]).some(g=>/drama/i.test(g)))}
     );
+    rows.push(...genreRows(active,"series"));
   }
   return rows.filter(r=>r.items.length>=3);
 }
