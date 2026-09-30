@@ -1,4 +1,4 @@
-import { motion } from "motion/react";
+import { AnimatePresence,motion } from "motion/react";
 import { Info,Play } from "lucide-react";
 import { setFocus } from "@noriginmedia/norigin-spatial-navigation";
 import type { MediaItem } from "../../types/tv";
@@ -36,7 +36,11 @@ function HeroContent({item,route,onPlay,onMore}:{item:MediaItem;route:string;onP
  });
 
  return <section className="tv-hero modern-billboard" aria-label={`Featured: ${item.name}`}>
-   <img className="hero-backdrop" src={item.background||item.poster} alt=""/>
+   <AnimatePresence mode="sync">
+     <motion.img key={item.id+":"+(item.background||item.poster||"")} className="hero-backdrop"
+       src={item.background||item.poster} alt="" initial={{opacity:0,scale:1.015}}
+       animate={{opacity:1,scale:1}} exit={{opacity:0}} transition={{duration:.55,ease:"easeOut"}}/>
+   </AnimatePresence>
    <div className="hero-scrim"/>
    <div className="hero-copy">
     <div className="hero-eyebrow"><span>N</span> {item.type==="series"?"SERIES":"FILM"}</div>
