@@ -97,14 +97,14 @@ export function DetailsPage({seed,onBack:_,onPlay,onOpen}:{
        <DetailsPanel item={item}/>
      </section>
 
-     <section id={route+":section:related"} className="continuous-section">
-       <h2 className="continuous-heading">More Like This</h2>
-       <RelatedPanel items={related} item={item} route={route} onOpen={onOpen}/>
-     </section>
-
      <section id={route+":section:audio"} className="continuous-section">
        <h2 className="continuous-heading">Audio & Subtitles</h2>
        <AudioPanel route={route}/>
+     </section>
+
+     <section id={route+":section:related"} className="continuous-section">
+       <h2 className="continuous-heading">More Like This</h2>
+       <RelatedPanel items={related} item={item} route={route} onOpen={onOpen}/>
      </section>
 
      {item.type==="series"&&(item.trailerUrl||item.trailerYtId)&&
