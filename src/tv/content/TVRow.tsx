@@ -17,17 +17,16 @@ export function TVRow({id,title,items,route,onOpen,onFocused,onSettled,leftExitF
  const [enriched,setEnriched]=useState<MediaItem|null>(null);
  const [unit,setUnit]=useState(()=>window.innerWidth/1920);
  useEffect(()=>{const resize=()=>setUnit(window.innerWidth/1920);window.addEventListener("resize",resize);return()=>window.removeEventListener("resize",resize)},[]);
- const wide=784*unit,narrow=270*unit,gap=18*unit,height=438*unit;
+ const narrow=270*unit,gap=18*unit,height=438*unit;
  const virtual=useVirtualizer({horizontal:true,count:items.length,getScrollElement:()=>scroller.current,
-  initialOffset:selected*narrow,estimateSize:index=>(hasFocusedChild&&index===selected?wide:narrow)+gap,overscan:3});
+  initialOffset:selected*narrow,estimateSize:()=>narrow+gap,overscan:4});
  const keyAt=useCallback((index:number)=>`${route}:${id}:${items[index].type}:${items[index].id}`,[route,id,items]);
  const ensureIndexVisible=useCallback((index:number)=>virtual.scrollToIndex(index,{align:"start"}),[virtual]);
  const rail=useHorizontalRail({scroller,count:items.length,keyAt,leftExitFocusKey:leftExitFocusKey||`sidebar:${route}`,ensureIndexVisible});
  const select=useCallback((item:MediaItem)=>{const index=items.findIndex(x=>x.id===item.id&&x.type===item.type);setSelected(index);onFocused?.(item)},[items,onFocused]);
  useLayoutEffect(()=>{
-  virtual.measure();
   if(!hasFocusedChild)return;
-  virtual.scrollToIndex(selected,{align:"start"});
+  virtual.scrollToIndex(selected,{align:"center"});
   const section=ref.current as HTMLElement|null;
   const page=section?.closest(".tv-page") as HTMLElement|null;
   if(section&&page){
@@ -48,8 +47,8 @@ export function TVRow({id,title,items,route,onOpen,onFocused,onSettled,leftExitF
    <h2>{title}</h2>
    <div className="tv-row-scroll" ref={scroller}>
     <div className="tv-row-inner" style={{width:virtual.getTotalSize(),height,position:"relative"}}>
-     {virtual.getVirtualItems().map(v=><div className="tv-row-slot" key={keyAt(v.index)} style={{position:"absolute",left:v.start,top:0,width:v.size-gap,height}}>
-      <TVPosterCard item={enriched?.id===items[v.index].id?enriched:items[v.index]} route={route} rowId={id} onOpen={onOpen} onFocused={select} onSettled={onSettled} expanded={hasFocusedChild&&v.index===selected}
+     {virtual.getVirtualItems().map(v=><div className="tv-row-slot" key={keyAt(v.index)} style={{position:"absolute",left:v.start,top:0,width:narrow,height,"--expanded-w":`${784*unit}px`} as any}>
+      <TVPosterCard item={items[v.index]} route={route} rowId={id} onOpen={onOpen} onFocused={select} onSettled={onSettled} expanded={hasFocusedChild&&v.index===selected}
        onArrowPress={direction=>{
         if(direction==="up"&&!(ref.current as HTMLElement)?.previousElementSibling&&route!=="search"){
          const hero=document.querySelector(".modern-billboard");const nav=`sidebar:${route}`;void setFocus(hero?`${route}:hero:play`:doesFocusableExist(nav)?nav:"sidebar:profile");return false;
