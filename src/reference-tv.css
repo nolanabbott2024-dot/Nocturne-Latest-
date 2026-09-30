@@ -292,3 +292,14 @@
 .reference-card-shade{z-index:6}
 .reference-card-title,.card-monogram{z-index:7}
 .reference-card .focus-ring{z-index:8}
+
+
+/* Restore breathing room without reflowing the virtual rail. */
+.tv-row-slot{
+  transition:transform .34s cubic-bezier(.22,.78,.2,1);
+  will-change:transform;
+}
+.tv-row-slot.slot-selected{z-index:20}
+.tv-row-scroll{padding-left:var(--nf-gutter);padding-right:var(--nf-gutter)}
+.reference-card .card-media{box-shadow:0 .35vw 1vw #0006}
+.reference-card.is-focused .card-media{box-shadow:0 .65vw 1.8vw #000b}
