@@ -95,7 +95,7 @@ export default function App(){
        {route.name==="search"&&<SearchPage key="search" onOpen={open}/>}
        {route.name==="library"&&<LibraryPage key="library" onOpen={open} onResume={resume}/>}
        {route.name==="settings"&&<SettingsPage key="settings"/>}
-       {route.name==="details"&&route.item&&<DetailsPage key={route.item.id} seed={route.item} onBack={back} onPlay={launchSource}/>}
+       {route.name==="details"&&route.item&&<DetailsPage key={route.item.id} seed={route.item} onBack={back} onPlay={launchSource} onOpen={open}/>}
      </AnimatePresence>
    </div>
    {player&&<div className="player-layer" onMouseMove={()=>setControls(true)}>
