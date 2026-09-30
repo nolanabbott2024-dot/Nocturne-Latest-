@@ -131,3 +131,210 @@ button:focus,button:focus-visible{outline:none!important}.app-shell{display:flex
   .mobile-remote-grid .mobile-remote-select{width:42px;height:42px}
   .mobile-preview-back{height:34px;margin-top:5px}.mobile-preview-remote p{display:none}
 }
+
+
+/* Netflix/Gibbon-inspired Nocturne TV skin.
+   The TV viewport remains Nocturne-branded; these rules intentionally focus on
+   layout, navigation feel, compositing, spacing, and focus behavior. */
+:root{
+  --nf-red:#e50914;
+  --nf-bg:#141414;
+  --nf-card-w:300px;
+  --nf-gutter:58px;
+}
+.app-shell,.app-content,.tv-page{background:var(--nf-bg)}
+.tv-page{padding-left:76px}
+.netflix-billboard{
+  height:min(76vh,790px);
+  min-height:560px;
+  padding:118px var(--nf-gutter) 120px;
+  align-items:flex-end;
+}
+.netflix-billboard .hero-backdrop{filter:saturate(.94) contrast(1.02)}
+.netflix-billboard-scrim{
+  background:
+    linear-gradient(90deg,rgba(20,20,20,.98) 0%,rgba(20,20,20,.86) 24%,rgba(20,20,20,.42) 48%,rgba(20,20,20,.08) 73%),
+    linear-gradient(0deg,var(--nf-bg) 0%,rgba(20,20,20,.85) 7%,transparent 42%);
+}
+.netflix-billboard-copy{width:min(650px,44vw)}
+.netflix-billboard-copy h1{font-size:clamp(54px,6vw,92px);font-weight:800;text-shadow:0 2px 18px rgba(0,0,0,.36)}
+.netflix-billboard-copy .hero-logo{max-width:470px;max-height:150px}
+.netflix-billboard-copy p{
+  max-width:610px;
+  font-size:20px;
+  line-height:1.42;
+  color:rgba(255,255,255,.92);
+  text-shadow:0 2px 12px rgba(0,0,0,.62);
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+}
+.netflix-hero-meta{display:flex;align-items:center;gap:11px;font-size:16px}
+.netflix-hero-meta b{color:#46d369}
+.netflix-hero-meta span{color:#fff}
+.netflix-hero-button{
+  min-width:142px;
+  height:54px;
+  padding:0 25px;
+  border-radius:6px;
+  font-size:19px;
+  font-weight:750;
+  justify-content:center;
+  backdrop-filter:none;
+  box-shadow:none;
+}
+.netflix-hero-button.primary{background:#fff;color:#0b0b0c}
+.rows{
+  position:relative;
+  z-index:8;
+  margin-top:-74px;
+  padding-bottom:100px;
+}
+.tv-row{
+  margin:0 0 22px;
+  position:relative;
+  z-index:1;
+}
+.tv-row:focus-within{z-index:10}
+.tv-row h2{
+  padding:0 var(--nf-gutter);
+  margin:0 0 2px;
+  font-size:25px;
+  font-weight:720;
+  letter-spacing:-.025em;
+  text-shadow:0 2px 12px rgba(0,0,0,.5);
+}
+.tv-row-scroll{
+  padding:17px var(--nf-gutter) 28px;
+  overflow-x:auto;
+  overflow-y:visible;
+  scroll-padding-inline:24vw;
+}
+.netflix-card{
+  width:100%;
+  text-align:left;
+  position:relative;
+  z-index:1;
+  transform-origin:center;
+}
+.netflix-card.is-focused{z-index:20}
+.netflix-card-media{
+  aspect-ratio:16/9;
+  border-radius:5px;
+  overflow:hidden;
+  background:#272727;
+  box-shadow:0 5px 14px rgba(0,0,0,.42);
+}
+.netflix-card-media>img{object-fit:cover}
+.netflix-card-shade{
+  position:absolute;inset:0;z-index:2;
+  background:linear-gradient(0deg,rgba(0,0,0,.7),transparent 48%);
+  opacity:0;transition:opacity .16s ease;
+}
+.netflix-card.is-focused .netflix-card-shade{opacity:1}
+.netflix-card-badge{
+  position:absolute;left:12px;bottom:10px;z-index:4;
+  width:28px;height:28px;border-radius:50%;
+  display:grid;place-items:center;
+  background:#fff;color:#111;
+  opacity:0;transform:scale(.82);
+  transition:opacity .15s ease,transform .15s ease;
+}
+.netflix-card.is-focused .netflix-card-badge{opacity:1;transform:scale(1)}
+.netflix-card .focus-ring{
+  border-radius:5px;
+  border:0;
+  box-shadow:none;
+}
+.netflix-card.is-focused .focus-ring{
+  box-shadow:0 0 0 3px #fff,0 18px 38px rgba(0,0,0,.72);
+}
+.netflix-card-meta{
+  padding:9px 2px 0;
+  min-height:47px;
+}
+.netflix-card-meta b{font-size:16px;font-weight:720}
+.netflix-card-meta span{font-size:13px;color:rgba(255,255,255,.68)}
+.netflix-sidebar{
+  left:0;top:0;bottom:0;
+  border-radius:0;
+  padding:0;
+  gap:0;
+  justify-content:center;
+  background:linear-gradient(90deg,rgba(0,0,0,.98) 0%,rgba(0,0,0,.9) 60%,rgba(0,0,0,.04) 100%);
+  backdrop-filter:none;
+  box-shadow:none;
+  overflow:hidden;
+}
+.netflix-sidebar.open{
+  background:linear-gradient(90deg,#000 0%,rgba(0,0,0,.98) 72%,rgba(0,0,0,.22) 100%);
+}
+.netflix-sidebar-brand{
+  position:absolute;top:34px;left:22px;height:34px;
+  display:flex;align-items:center;gap:14px;white-space:nowrap;
+}
+.netflix-sidebar-brand>span{
+  font-size:30px;font-weight:950;line-height:1;color:var(--nf-red);
+  letter-spacing:-.08em;
+}
+.netflix-sidebar-brand>b{
+  font-size:13px;letter-spacing:.22em;opacity:0;
+  transition:opacity .12s ease;
+}
+.netflix-sidebar.open .netflix-sidebar-brand>b{opacity:1}
+.netflix-sidebar-items{width:100%;display:flex;flex-direction:column;gap:4px}
+.netflix-sidebar-item{
+  position:relative;
+  height:54px;
+  border-radius:0;
+  padding:0 22px;
+  gap:18px;
+  min-width:76px;
+  justify-content:flex-start;
+}
+.netflix-sidebar:not(.open) .netflix-sidebar-item{padding:0 25px;justify-content:flex-start}
+.netflix-sidebar-item span{font-size:18px;font-weight:680}
+.netflix-active-marker{
+  position:absolute;left:0;width:4px;height:28px;border-radius:0 3px 3px 0;background:transparent;
+}
+.netflix-sidebar-item.active .netflix-active-marker{background:var(--nf-red)}
+.netflix-sidebar-item.active:not(:focus){background:rgba(255,255,255,.05)}
+.page-title{padding:92px var(--nf-gutter) 20px}
+.page-title h1{font-size:46px}
+.details-hero{
+  height:min(72vh,740px);
+  min-height:520px;
+  padding:110px var(--nf-gutter) 84px;
+}
+.details-scrim{
+  background:
+    linear-gradient(90deg,rgba(20,20,20,.98) 0%,rgba(20,20,20,.78) 38%,rgba(20,20,20,.18) 70%),
+    linear-gradient(0deg,var(--nf-bg),transparent 43%);
+}
+.detail-action{
+  border-radius:5px;
+  min-width:128px;
+  justify-content:center;
+  background:rgba(109,109,110,.72);
+  backdrop-filter:none;
+}
+.episodes{padding:28px var(--nf-gutter) 110px}
+.episode-card{border-radius:5px;background:#242424}
+.player-layer{
+  background:#000;
+  z-index:200;
+}
+.player-layer:before{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:2;
+  background:linear-gradient(0deg,rgba(0,0,0,.8),transparent 28%);
+}
+.player-title{z-index:3;top:auto;left:58px;bottom:148px;font-size:26px}
+.player-controls{
+  z-index:3;left:58px;right:58px;bottom:48px;transform:none;
+  justify-content:flex-start;background:transparent;padding:0;border-radius:0;backdrop-filter:none;
+}
+.player-control{background:rgba(255,255,255,.16)}
+.player-control.primary{background:#fff;color:#111}
+
+@media (max-width:1200px){
+  :root{--nf-card-w:272px;--nf-gutter:46px}
+  .netflix-billboard-copy{width:min(620px,53vw)}
+}
