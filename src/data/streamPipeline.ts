@@ -12,6 +12,11 @@ function settings(){
   try{return JSON.parse(localStorage.getItem("settings")||"{}")}catch{return{}}
 }
 function text(s:RawStream){return [s.name,s.title,s.description,s.behaviorHints?.filename].filter(Boolean).join(" ")}
+function directUrl(s:RawStream){
+  if(s.url)return s.url;
+  if(s.externalUrl&&/^https?:\/\//i.test(s.externalUrl)&&!/youtu(?:\.be|be\.com)/i.test(s.externalUrl))return s.externalUrl;
+  return undefined;
+}
 function parse(s:RawStream):StreamInfo{
   const t=text(s),u=t.toUpperCase();
   const m=t.match(RES);let resolution=m?.[1]?.toLowerCase()||"Unknown";
@@ -37,7 +42,9 @@ export function processStreams(input:RawStream[]):StreamInfo[]{
     const info=parse(s),lower=text(s).toLowerCase();
     if(exclude.some((x:string)=>lower.includes(x)))continue;
     if(info.size&&max>0&&info.size/1e9>max)continue;
-    const key=s.url||s.externalUrl||s.infoHash||s.ytId||info.label;
+    const resolved=directUrl(s);
+    if(resolved&&!s.url)s.url=resolved;
+    const key=resolved||s.infoHash||s.ytId||info.label;
     if(dedupe&&seen.has(key))continue;seen.add(key);
     info.score+=(preferred!=="Auto"&&preferred===info.resolution)?20:0;
     if(info.quality==="CAM")info.score-=10;
