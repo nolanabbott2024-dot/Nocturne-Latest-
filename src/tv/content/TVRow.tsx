@@ -15,7 +15,7 @@ export function TVRow({id,title,items,route,onOpen,onFocused,onSettled,leftExitF
   const scroller=useRef<HTMLDivElement|null>(null);
   const virtual=useVirtualizer({
     horizontal:true,count:items.length,getScrollElement:()=>scroller.current,
-    estimateSize:()=>190,overscan:7
+    estimateSize:()=>316,overscan:5
   });
   const keyAt=useCallback((index:number)=>focusKey(route,id,items[index]),[route,id,items]);
   const ensureIndexVisible=useCallback((index:number)=>virtual.scrollToIndex(index,{align:"auto"}),[virtual]);
@@ -29,8 +29,8 @@ export function TVRow({id,title,items,route,onOpen,onFocused,onSettled,leftExitF
     <section ref={ref as any} className="tv-row" data-row={id}>
       <h2>{title}</h2>
       <div className="tv-row-scroll" ref={scroller}>
-        <div className="tv-row-inner" style={{width:virtual.getTotalSize(),height:320,position:"relative"}}>
-          {virtual.getVirtualItems().map(v=><div key={items[v.index].id} style={{position:"absolute",left:v.start,top:0,width:v.size,paddingRight:18}}>
+        <div className="tv-row-inner" style={{width:virtual.getTotalSize(),height:232,position:"relative"}}>
+          {virtual.getVirtualItems().map(v=><div key={items[v.index].id} style={{position:"absolute",left:v.start,top:0,width:v.size,paddingRight:16}}>
             <TVPosterCard item={items[v.index]} route={route} rowId={id} onOpen={onOpen} onFocused={onFocused} onSettled={onSettled}
               onSpatialFocus={rail.onFocus}
               onArrowPress={(direction)=>rail.onArrow(v.index,direction)}/>
