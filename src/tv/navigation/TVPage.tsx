@@ -42,8 +42,8 @@ export function TVPage({route,initialFocusKey,children}:PropsWithChildren<{route
 
   return <FocusContext.Provider value={focusKey}>
     <motion.main ref={(n)=>{(ref as any).current=n;node.current=n}} className="tv-page"
-      initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-8}}
-      transition={{duration:.32,ease:[.2,.75,.25,1]}}>
+      initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
+      transition={{duration:.16,ease:"easeOut"}}>
       {children}
     </motion.main>
   </FocusContext.Provider>;
