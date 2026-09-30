@@ -17,6 +17,7 @@ import { installRemoteAdapter } from "./tv/navigation/remote";
 import type { MediaItem } from "./types/tv";
 import type { LibraryEntry } from "./data/library";
 import { resolvePlayableStream } from "./data/playback";
+import { loadMetaEnriched } from "./data/stremio";
 import { useProviderStore } from "./stores/providerStore";
 import { playNative } from "./platform/native";
 
@@ -46,9 +47,22 @@ export default function App(){
    if(!playNative(url,title,headers,item,videoId))setPlayer({src:url,title,headers});
  },[]);
 
- const playItem=useCallback(async(item:MediaItem,videoId=item.id)=>{
-   const source=await resolvePlayableStream(item,videoId,addons);
-   if(source?.url)launchSource(source.url,item.name,source.headers||{},item,videoId);
+ const playItem=useCallback(async(item:MediaItem,videoId?:string)=>{
+   let playableItem=item;
+   let resolvedId=videoId||item.id;
+
+   if(item.type==="series"&&!videoId){
+     try{
+       playableItem=await loadMetaEnriched(item);
+       const episodes=[...(playableItem.videos||[])].sort((a,b)=>
+         (a.season||0)-(b.season||0)||(a.episode||0)-(b.episode||0)
+       );
+       if(episodes[0]?.id)resolvedId=episodes[0].id;
+     }catch{}
+   }
+
+   const source=await resolvePlayableStream(playableItem,resolvedId,addons);
+   if(source?.url)launchSource(source.url,playableItem.name,source.headers||{},playableItem,resolvedId);
  },[addons,launchSource]);
 
  const resume=useCallback((entry:LibraryEntry)=>playItem(entry.item,entry.videoId||entry.item.id),[playItem]);
