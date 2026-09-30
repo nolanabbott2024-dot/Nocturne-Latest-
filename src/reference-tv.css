@@ -310,3 +310,16 @@
   content-visibility:auto;
   contain-intrinsic-size:0 34vw;
 }
+
+
+/* More Like This rail should travel with remote focus. */
+.hub-related-row{
+  overflow-x:auto;
+  overflow-y:hidden;
+  scroll-behavior:smooth;
+  scrollbar-width:none;
+  padding-bottom:.55vw;
+}
+.hub-related-row::-webkit-scrollbar{display:none}
+.hub-related-tile{transition:transform .22s cubic-bezier(.2,.75,.25,1),box-shadow .2s ease}
+.hub-related-tile.is-focused{transform:scale(1.025)}
