@@ -21,18 +21,18 @@ export function TVRow({id,title,items,route,onOpen,onFocused,onSettled,leftExitF
  const virtual=useVirtualizer({horizontal:true,count:items.length,getScrollElement:()=>scroller.current,
   initialOffset:selected*narrow,estimateSize:index=>(hasFocusedChild&&index===selected?wide:narrow)+gap,overscan:3});
  const keyAt=useCallback((index:number)=>`${route}:${id}:${items[index].type}:${items[index].id}`,[route,id,items]);
- const ensureIndexVisible=useCallback((index:number)=>virtual.scrollToIndex(index,{align:"start",behavior:"smooth"}),[virtual]);
+ const ensureIndexVisible=useCallback((index:number)=>virtual.scrollToIndex(index,{align:"start"}),[virtual]);
  const rail=useHorizontalRail({scroller,count:items.length,keyAt,leftExitFocusKey:leftExitFocusKey||`sidebar:${route}`,ensureIndexVisible});
  const select=useCallback((item:MediaItem)=>{const index=items.findIndex(x=>x.id===item.id&&x.type===item.type);setSelected(index);onFocused?.(item)},[items,onFocused]);
  useLayoutEffect(()=>{
   virtual.measure();
   if(!hasFocusedChild)return;
-  virtual.scrollToIndex(selected,{align:"start",behavior:"smooth"});
+  virtual.scrollToIndex(selected,{align:"start"});
   const section=ref.current as HTMLElement|null;
   const page=section?.closest(".tv-page") as HTMLElement|null;
   if(section&&page){
    const desired=section.getBoundingClientRect().top-page.getBoundingClientRect().top+page.scrollTop-8*unit;
-   page.scrollTo({top:desired,behavior:"smooth"});
+   page.scrollTo({top:desired,behavior:"auto"});
   }
  },[hasFocusedChild,selected,unit,items.length]);
  const item=items[selected];
