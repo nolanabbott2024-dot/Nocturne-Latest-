@@ -303,3 +303,10 @@
 .tv-row-scroll{padding-left:var(--nf-gutter);padding-right:var(--nf-gutter)}
 .reference-card .card-media{box-shadow:0 .35vw 1vw #0006}
 .reference-card.is-focused .card-media{box-shadow:0 .65vw 1.8vw #000b}
+
+
+/* Keep off-screen shelves cheap, especially inside the mobile TV-preview iframe. */
+.tv-row{
+  content-visibility:auto;
+  contain-intrinsic-size:0 34vw;
+}
