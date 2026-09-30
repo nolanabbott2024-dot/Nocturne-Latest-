@@ -343,3 +343,102 @@
 .inline-episodes .hub-episode-row::-webkit-scrollbar{display:none}
 .inline-episodes .hub-episode-tile{flex:0 0 22vw;width:22vw}
 .inline-episodes .hub-episode-copy{max-width:56vw;margin-top:1.1vw}
+
+
+/* Unified stable rail + continuous details navigation pass. */
+.stable-rail{
+  overflow-x:auto;
+  overflow-y:visible;
+  scroll-behavior:smooth;
+  scrollbar-width:none;
+}
+.stable-rail::-webkit-scrollbar{display:none}
+.stable-rail-inner{
+  display:flex;
+  align-items:stretch;
+  gap:1.55vw;
+  width:max-content;
+  min-width:100%;
+  position:relative;
+}
+.stable-slot{
+  flex:0 0 14.1vw;
+  width:14.1vw;
+  height:22.8vw;
+  overflow:visible;
+  contain:none;
+  transform:none!important;
+  transition:margin-right .30s cubic-bezier(.22,.78,.2,1);
+}
+.stable-slot.slot-selected{
+  margin-right:26.7vw;
+  z-index:20;
+}
+.stable-slot .reference-card.is-expanded .card-media{
+  width:40.8vw;
+}
+.stable-slot .reference-card .card-art-portrait{opacity:1}
+.stable-slot .reference-card.is-expanded:not(.has-landscape) .card-art-portrait{
+  opacity:1;
+  transform:scale(1);
+}
+.stable-slot .reference-card.is-expanded:not(.has-landscape) .card-art-landscape{opacity:0}
+.stable-slot .reference-card.is-expanded.has-landscape .card-art-portrait{opacity:0;transform:scale(1.025)}
+.stable-slot .reference-card.is-expanded.has-landscape .card-art-landscape{opacity:1;transform:scale(1)}
+.stable-slot .reference-card.is-focused{z-index:30}
+
+.route-details .tv-page{
+  overflow-y:auto;
+  overflow-x:hidden;
+  scroll-behavior:smooth;
+  scroll-snap-type:none;
+}
+.route-details .details-hero{
+  min-height:100vh;
+  height:100vh;
+  flex:none;
+}
+.continuous-details{
+  position:relative;
+  z-index:3;
+  background:#000;
+}
+.continuous-section{
+  min-height:58vh;
+  padding:3vw var(--nf-gutter) 5vw;
+  scroll-margin-top:2vw;
+  background:linear-gradient(180deg,#000 0%,#080a0f 100%);
+}
+.continuous-section+.continuous-section{border-top:1px solid rgba(255,255,255,.06)}
+.continuous-heading{
+  font-size:1.8vw;
+  line-height:1.15;
+  margin:0 0 1.4vw;
+  font-weight:800;
+}
+.episodes-section{
+  padding:0;
+  min-height:68vh;
+}
+.episodes-section .inline-episodes{
+  min-height:68vh;
+  padding-top:2.4vw;
+}
+.continuous-section .hub-details,
+.continuous-section .hub-related,
+.continuous-section .hub-audio-grid,
+.continuous-section .hub-extras{
+  max-width:none;
+}
+.continuous-section .hub-audio-grid{padding:1vw 2vw 0}
+.continuous-section .hub-related-row,
+.continuous-section .hub-episode-row{
+  overscroll-behavior-x:contain;
+  scroll-behavior:smooth;
+}
+.title-overview-tabs{
+  flex-wrap:wrap;
+  max-width:75vw;
+}
+.title-overview-tab{transition:background-color .16s ease,color .16s ease,transform .16s ease}
+.title-overview-tab.is-focused{transform:translateY(-1px)}
