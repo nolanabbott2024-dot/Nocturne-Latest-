@@ -6,7 +6,9 @@ import { useSettingsStore } from "../../stores/settingsStore";
 
 export function TrailerPreview({item}:{item:MediaItem}){
   const ref=useRef<HTMLVideoElement|null>(null);
+  const frameRef=useRef<HTMLIFrameElement|null>(null);
   const [failed,setFailed]=useState(false);
+  const [youtubeLoaded,setYoutubeLoaded]=useState(false);
   const setState=usePlaybackStore(s=>s.setTrailerState);
   const previewAudio=useSettingsStore(s=>s.previewAudio);
   const src=item.trailerUrl;
@@ -29,7 +31,15 @@ export function TrailerPreview({item}:{item:MediaItem}){
         await video.play();
         if(!cancelled)setState("playing",item.id);
       }catch{
-        if(!cancelled){setFailed(true);setState("idle",null)}
+        // A browser may reject autoplay with sound. Retry the same direct preview muted
+        // before treating it as unavailable.
+        try{
+          video.muted=true;
+          await video.play();
+          if(!cancelled)setState("playing",item.id);
+        }catch{
+          if(!cancelled){setFailed(true);setState("idle",null)}
+        }
       }
     };
     start();
@@ -42,23 +52,48 @@ export function TrailerPreview({item}:{item:MediaItem}){
 
   useEffect(()=>{
     if(!yt||src||nativeAndroid)return;
-    setState("playing",item.id);
-    return()=>setState("idle",null);
+    setYoutubeLoaded(false);
+    setState("preloading",item.id);
+    const play=()=>{
+      const frame=frameRef.current;
+      if(!frame?.contentWindow)return;
+      // The iframe is intentionally muted: browser/TV WebView autoplay policies
+      // commonly block YouTube autoplay when audio begins immediately.
+      frame.contentWindow.postMessage(JSON.stringify({event:"command",func:"mute",args:[]}),"*");
+      frame.contentWindow.postMessage(JSON.stringify({event:"command",func:"playVideo",args:[]}),"*");
+      setYoutubeLoaded(true);
+      setState("playing",item.id);
+    };
+    const first=window.setTimeout(play,180);
+    const retry=window.setTimeout(play,900);
+    return()=>{
+      window.clearTimeout(first);window.clearTimeout(retry);
+      setState("idle",null);
+    };
   },[item.id,yt,src,nativeAndroid,setState]);
 
   if(failed)return null;
   if(src)return <video ref={ref} className="trailer-preview" muted={!previewAudio} playsInline onError={()=>setFailed(true)}/>;
   if(yt&&!nativeAndroid){
     const origin=encodeURIComponent(window.location.origin);
-    const mute=previewAudio?0:1;
-    return <iframe className="trailer-preview trailer-youtube"
-      src={`https://www.youtube.com/embed/${encodeURIComponent(yt)}?autoplay=1&controls=0&rel=0&playsinline=1&mute=${mute}&origin=${origin}`}
-      allow="autoplay; encrypted-media; picture-in-picture" referrerPolicy="strict-origin-when-cross-origin"
-      title="Trailer preview"/>;
+    const id=encodeURIComponent(yt);
+    return <iframe ref={frameRef} key={yt} className={"trailer-preview trailer-youtube "+(youtubeLoaded?"is-playing":"")}
+      src={"https://www.youtube.com/embed/"+id+"?autoplay=1&controls=0&rel=0&playsinline=1&mute=1&enablejsapi=1&loop=1&playlist="+id+"&origin="+origin}
+      allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+      referrerPolicy="strict-origin-when-cross-origin"
+      onLoad={()=>{
+        const frame=frameRef.current;
+        if(!frame?.contentWindow)return;
+        frame.contentWindow.postMessage(JSON.stringify({event:"command",func:"mute",args:[]}),"*");
+        frame.contentWindow.postMessage(JSON.stringify({event:"command",func:"playVideo",args:[]}),"*");
+        setYoutubeLoaded(true);
+        setState("playing",item.id);
+      }}
+      title={"Trailer preview for "+item.name}/>;
   }
   if(yt){
     return <img className="trailer-preview trailer-youtube-poster"
-      src={`https://i.ytimg.com/vi/${encodeURIComponent(yt)}/hqdefault.jpg`} alt="Trailer artwork"/>;
+      src={"https://i.ytimg.com/vi/"+encodeURIComponent(yt)+"/hqdefault.jpg"} alt="Trailer artwork"/>;
   }
   return null;
 }
