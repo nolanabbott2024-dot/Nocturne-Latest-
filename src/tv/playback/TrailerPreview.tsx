@@ -13,7 +13,6 @@ export function TrailerPreview({item}:{item:MediaItem}){
   const previewAudio=useSettingsStore(s=>s.previewAudio);
   const src=item.trailerUrl;
   const yt=item.trailerYtId;
-  const nativeAndroid=typeof window.NocturneNative!=="undefined";
 
   useEffect(()=>{
     setFailed(false);
@@ -51,7 +50,7 @@ export function TrailerPreview({item}:{item:MediaItem}){
   },[item.id,src,previewAudio,setState]);
 
   useEffect(()=>{
-    if(!yt||src||nativeAndroid)return;
+    if(!yt||src)return;
     setYoutubeLoaded(false);
     setState("preloading",item.id);
     const play=()=>{
@@ -70,15 +69,16 @@ export function TrailerPreview({item}:{item:MediaItem}){
       window.clearTimeout(first);window.clearTimeout(retry);
       setState("idle",null);
     };
-  },[item.id,yt,src,nativeAndroid,setState]);
+  },[item.id,yt,src,setState]);
 
   if(failed)return null;
   if(src)return <video ref={ref} className="trailer-preview" muted={!previewAudio} playsInline onError={()=>setFailed(true)}/>;
-  if(yt&&!nativeAndroid){
-    const origin=encodeURIComponent(window.location.origin);
+  if(yt){
     const id=encodeURIComponent(yt);
+    const isHttp=/^https?:$/.test(window.location.protocol);
+    const origin=isHttp?"&origin="+encodeURIComponent(window.location.origin):"";
     return <iframe ref={frameRef} key={yt} className={"trailer-preview trailer-youtube "+(youtubeLoaded?"is-playing":"")}
-      src={"https://www.youtube.com/embed/"+id+"?autoplay=1&controls=0&rel=0&playsinline=1&mute=1&enablejsapi=1&loop=1&playlist="+id+"&origin="+origin}
+      src={"https://www.youtube.com/embed/"+id+"?autoplay=1&controls=0&rel=0&playsinline=1&mute=1&enablejsapi=1&loop=1&playlist="+id+origin}
       allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
       referrerPolicy="strict-origin-when-cross-origin"
       onLoad={()=>{
@@ -90,10 +90,6 @@ export function TrailerPreview({item}:{item:MediaItem}){
         setState("playing",item.id);
       }}
       title={"Trailer preview for "+item.name}/>;
-  }
-  if(yt){
-    return <img className="trailer-preview trailer-youtube-poster"
-      src={"https://i.ytimg.com/vi/"+encodeURIComponent(yt)+"/hqdefault.jpg"} alt="Trailer artwork"/>;
   }
   return null;
 }
