@@ -501,3 +501,14 @@
   background:#fff;
   color:#111;
 }
+
+
+/* Top 10 and Continue Watching must track focus synchronously. */
+.top10-scroll,
+.continue-scroll{
+  scroll-behavior:auto!important;
+  overscroll-behavior-x:contain;
+  scrollbar-width:none;
+}
+.top10-scroll::-webkit-scrollbar,
+.continue-scroll::-webkit-scrollbar{display:none}
