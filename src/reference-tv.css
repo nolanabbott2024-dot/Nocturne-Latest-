@@ -512,3 +512,32 @@
 }
 .top10-scroll::-webkit-scrollbar,
 .continue-scroll::-webkit-scrollbar{display:none}
+
+
+/* Dedicated Top 10 geometry: rank number + poster behave as one fixed navigation item. */
+.top10-scroll{
+  display:flex;
+  align-items:flex-end;
+  gap:1.2vw;
+  overflow-x:auto;
+  overflow-y:hidden;
+  padding:.4vw var(--nf-gutter) 1vw;
+}
+.top10-nav-slot{
+  flex:0 0 23vw;
+  width:23vw;
+  display:flex;
+  align-items:flex-end;
+  overflow:visible;
+}
+.top10-nav-slot .top10-card{
+  flex:none;
+  width:100%;
+  display:flex;
+  align-items:flex-end;
+}
+.top10-nav-slot .reference-card{
+  flex:0 0 15vw;
+  width:15vw;
+  height:21vw;
+}
