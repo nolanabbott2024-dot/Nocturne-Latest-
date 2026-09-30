@@ -1,4 +1,4 @@
-import { useEffect,useMemo,useState,type ReactNode } from "react";
+import { useEffect,useMemo,useRef,useState,type ReactNode } from "react";
 import { ChevronUp,Check } from "lucide-react";
 import { setFocus } from "@noriginmedia/norigin-spatial-navigation";
 import type { Episode,MediaItem } from "../../types/tv";
@@ -103,18 +103,36 @@ function DetailsPanel({item}:{item:MediaItem}){
 
 function RelatedPanel({items,item,route,onOpen}:{items:MediaItem[];item:MediaItem;route:string;onOpen:(m:MediaItem)=>void}){
  const [selected,setSelected]=useState<MediaItem|undefined>(items[0]);
+ const rowRef=useRef<HTMLDivElement|null>(null);
  useEffect(()=>setSelected(items[0]),[items]);
+ const reveal=(index:number)=>{
+   const row=rowRef.current;
+   const card=row?.children[index] as HTMLElement|undefined;
+   if(!row||!card)return;
+   const left=card.offsetLeft;
+   const right=left+card.offsetWidth;
+   const viewLeft=row.scrollLeft;
+   const viewRight=viewLeft+row.clientWidth;
+   if(left<viewLeft)row.scrollTo({left:Math.max(0,left-16),behavior:"smooth"});
+   else if(right>viewRight)row.scrollTo({left:right-row.clientWidth+16,behavior:"smooth"});
+ };
  return <div className="hub-related">
-   {item.type==="movie"&&<h2>{item.name} Collection</h2>}
-   <div className="hub-related-row">
-    {items.slice(0,8).map((m,i)=><RelatedTile key={m.id} item={m} route={route} i={i} onOpen={()=>onOpen(m)} onFocus={()=>setSelected(m)}/>)}
+   <h2>If you liked {item.name}, you’ll love these</h2>
+   <div className="hub-related-row" ref={rowRef}>
+    {items.slice(0,12).map((m,i)=><RelatedTile key={m.id} item={m} route={route} i={i} onOpen={()=>onOpen(m)} onFocus={()=>{setSelected(m);reveal(i)}}/>)}
    </div>
    {selected&&<div className="hub-related-copy"><div className="hub-detail-facts">{mediaFacts(selected).map((x,i)=><span key={i}>{x}</span>)}</div><p>{selected.description||selected.name}</p></div>}
    {items.length===0&&<p className="hub-empty">More recommendations will appear as your connected catalogs load.</p>}
  </div>;
 }
 function RelatedTile({item,route,i,onOpen,onFocus}:{item:MediaItem;route:string;i:number;onOpen:()=>void;onFocus:()=>void}){
- const {ref,focused,focusSelf}=useTVFocusable({focusKey:route+":related:"+item.type+":"+item.id+":"+i,route,rowId:"hub-related",onPress:onOpen,onFocus});
+ const {ref,focused,focusSelf}=useTVFocusable({
+   focusKey:route+":related:"+item.type+":"+item.id+":"+i,route,rowId:"hub-related",onPress:onOpen,onFocus,
+   onArrowPress:direction=>{
+     if(direction==="up"){void setFocus(route+":hub-tab:related");return false}
+     return true;
+   }
+ });
  return <button ref={ref as any} className={"hub-related-tile "+(focused?"is-focused":"")} onClick={onOpen} onMouseEnter={()=>focusSelf()}>
    <img src={i===0?(item.background||item.poster):(item.poster||item.background)} alt=""/>
  </button>;
