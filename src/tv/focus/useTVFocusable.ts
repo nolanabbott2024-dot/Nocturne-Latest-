@@ -1,47 +1,65 @@
+import { useState } from "react";
 import { useFocusable } from "@noriginmedia/norigin-spatial-navigation";
 import { useNavigationStore } from "../../stores/navigationStore";
 
-function followFocusedNode(node:HTMLElement|null,focusKey:string){
+function fullyVisibleWithin(node:HTMLElement,container:HTMLElement,padX=0,padY=0){
+  const nr=node.getBoundingClientRect(),cr=container.getBoundingClientRect();
+  return nr.left>=cr.left+padX&&nr.right<=cr.right-padX&&nr.top>=cr.top+padY&&nr.bottom<=cr.bottom-padY;
+}
+
+function lockFocusedNode(node:HTMLElement|null,focusKey:string){
   if(!node)return;
-  requestAnimationFrame(()=>{
-    const horizontal=node.closest(".tv-row-scroll,.hub-related-row,.hub-episode-row") as HTMLElement|null;
-    if(horizontal){
-      const nr=node.getBoundingClientRect(),hr=horizontal.getBoundingClientRect();
-      const left=hr.left+hr.width*.16,right=hr.left+hr.width*.84;
-      let dx=0;
-      if(nr.left<left)dx=nr.left-left;
-      else if(nr.right>right)dx=nr.right-right;
-      if(Math.abs(dx)>1)horizontal.scrollBy({left:dx,behavior:"auto"});
-    }
 
-    const page=node.closest(".tv-page") as HTMLElement|null;
-    if(!page)return;
+  const horizontal=node.closest(".tv-row-scroll,.hub-related-row,.hub-episode-row") as HTMLElement|null;
+  if(horizontal){
+    let nr=node.getBoundingClientRect(),hr=horizontal.getBoundingClientRect();
+    const pad=Math.min(36,hr.width*.06);
+    let dx=0;
+    if(nr.left<hr.left+pad)dx=nr.left-(hr.left+pad);
+    else if(nr.right>hr.right-pad)dx=nr.right-(hr.right-pad);
+    if(Math.abs(dx)>1)horizontal.scrollLeft+=dx;
+  }
 
-    const isDetails=page.classList.contains("route-details")||page.className.includes("details:");
-    const isHeroFocus=focusKey.includes(":action:")||focusKey.includes(":overview-tab:");
+  const page=node.closest(".tv-page") as HTMLElement|null;
+  if(!page)return;
 
-    // On title pages, hero controls always mean the hero should be fully restored.
-    if(isDetails&&isHeroFocus){
-      if(page.scrollTop!==0)page.scrollTo({top:0,behavior:"auto"});
-      return;
-    }
+  const isDetails=page.className.includes("details:");
+  const isHeroFocus=focusKey.includes(":action:")||focusKey.includes(":overview-tab:");
 
-    const nr=node.getBoundingClientRect(),pr=page.getBoundingClientRect();
+  if(isDetails&&isHeroFocus){
+    page.scrollTop=0;
+  }else{
+    let nr=node.getBoundingClientRect(),pr=page.getBoundingClientRect();
 
     if(isDetails){
-      // Keep the selected title-detail control in a stable visual lane instead
-      // of letting the viewport stop between two sections.
-      const targetTop=pr.top+pr.height*.22;
-      const dy=nr.top-targetTop;
-      if(Math.abs(dy)>2)page.scrollBy({top:dy,behavior:"auto"});
-      return;
+      const targetTop=pr.top+pr.height*.20;
+      page.scrollTop+=nr.top-targetTop;
+    }else{
+      const top=pr.top+Math.min(64,pr.height*.10);
+      const bottom=pr.bottom-Math.min(96,pr.height*.14);
+      let dy=0;
+      if(nr.top<top)dy=nr.top-top;
+      else if(nr.bottom>bottom)dy=nr.bottom-bottom;
+      if(Math.abs(dy)>1)page.scrollTop+=dy;
+    }
+  }
+
+  // One frame later, correct any residual clipping caused by layout/image changes.
+  requestAnimationFrame(()=>{
+    if(!node.isConnected)return;
+
+    const h=node.closest(".tv-row-scroll,.hub-related-row,.hub-episode-row") as HTMLElement|null;
+    if(h&&!fullyVisibleWithin(node,h,12,0)){
+      const nr=node.getBoundingClientRect(),hr=h.getBoundingClientRect();
+      if(nr.left<hr.left+12)h.scrollLeft+=nr.left-(hr.left+12);
+      else if(nr.right>hr.right-12)h.scrollLeft+=nr.right-(hr.right-12);
     }
 
-    const top=pr.top+pr.height*.12,bottom=pr.top+pr.height*.78;
-    let dy=0;
-    if(nr.top<top)dy=nr.top-top-16;
-    else if(nr.bottom>bottom)dy=nr.bottom-bottom+16;
-    if(Math.abs(dy)>1)page.scrollBy({top:dy,behavior:"auto"});
+    const p=node.closest(".tv-page") as HTMLElement|null;
+    if(!p)return;
+    const nr=node.getBoundingClientRect(),pr=p.getBoundingClientRect();
+    if(nr.top<pr.top)p.scrollTop+=nr.top-pr.top-8;
+    else if(nr.bottom>pr.bottom)p.scrollTop+=nr.bottom-pr.bottom+8;
   });
 }
 
@@ -56,7 +74,9 @@ export function useTVFocusable(opts:{
   followFocus?:boolean;
 }){
   const setFocusState=useNavigationStore(s=>s.setFocus);
-  return useFocusable({
+  const [visibleFocus,setVisibleFocus]=useState(false);
+
+  const focusable=useFocusable({
     focusKey:opts.focusKey,
     onEnterPress:()=>opts.onPress?.(),
     onArrowPress:(direction:any,_props:any,details:any)=>{
@@ -64,13 +84,25 @@ export function useTVFocusable(opts:{
       return result===undefined?true:result;
     },
     onFocus:(layout:any,details:any)=>{
-      const memoryRoute=opts.rowId==="sidebar"?undefined:opts.route;
-      setFocusState(opts.focusKey,memoryRoute,opts.rowId);
-      if(opts.followFocus!==false&&opts.rowId!=="sidebar"){
-        followFocusedNode((layout?.node||layout?.layout?.node||null) as HTMLElement|null,opts.focusKey);
-      }
-      opts.onFocus?.(layout,details);
+      setVisibleFocus(false);
+      const node=(layout?.node||layout?.layout?.node||null) as HTMLElement|null;
+
+      if(opts.followFocus!==false&&opts.rowId!=="sidebar")lockFocusedNode(node,opts.focusKey);
+
+      // Commit the app-level focus and visible highlight after the viewport has
+      // been synchronously corrected. This prevents off-screen "ghost" focus.
+      requestAnimationFrame(()=>{
+        const memoryRoute=opts.rowId==="sidebar"?undefined:opts.route;
+        setFocusState(opts.focusKey,memoryRoute,opts.rowId);
+        setVisibleFocus(true);
+        opts.onFocus?.(layout,details);
+      });
     },
-    onBlur:()=>opts.onBlur?.()
+    onBlur:()=>{
+      setVisibleFocus(false);
+      opts.onBlur?.();
+    }
   });
+
+  return {...focusable,focused:focusable.focused&&visibleFocus};
 }
