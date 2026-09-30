@@ -1,4 +1,4 @@
-import { useEffect,useMemo,useRef,useState,type ReactNode } from "react";
+import { useEffect,useMemo,useState,type ReactNode } from "react";
 import { ChevronUp,Check } from "lucide-react";
 import { setFocus } from "@noriginmedia/norigin-spatial-navigation";
 import type { Episode,MediaItem } from "../../types/tv";
@@ -55,17 +55,8 @@ export function EpisodesPanel({item,route,onPlay,inline=false}:{item:MediaItem;r
  const [season,setSeason]=useState(seasons[0]||1);
  const episodes=(item.videos||[]).filter(v=>(v.season||1)===season);
  const [selected,setSelected]=useState<Episode|undefined>(episodes[0]);
- const rowRef=useRef<HTMLDivElement|null>(null);
  useEffect(()=>setSelected(episodes[0]),[season,item.id]);
  const avgRuntime=episodes.find(e=>e.runtime)?.runtime||item.runtime;
- const reveal=(index:number)=>{
-   const row=rowRef.current;
-   const card=row?.children[index] as HTMLElement|undefined;
-   if(!row||!card)return;
-   const left=card.offsetLeft,right=left+card.offsetWidth;
-   if(left<row.scrollLeft)row.scrollTo({left:Math.max(0,left-18),behavior:"smooth"});
-   else if(right>row.scrollLeft+row.clientWidth)row.scrollTo({left:right-row.clientWidth+18,behavior:"smooth"});
- };
  return <section className={"hub-episodes "+(inline?"inline-episodes":"")}>
    <div className="hub-series-heading">
     {item.logo?<img src={item.logo} alt={item.name}/>:<h1>{item.name}</h1>}
@@ -76,8 +67,8 @@ export function EpisodesPanel({item,route,onPlay,inline=false}:{item:MediaItem;r
       Season {s}<small>{(item.videos||[]).filter(v=>(v.season||1)===s).length} Episodes</small>
     </FocusButton>)}
    </div>
-   <div className="hub-episode-row" ref={rowRef}>
-    {episodes.map((ep,i)=><EpisodeTile key={ep.id} ep={ep} i={i} route={route} onPlay={()=>onPlay(ep)} onFocus={()=>{setSelected(ep);reveal(i)}}/>)}
+   <div className="hub-episode-row">
+    {episodes.map((ep,i)=><EpisodeTile key={ep.id} ep={ep} i={i} route={route} onPlay={()=>onPlay(ep)} onFocus={()=>setSelected(ep)}/>)}
    </div>
    {selected&&<div className="hub-episode-copy">
      <h3>{selected.title||("Episode "+(selected.episode||1))}</h3>
@@ -113,21 +104,10 @@ export function RelatedPanel({items,item,route,onOpen}:{items:MediaItem[];item:M
  const [selected,setSelected]=useState<MediaItem|undefined>(items[0]);
  const rowRef=useRef<HTMLDivElement|null>(null);
  useEffect(()=>setSelected(items[0]),[items]);
- const reveal=(index:number)=>{
-   const row=rowRef.current;
-   const card=row?.children[index] as HTMLElement|undefined;
-   if(!row||!card)return;
-   const left=card.offsetLeft;
-   const right=left+card.offsetWidth;
-   const viewLeft=row.scrollLeft;
-   const viewRight=viewLeft+row.clientWidth;
-   if(left<viewLeft)row.scrollTo({left:Math.max(0,left-16),behavior:"smooth"});
-   else if(right>viewRight)row.scrollTo({left:right-row.clientWidth+16,behavior:"smooth"});
- };
  return <div className="hub-related">
    <h2>If you liked {item.name}, you’ll love these</h2>
-   <div className="hub-related-row" ref={rowRef}>
-    {items.slice(0,12).map((m,i)=><RelatedTile key={m.id} item={m} route={route} i={i} onOpen={()=>onOpen(m)} onFocus={()=>{setSelected(m);reveal(i)}}/>)}
+   <div className="hub-related-row">
+    {items.slice(0,12).map((m,i)=><RelatedTile key={m.id} item={m} route={route} i={i} onOpen={()=>onOpen(m)} onFocus={()=>setSelected(m)}/>)}
    </div>
    {selected&&<div className="hub-related-copy"><div className="hub-detail-facts">{mediaFacts(selected).map((x,i)=><span key={i}>{x}</span>)}</div><p>{selected.description||selected.name}</p></div>}
    {items.length===0&&<p className="hub-empty">More recommendations will appear as your connected catalogs load.</p>}
