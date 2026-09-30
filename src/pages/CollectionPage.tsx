@@ -49,7 +49,7 @@ function Rows({route,rows,onOpen,onPlay,cont,onResume}:{
  const focusedKey=useNavigationStore(s=>s.focusedKey);
  const metaAbort=useRef<AbortController|null>(null);
  const spotlightIndex=useRef(0);
- const [visibleRowCount,setVisibleRowCount]=useState(8);
+ const [visibleRowCount,setVisibleRowCount]=useState(5);
  const newest=useMemo(()=>{
    const releaseRow=rows.find(r=>r.id==="new-releases"&&r.items.length);
    const source=releaseRow?.items.length?releaseRow.items:rows.flatMap(r=>r.items);
@@ -93,15 +93,15 @@ function Rows({route,rows,onOpen,onPlay,cont,onResume}:{
  },[hero?.id,hero?.trailerUrl,hero?.trailerYtId,newest.length,advanceSpotlight]);
 
  useEffect(()=>{
-   setVisibleRowCount(8);
+   setVisibleRowCount(5);
    const page=document.querySelector("."+route+"-page") as HTMLElement|null;
    if(!page)return;
    const reveal=()=>{
      const nearBottom=page.scrollTop+page.clientHeight>=page.scrollHeight-900;
-     if(nearBottom)setVisibleRowCount(n=>Math.min(rows.length,n+4));
+     if(nearBottom)setVisibleRowCount(n=>Math.min(rows.length,n+3));
    };
    page.addEventListener("scroll",reveal,{passive:true});
-   const warm=window.setTimeout(()=>setVisibleRowCount(n=>Math.min(rows.length,n+2)),1200);
+   const warm=window.setTimeout(()=>setVisibleRowCount(n=>Math.min(rows.length,n+1)),1500);
    return()=>{page.removeEventListener("scroll",reveal);window.clearTimeout(warm)};
  },[route,rows.length]);
 
