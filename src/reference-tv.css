@@ -125,7 +125,7 @@
 /* Title hub: matches the supplied Netflix TV title-info references. */
 .route-details .tv-topbar{display:none}
 .route-details .app-content{padding-top:0}
-.route-details .tv-page{background:#000;padding-left:0;overflow:hidden}
+.route-details .tv-page{background:#000;padding-left:0;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth}
 .route-details .details-hero{height:100vh;min-height:0;padding:0 var(--nf-gutter);align-items:flex-end}
 .route-details .details-backdrop{object-position:center}
 .route-details .details-scrim{background:linear-gradient(90deg,rgba(0,0,0,.94) 0%,rgba(0,0,0,.75) 28%,rgba(0,0,0,.12) 64%,transparent 84%),linear-gradient(0deg,rgba(0,0,0,.84) 0%,rgba(0,0,0,.18) 42%,transparent 68%)}
@@ -323,3 +323,23 @@
 .hub-related-row::-webkit-scrollbar{display:none}
 .hub-related-tile{transition:transform .22s cubic-bezier(.2,.75,.25,1),box-shadow .2s ease}
 .hub-related-tile.is-focused{transform:scale(1.025)}
+
+
+/* Series episodes are a natural continuation of the details page. */
+.inline-episodes{
+  min-height:56vw;
+  padding:2.2vw var(--nf-gutter) 5vw;
+  background:linear-gradient(180deg,#000 0%,#090b10 100%);
+  scroll-margin-top:1vw;
+}
+.inline-episodes .hub-series-heading{margin-bottom:1.6vw}
+.inline-episodes .hub-episode-row{
+  overflow-x:auto;
+  overflow-y:hidden;
+  scroll-behavior:smooth;
+  scrollbar-width:none;
+  padding:.2vw .2vw .7vw;
+}
+.inline-episodes .hub-episode-row::-webkit-scrollbar{display:none}
+.inline-episodes .hub-episode-tile{flex:0 0 22vw;width:22vw}
+.inline-episodes .hub-episode-copy{max-width:56vw;margin-top:1.1vw}
