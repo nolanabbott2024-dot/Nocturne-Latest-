@@ -12,12 +12,14 @@ export const TVPosterCard=memo(function TVPosterCard({item,route,rowId,onOpen,on
 }){
  const [trailerReady,setTrailerReady]=useState(false);
  const [previewItem,setPreviewItem]=useState(item);
+ const [landscapeLoaded,setLandscapeLoaded]=useState(false);
  const stopTrailer=usePlaybackStore(s=>s.stopTrailer);
  const previews=useSettingsStore(s=>s.previews);
  const {ref,focused,focusSelf}=useTVFocusable({focusKey:`${route}:${rowId}:${item.type}:${item.id}`,route,rowId,onPress:()=>onOpen(item),
   onFocus:layout=>{onFocused?.(item);onSpatialFocus?.(layout)},onArrowPress,
   onBlur:()=>{setTrailerReady(false);stopTrailer()}
  });
+ useEffect(()=>{if(!expanded)setLandscapeLoaded(false)},[expanded,item.id]);
  useEffect(()=>{
   if(!focused)return;
   const controller=new AbortController();
@@ -25,11 +27,11 @@ export const TVPosterCard=memo(function TVPosterCard({item,route,rowId,onOpen,on
   const trailer=window.setTimeout(()=>setTrailerReady(previews),5000);
   return()=>{controller.abort();window.clearTimeout(meta);window.clearTimeout(trailer)};
  },[focused,item.id,onSettled,previews]);
- return <button ref={ref as any} className={`tv-card reference-card ${focused?"is-focused":""} ${expanded?"is-expanded":""}`} aria-label={item.name}
+ return <button ref={ref as any} className={`tv-card reference-card ${focused?"is-focused":""} ${expanded?"is-expanded":""} ${landscapeLoaded?"has-landscape":""}`} aria-label={item.name}
   onMouseEnter={()=>focusSelf()} onClick={()=>onOpen(item)}>
    <div className="card-media">
     {(item.poster||item.background)&&<img className="card-art card-art-portrait" src={item.poster||item.background} loading="lazy" decoding="async" alt=""/>}
-    {expanded&&(item.background||item.poster)&&<img className="card-art card-art-landscape" src={item.background||item.poster} decoding="async" alt=""/>}
+    {expanded&&(item.background||item.poster)&&<img className="card-art card-art-landscape" src={item.background||item.poster} decoding="async" alt="" onLoad={()=>setLandscapeLoaded(true)}/>} 
     {trailerReady&&focused&&<TrailerPreview item={expanded?item:previewItem}/>}
     <div className="reference-card-shade"/>
     <span className="card-monogram" aria-hidden="true">N</span>
