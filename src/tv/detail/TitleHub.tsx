@@ -63,7 +63,15 @@ export function EpisodesPanel({item,route,onPlay,inline=false}:{item:MediaItem;r
     <div>{seasons.length} Season{seasons.length===1?"":"s"} <span>•</span> {(item.videos||[]).length} Episodes {avgRuntime&&<><span>•</span> {avgRuntime} Avg Ep</>}</div>
    </div>
    <div className="hub-season-tabs">
-    {seasons.map(s=><FocusButton key={s} focusKey={route+":season:"+s} route={route} className={"hub-season "+(season===s?"active":"")} onPress={()=>setSeason(s)}>
+    {seasons.map(s=><FocusButton key={s} focusKey={route+":season:"+s} route={route} className={"hub-season "+(season===s?"active":"")} onPress={()=>setSeason(s)}
+      onArrowPress={direction=>{
+        if(direction==="up"){void setFocus(route+":action:play");return false}
+        if(direction==="down"){
+          const first=(item.videos||[]).find(v=>(v.season||1)===s);
+          if(first){void setFocus(route+":hub-episode:"+first.id);return false}
+        }
+        return true;
+      }}>
       Season {s}<small>{(item.videos||[]).filter(v=>(v.season||1)===s).length} Episodes</small>
     </FocusButton>)}
    </div>
@@ -78,7 +86,12 @@ export function EpisodesPanel({item,route,onPlay,inline=false}:{item:MediaItem;r
  </section>;
 }
 function EpisodeTile({ep,i,route,onPlay,onFocus}:{ep:Episode;i:number;route:string;onPlay:()=>void;onFocus:()=>void}){
- const {ref,focused,focusSelf}=useTVFocusable({focusKey:route+":hub-episode:"+ep.id,route,rowId:"hub-episodes",onPress:onPlay,onFocus});
+ const {ref,focused,focusSelf}=useTVFocusable({focusKey:route+":hub-episode:"+ep.id,route,rowId:"hub-episodes",onPress:onPlay,onFocus,
+   onArrowPress:direction=>{
+     if(direction==="up"){void setFocus(route+":season:"+(ep.season||1));return false}
+     return true;
+   }
+ });
  return <button ref={ref as any} className={"hub-episode-tile "+(focused?"is-focused":"")} onClick={onPlay} onMouseEnter={()=>focusSelf()}>
    <div>{ep.thumbnail?<img src={ep.thumbnail} alt=""/>:<span className="hub-thumb-placeholder"/>}<b>{ep.season?("S"+ep.season+" "):""}E{ep.episode||i+1}</b></div>
  </button>;
@@ -102,7 +115,6 @@ export function DetailsPanel({item}:{item:MediaItem}){
 
 export function RelatedPanel({items,item,route,onOpen}:{items:MediaItem[];item:MediaItem;route:string;onOpen:(m:MediaItem)=>void}){
  const [selected,setSelected]=useState<MediaItem|undefined>(items[0]);
- const rowRef=useRef<HTMLDivElement|null>(null);
  useEffect(()=>setSelected(items[0]),[items]);
  return <div className="hub-related">
    <h2>If you liked {item.name}, you’ll love these</h2>
@@ -117,7 +129,7 @@ function RelatedTile({item,route,i,onOpen,onFocus}:{item:MediaItem;route:string;
  const {ref,focused,focusSelf}=useTVFocusable({
    focusKey:route+":related:"+item.type+":"+item.id+":"+i,route,rowId:"hub-related",onPress:onOpen,onFocus,
    onArrowPress:direction=>{
-     if(direction==="up"){void setFocus(route+":hub-tab:related");return false}
+     if(direction==="up"){void setFocus(route+":overview-tab:related");return false}
      return true;
    }
  });
