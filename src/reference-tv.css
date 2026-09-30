@@ -449,3 +449,14 @@
   content-visibility:visible;
   contain-intrinsic-size:auto;
 }
+
+
+/* Focus movement is synchronous; never let CSS smooth-scrolling trail the cursor. */
+.tv-page,
+.route-details .tv-page,
+.stable-rail,
+.tv-row-scroll,
+.hub-related-row,
+.hub-episode-row{
+  scroll-behavior:auto!important;
+}
