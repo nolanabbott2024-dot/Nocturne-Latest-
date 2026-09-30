@@ -5,13 +5,7 @@ on:
   push:
     branches: [main]
     paths:
-      - "android-apk/**"
-      - "src/**"
-      - "index.html"
-      - "package.json"
-      - "tsconfig.json"
-      - "vite.config.ts"
-      - ".github/workflows/build-android-apk.yml"
+      - ".github/apk-build-request.txt"
 
 concurrency:
   group: nocturne-android-${{ github.ref }}
