@@ -220,3 +220,16 @@
 @media(max-width:900px){
  .route-details .details-copy{width:58vw}.route-details .details-description{font-size:1.55vw}.title-hub-shell{padding-left:4vw;padding-right:4vw}
 }
+
+
+/* Remote focus/scroll polish. */
+.title-hero-btn{transition:background-color .18s ease,color .18s ease,box-shadow .18s ease,transform .18s ease}
+.title-hero-btn.play{background:rgba(255,255,255,.22);color:#fff}
+.title-hero-btn.play.is-focused{background:#fff;color:#070707;box-shadow:0 0 0 .16vw #fff,0 .4vw 1.2vw #0008}
+.title-hero-btn.icon.is-focused{background:rgba(255,255,255,.18)}
+.tv-row-scroll{scroll-behavior:smooth}
+.reference-card,.reference-card .card-media{transition:width .24s cubic-bezier(.2,.75,.25,1),transform .24s cubic-bezier(.2,.75,.25,1),box-shadow .2s ease}
+.hub-detail-switch{align-items:center}
+.hub-detail-switch-btn{font-size:1.05vw;font-weight:800;padding:.55vw .85vw;border-radius:.35vw;color:#fff;cursor:pointer}
+.hub-detail-switch-btn.active{background:rgba(255,255,255,.12)}
+.hub-detail-switch-btn.is-focused{background:#fff;color:#111}
