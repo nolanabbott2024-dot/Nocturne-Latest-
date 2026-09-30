@@ -1,6 +1,7 @@
 import { useEffect,useMemo,useState } from "react";
 import { FocusContext,setFocus,useFocusable } from "@noriginmedia/norigin-spatial-navigation";
 import { motion } from "motion/react";
+import { Search as SearchIcon } from "lucide-react";
 import { TVPage } from "../tv/navigation/TVPage";
 import { TVRow } from "../tv/content/TVRow";
 import { useTVFocusable } from "../tv/focus/useTVFocusable";
@@ -24,21 +25,29 @@ export function SearchPage({onOpen}:{onOpen:(m:MediaItem)=>void}){
  const allKeys=[...KEYS,"⌫","Clear","Search"];
 
  return <TVPage route="search" initialFocusKey="search-key:A">
-  <header className="page-title"><h1>Search</h1><div className="search-value">{q||"Search movies, shows, people…"}</div></header>
-  <FocusContext.Provider value={focusKey}>
-   <div ref={ref as any} className="tv-keyboard">
-    {allKeys.map((k,index)=><KeyButton key={k} k={k} index={index}
-      autoFocus={("search-key:"+k)===(lastKeyboardKey||"search-key:A")}
-      onFocus={()=>setLastKeyboardKey("search-key:"+k)}
-      onPress={()=>k==="⌫"?setQ(q.slice(0,-1)):k==="Clear"?setQ(""):k==="Search"?(firstResultKey&&setFocus(firstResultKey)):setQ(q+k)}
-      onRight={()=>{if(index%COLS===COLS-1&&firstResultKey){setFocus(firstResultKey);return false}return true}}/>)}
-   </div>
-  </FocusContext.Provider>
-  <div className="search-results">{q&&catalogs.map((c,i)=><SearchRow key={c.baseUrl+c.id} c={c} q={q} onOpen={onOpen}
-    keyboardFocus={lastKeyboardKey} onFirst={i===0?setFirstResultKey:undefined}/>)}</div>
+  <div className="netflix-search-shell">
+    <aside className="netflix-search-panel">
+      <div className="netflix-search-heading"><SearchIcon/><h1>Search</h1></div>
+      <div className={"search-value netflix-search-value "+(q?"has-query":"")}>{q||"Titles, people, genres"}</div>
+      <FocusContext.Provider value={focusKey}>
+       <div ref={ref as any} className="tv-keyboard netflix-keyboard">
+        {allKeys.map((k,index)=><KeyButton key={k} k={k}
+          autoFocus={("search-key:"+k)===(lastKeyboardKey||"search-key:A")}
+          onFocus={()=>setLastKeyboardKey("search-key:"+k)}
+          onPress={()=>k==="⌫"?setQ(q.slice(0,-1)):k==="Clear"?setQ(""):k==="Search"?(firstResultKey&&setFocus(firstResultKey)):setQ(q+k)}
+          onRight={()=>{if(index%COLS===COLS-1&&firstResultKey){setFocus(firstResultKey);return false}return true}}/>)}
+       </div>
+      </FocusContext.Provider>
+    </aside>
+    <section className="search-results netflix-search-results">
+      {!q&&<div className="netflix-search-empty"><b>Find something to watch</b><span>Use the remote keyboard, then move right into results.</span></div>}
+      {q&&catalogs.map((c,i)=><SearchRow key={c.baseUrl+c.id} c={c} q={q} onOpen={onOpen}
+        keyboardFocus={lastKeyboardKey} onFirst={i===0?setFirstResultKey:undefined}/>)}
+    </section>
+  </div>
  </TVPage>
 }
-function KeyButton({k,index,onPress,onFocus,onRight,autoFocus}:any){
+function KeyButton({k,onPress,onFocus,onRight,autoFocus}:any){
  const {ref,focused,focusSelf}=useTVFocusable({
    focusKey:"search-key:"+k,route:"search",rowId:"search-keyboard",onPress,onFocus,
    onArrowPress:(direction:any)=>direction==="right"?onRight():true
@@ -54,8 +63,9 @@ function KeyButton({k,index,onPress,onFocus,onRight,autoFocus}:any){
    requestAnimationFrame(claim);
    return()=>{cancelled=true;if(timer)window.clearTimeout(timer)};
  },[autoFocus,focusSelf]);
- return <motion.button ref={ref as any} className={"key-button "+(k==="Search"?"search-submit":"")}
-  animate={{scale:focused?1.08:1,backgroundColor:focused?"#fff":"rgba(255,255,255,.08)",color:focused?"#000":"#fff"}}>{k}</motion.button>
+ return <motion.button ref={ref as any} className={"key-button netflix-key "+(k==="Search"?"search-submit":"")}
+  animate={{scale:focused?1.075:1,backgroundColor:focused?"#fff":"rgba(255,255,255,.08)",color:focused?"#111":"#fff"}}
+  transition={{type:"spring",stiffness:450,damping:34}}>{k}</motion.button>
 }
 function SearchRow({c,q,onOpen,keyboardFocus,onFirst}:any){
  const r=useCatalog(c,{search:q});
