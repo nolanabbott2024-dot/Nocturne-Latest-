@@ -8,7 +8,7 @@ import { useSettingsStore } from "../../stores/settingsStore";
 
 export const TVPosterCard=memo(function TVPosterCard({item,route,rowId,onOpen,onFocused,onSettled,onSpatialFocus,onArrowPress,expanded=false,followFocus=true}:{
  item:MediaItem;route:string;rowId:string;onOpen:(m:MediaItem)=>void;onFocused?:(m:MediaItem)=>void;onSettled?:(m:MediaItem)=>void;
- onSpatialFocus?:(layout:any)=>void;onArrowPress?:(direction:string)=>boolean|void;expanded?:boolean;followFocus?:boolean;
+ onSpatialFocus?:(layout:any)=>void;onArrowPress?:(direction:string)=>boolean|void;expanded?:boolean;followFocus?:boolean;followFocus?:boolean;
 }){
  const [trailerReady,setTrailerReady]=useState(false);
  const [previewItem,setPreviewItem]=useState(item);
