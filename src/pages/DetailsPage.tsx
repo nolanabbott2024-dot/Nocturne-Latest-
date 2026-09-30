@@ -1,18 +1,20 @@
-import { useCallback,useEffect,useState } from "react";
+import { useCallback,useEffect,useMemo,useState } from "react";
 import { AnimatePresence } from "motion/react";
+import { setFocus } from "@noriginmedia/norigin-spatial-navigation";
 import { TVPage } from "../tv/navigation/TVPage";
 import { TVDetailsHero } from "../tv/detail/TVDetailsHero";
-import { TVEpisodeRail } from "../tv/detail/TVEpisodeRail";
+import { TitleHub,type TitlePanel } from "../tv/detail/TitleHub";
 import { SourcePicker } from "../tv/playback/SourcePicker";
 import { DetailsTrailerOverlay } from "../tv/playback/DetailsTrailerOverlay";
 import { useProviderStore } from "../stores/providerStore";
 import { loadMetaEnriched } from "../data/stremio";
+import { useAddons,useCatalog } from "../data/queries";
 import { resolvePlayableStream, resolvePlayableSources, type PlayableSource } from "../data/playback";
 import { isWatchlisted,toggleWatchlist } from "../data/library";
 import type { MediaItem,Episode } from "../types/tv";
 
-export function DetailsPage({seed,onBack,onPlay}:{
-  seed:MediaItem;onBack:()=>void;
+export function DetailsPage({seed,onBack,onPlay,onOpen}:{
+  seed:MediaItem;onBack:()=>void;onOpen:(item:MediaItem)=>void;
   onPlay:(url:string,title:string,headers:Record<string,string>,item:MediaItem,videoId:string)=>void
 }){
  const [item,setItem]=useState(seed);
@@ -20,7 +22,17 @@ export function DetailsPage({seed,onBack,onPlay}:{
  const [watchlisted,setWatchlisted]=useState(()=>isWatchlisted(seed.id));
  const [sources,setSources]=useState<{items:PlayableSource[];videoId:string;loading:boolean}|null>(null);
  const [trailerOpen,setTrailerOpen]=useState(false);
+ const [panel,setPanel]=useState<TitlePanel|null>(null);
  const addons=useProviderStore(s=>s.addons);
+ const loadedAddons=useAddons();
+ const relatedCatalog=useMemo(()=>loadedAddons.flatMap(a=>a.catalogs).find(c=>c.type===item.type),[loadedAddons,item.type]);
+ const relatedQuery=useCatalog(relatedCatalog);
+ const related=useMemo(()=>{
+   const pool=(relatedQuery.data||[]).filter(x=>x.id!==item.id);
+   const genres=new Set((item.genres||[]).map(g=>g.toLowerCase()));
+   const matched=pool.filter(x=>(x.genres||[]).some(g=>genres.has(g.toLowerCase())));
+   return (matched.length>=4?matched:pool).slice(0,12);
+ },[relatedQuery.data,item.id,item.genres]);
  const route="details:"+item.id;
 
  useEffect(()=>{
@@ -30,6 +42,13 @@ export function DetailsPage({seed,onBack,onPlay}:{
  },[seed.id,seed.sourceBase,seed.type]);
 
  useEffect(()=>setWatchlisted(isWatchlisted(item.id)),[item.id]);
+
+ useEffect(()=>{
+   if(!panel||trailerOpen||sources)return;
+   const close=()=>closePanel();
+   window.addEventListener("nocturne-overlay-back",close);
+   return()=>window.removeEventListener("nocturne-overlay-back",close);
+ },[panel,trailerOpen,!!sources]);
 
  const playSource=useCallback((source:PlayableSource,videoId:string)=>{
    setSources(null);
@@ -58,15 +77,22 @@ export function DetailsPage({seed,onBack,onPlay}:{
  },[busy,item,addons]);
 
  const toggle=useCallback(()=>setWatchlisted(toggleWatchlist(item)),[item]);
- const firstEpisodeFocusKey=item.type==="series"&&item.videos?.length?`${route}:episode:${item.videos[0].id}`:undefined;
+ const openPanel=useCallback((next:TitlePanel)=>setPanel(next),[]);
+ const closePanel=useCallback(()=>{
+   const restore=panel;
+   setPanel(null);
+   requestAnimationFrame(()=>void setFocus(restore?route+":overview-tab:"+restore:route+":action:play"));
+ },[panel,route]);
 
- return <TVPage route={route} initialFocusKey={`${route}:action:play`}>
-   <TVDetailsHero item={item} route={route}
+ return <TVPage route={route} initialFocusKey={route+":action:play"}>
+   {!panel&&<TVDetailsHero item={item} route={route}
      onPlay={()=>play()} onWatchlist={toggle} watchlisted={watchlisted}
-     onTrailer={()=>setTrailerOpen(true)} onSources={()=>chooseSources()} episodeFocusKey={firstEpisodeFocusKey}/>
-   <TVEpisodeRail item={item} route={route} onPlay={(ep:Episode)=>play(ep.id)}/>
+     onSources={()=>chooseSources()} onPanel={openPanel}/>}
+   {panel&&<TitleHub item={item} route={route} panel={panel} onPanel={setPanel} onClose={closePanel}
+     onPlayEpisode={(ep:Episode)=>play(ep.id)} onOpenRelated={onOpen}
+     onTrailer={()=>setTrailerOpen(true)} related={related}/>}
    <AnimatePresence>
-     {sources&&<SourcePicker sources={sources.items} loading={sources.loading} route={route} onPick={s=>playSource(s,sources.videoId)} onClose={()=>setSources(null)}/>} 
+     {sources&&<SourcePicker sources={sources.items} loading={sources.loading} route={route} onPick={s=>playSource(s,sources.videoId)} onClose={()=>setSources(null)}/>}
      {trailerOpen&&<DetailsTrailerOverlay item={item} route={route} onClose={()=>setTrailerOpen(false)}/>}
    </AnimatePresence>
  </TVPage>
