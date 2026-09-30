@@ -101,7 +101,7 @@ async function metas(ids:string[],signal?:AbortSignal){
 }
 async function enrich(items:MediaItem[],signal?:AbortSignal,limit=32){
   const base=uniq(items).slice(0,limit);
-  return mapLimit(base,6,async x=>{
+  return mapLimit(base,3,async x=>{
     if(x.type!=="movie"&&x.type!=="series")return x;
     try{
       const m=await loadMeta(CINEMETA_BASE,x.type,x.id,signal);
@@ -203,8 +203,8 @@ export async function buildCuratedRows(args:{
 
   const relevant=catalogs.filter(c=>!type||c.type===type).slice(0,6);
   const loaded=await Promise.all(relevant.map(c=>loadCatalog(c,{},signal).catch(()=>[])));
-  const merged=roundRobin(loaded,90);
-  const enriched=await enrich(merged,signal,72);
+  const merged=roundRobin(loaded,60);
+  const enriched=await enrich(merged,signal,36);
   const active=type?enriched.filter(x=>x.type===type):enriched;
   const acclaimed=[...active].filter(x=>ratingOf(x)>=7.5).sort((a,b)=>ratingOf(b)-ratingOf(a));
   const genericType=(type||"movie") as "movie"|"series";
