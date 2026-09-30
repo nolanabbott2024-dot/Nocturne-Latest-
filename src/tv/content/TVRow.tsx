@@ -48,7 +48,7 @@ export function TVRow({id,title,items,route,onOpen,onFocused,onSettled,leftExitF
    <h2>{title}</h2>
    <div className="tv-row-scroll" ref={scroller}>
     <div className="tv-row-inner" style={{width:virtual.getTotalSize(),height,position:"relative"}}>
-     {virtual.getVirtualItems().map(v=><div key={keyAt(v.index)} style={{position:"absolute",left:v.start,top:0,width:v.size-gap,height}}>
+     {virtual.getVirtualItems().map(v=><div className="tv-row-slot" key={keyAt(v.index)} style={{position:"absolute",left:v.start,top:0,width:v.size-gap,height}}>
       <TVPosterCard item={enriched?.id===items[v.index].id?enriched:items[v.index]} route={route} rowId={id} onOpen={onOpen} onFocused={select} onSettled={onSettled} expanded={hasFocusedChild&&v.index===selected}
        onArrowPress={direction=>{
         if(direction==="up"&&!(ref.current as HTMLElement)?.previousElementSibling&&route!=="search"){
