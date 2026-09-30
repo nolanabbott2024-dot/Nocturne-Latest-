@@ -22,7 +22,7 @@ export const TVPosterCard=memo(function TVPosterCard({item,route,rowId,onOpen,on
   if(!focused)return;
   const controller=new AbortController();
   const meta=window.setTimeout(()=>{onSettled?.(item);if(!expanded)loadMetaEnriched(item,controller.signal).then(full=>{if(!controller.signal.aborted)setPreviewItem(full)}).catch(()=>{})},300);
-  const trailer=window.setTimeout(()=>setTrailerReady(previews),1150);
+  const trailer=window.setTimeout(()=>setTrailerReady(previews),5000);
   return()=>{controller.abort();window.clearTimeout(meta);window.clearTimeout(trailer)};
  },[focused,item.id,onSettled,previews]);
  return <button ref={ref as any} className={`tv-card reference-card ${focused?"is-focused":""} ${expanded?"is-expanded":""}`} aria-label={item.name}
