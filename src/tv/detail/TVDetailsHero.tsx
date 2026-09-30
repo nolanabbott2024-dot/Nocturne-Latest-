@@ -43,6 +43,7 @@ export function TVDetailsHero({item,route,onPlay,onWatchlist,onSources,watchlist
     </div>
     <div className="title-overview-tabs">
       <ChevronDown className="title-tabs-caret"/>
+      {isSeries&&<PanelButton panel="episodes" label="Episodes" route={route} onPanel={onPanel}/>}
       <PanelButton panel="details" label="Details" route={route} onPanel={onPanel}/>
       <PanelButton panel="audio" label="Audio & Subtitles" route={route} onPanel={onPanel}/>
       <PanelButton panel="related" label="More Like This" route={route} onPanel={onPanel}/>
