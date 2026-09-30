@@ -10,7 +10,7 @@ function fullyVisibleWithin(node:HTMLElement,container:HTMLElement,padX=0,padY=0
 function lockFocusedNode(node:HTMLElement|null,focusKey:string){
   if(!node)return;
 
-  const horizontal=node.closest(".tv-row-scroll,.hub-related-row,.hub-episode-row") as HTMLElement|null;
+  const horizontal=node.closest(".tv-row-scroll,.top10-scroll,.continue-scroll,.hub-related-row,.hub-episode-row") as HTMLElement|null;
   if(horizontal){
     let nr=node.getBoundingClientRect(),hr=horizontal.getBoundingClientRect();
     const pad=Math.min(36,hr.width*.06);
@@ -48,7 +48,7 @@ function lockFocusedNode(node:HTMLElement|null,focusKey:string){
   requestAnimationFrame(()=>{
     if(!node.isConnected)return;
 
-    const h=node.closest(".tv-row-scroll,.hub-related-row,.hub-episode-row") as HTMLElement|null;
+    const h=node.closest(".tv-row-scroll,.top10-scroll,.continue-scroll,.hub-related-row,.hub-episode-row") as HTMLElement|null;
     if(h&&!fullyVisibleWithin(node,h,12,0)){
       const nr=node.getBoundingClientRect(),hr=h.getBoundingClientRect();
       if(nr.left<hr.left+12)h.scrollLeft+=nr.left-(hr.left+12);
