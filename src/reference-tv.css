@@ -120,3 +120,103 @@
 .detail-action.is-focused svg{background:#fff;color:#000;border-color:#fff;box-shadow:0 0 0 .13vw #fff}
 .detail-action.primary.is-focused{box-shadow:0 0 0 .14vw #fff,0 .55vw 1.3vw #0009}
 .episodes{position:relative;z-index:3;padding:1vw var(--nf-gutter) 6vw;margin-top:-.2vw;background:#000}
+
+
+/* Title hub: matches the supplied Netflix TV title-info references. */
+.route-details .tv-topbar{display:none}
+.route-details .app-content{padding-top:0}
+.route-details .tv-page{background:#000;padding-left:0;overflow:hidden}
+.route-details .details-hero{height:100vh;min-height:0;padding:0 var(--nf-gutter);align-items:flex-end}
+.route-details .details-backdrop{object-position:center}
+.route-details .details-scrim{background:linear-gradient(90deg,rgba(0,0,0,.94) 0%,rgba(0,0,0,.75) 28%,rgba(0,0,0,.12) 64%,transparent 84%),linear-gradient(0deg,rgba(0,0,0,.84) 0%,rgba(0,0,0,.18) 42%,transparent 68%)}
+.route-details .details-copy{width:48vw;padding-bottom:3.2vw}
+.route-details .details-logo{max-width:29vw;max-height:9vw;margin-bottom:1.35vw}
+.route-details .details-copy h1{font-size:4.15vw;max-width:42vw}
+.route-details .details-meta{display:flex;align-items:center;gap:0;font-size:1.17vw;margin:.55vw 0 1vw}
+.route-details .details-meta span+span:before{content:"•";color:#c8c8c8;margin:0 .62vw}
+.route-details .details-description{font-size:1.35vw;line-height:1.42;max-width:46vw;color:#f0f0f0;margin:0 0 1.45vw}
+
+.title-hero-actions{display:flex;align-items:center;gap:1.05vw;margin:1.2vw 0 2vw}
+.title-hero-btn{border:0;color:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-weight:800}
+.title-hero-btn.play{height:3.5vw;min-width:8.3vw;border-radius:2vw;padding:0 1.4vw;gap:.65vw;background:#fff;color:#070707;font-size:1.25vw}
+.title-hero-btn.play svg{width:1.55vw;height:1.55vw}
+.title-hero-btn.icon{width:3.4vw;height:3.4vw;border-radius:50%;background:transparent}
+.title-hero-btn.icon svg{width:2.15vw;height:2.15vw;stroke-width:2.3}
+.title-hero-btn.is-focused{box-shadow:0 0 0 .16vw #fff}
+
+.title-overview-tabs{display:flex;align-items:center;gap:2.5vw;margin-top:.5vw}
+.title-tabs-caret{width:1.5vw;height:1.5vw;stroke-width:3}
+.title-overview-tab{font-size:1.1vw;font-weight:750;color:#fff;padding:.65vw .25vw;border-radius:.38vw;cursor:pointer}
+.title-overview-tab.is-focused{background:#fff;color:#111;padding:.65vw 1vw}
+
+.title-hub{position:absolute;inset:0;z-index:35;background:#090b10;overflow:hidden}
+.title-hub-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.42}
+.title-hub-scrim{position:absolute;inset:0;background:linear-gradient(90deg,rgba(8,11,17,.96),rgba(8,11,17,.78) 48%,rgba(8,11,17,.42)),linear-gradient(0deg,rgba(8,11,17,.94),rgba(8,11,17,.42) 62%,rgba(8,11,17,.72))}
+.title-hub-shell{position:relative;z-index:2;height:100%;padding:3.1vw var(--nf-gutter) 3vw}
+.title-hub-tabs{height:4.6vw;display:flex;align-items:center;gap:2.55vw}
+.hub-close,.hub-tab{height:2.9vw;display:flex;align-items:center;justify-content:center;border-radius:.42vw;font-size:1.15vw;font-weight:800;color:#fff;cursor:pointer;padding:0 .75vw;white-space:nowrap}
+.hub-close{width:2.2vw;padding:0;background:transparent}
+.hub-close svg{width:1.35vw;height:1.35vw;stroke-width:3.4}
+.hub-tab.active{background:rgba(255,255,255,.22)}
+.hub-tab.is-focused,.hub-close.is-focused{background:#fff;color:#17191d}
+.title-hub-rule{height:1px;background:rgba(255,255,255,.58);margin-top:.35vw}
+.title-hub-content{height:calc(100% - 5.3vw);padding-top:2.2vw;overflow:hidden}
+
+.hub-series-heading{margin-bottom:2vw}
+.hub-series-heading img{max-width:28vw;max-height:6.3vw;object-fit:contain;object-position:left bottom;margin-bottom:.75vw}
+.hub-series-heading h1{font-size:3.6vw;letter-spacing:.16vw;margin:0 0 .7vw}
+.hub-series-heading>div{display:flex;gap:.65vw;font-size:1.2vw;font-weight:700}
+.hub-season-tabs{display:flex;gap:2.2vw;align-items:center;margin:0 0 .85vw}
+.hub-season{font-size:1.15vw;font-weight:800;padding:.65vw .9vw;border-radius:.4vw;text-align:left;cursor:pointer}
+.hub-season small{display:block;font-size:.82vw;margin-top:.12vw}
+.hub-season.active{background:rgba(255,255,255,.2)}
+.hub-season.is-focused{background:#fff;color:#111}
+.hub-episode-row{display:flex;gap:.75vw;overflow:hidden;padding:.15vw .2vw .45vw}
+.hub-episode-tile{width:21.3vw;flex:0 0 21.3vw;padding:0;cursor:pointer}
+.hub-episode-tile>div{position:relative;width:100%;aspect-ratio:16/9;border-radius:.45vw;overflow:hidden;background:#1b2130}
+.hub-episode-tile img,.hub-thumb-placeholder{width:100%;height:100%;object-fit:cover;display:block}
+.hub-episode-tile b{position:absolute;top:.7vw;left:.8vw;font-size:1.28vw;text-shadow:0 2px 5px #000}
+.hub-episode-tile.is-focused>div{box-shadow:0 0 0 .17vw #fff}
+.hub-episode-copy{margin-top:.9vw;max-width:53vw}
+.hub-episode-copy h3{font-size:1.35vw;margin:0 0 .25vw}
+.hub-episode-copy p{font-size:1.24vw;line-height:1.34;margin:0;color:#f2f2f2}
+.hub-episode-facts{display:flex;gap:6vw;margin-top:1vw;font-size:1vw}
+.hub-episode-facts span{display:flex;flex-direction:column;gap:.35vw}.hub-episode-facts b{font-size:.92vw}
+
+.hub-details{max-width:51vw}
+.hub-detail-logo{max-width:29vw;max-height:7vw;object-fit:contain;object-position:left bottom;margin:0 0 1.4vw}
+.hub-details h1{font-size:4vw;margin:0 0 1.3vw}
+.hub-detail-switch{display:flex;gap:2vw;margin-bottom:1.55vw;font-size:1.05vw;font-weight:800}
+.hub-detail-switch span:first-child{padding:.55vw .85vw;border-radius:.35vw;background:rgba(255,255,255,.22)}
+.hub-detail-facts{display:flex;align-items:center;font-size:1.16vw;font-weight:750;margin-bottom:.8vw}
+.hub-detail-facts span+span:before{content:"•";margin:0 .65vw;color:#d0d0d0}
+.hub-detail-description{font-size:1.34vw;line-height:1.38;margin:0 0 1.25vw;max-width:50vw}
+.hub-detail-note{font-size:1.05vw;font-weight:700;margin:.65vw 0}
+.hub-rating{display:flex;align-items:center;gap:.7vw;margin-top:1.5vw;font-size:.95vw}
+.hub-rating b{font-size:1.2vw;border:.12vw solid #fff;padding:.12vw .35vw;border-radius:.22vw}
+.hub-format-badges{display:flex;gap:.7vw;margin-top:1.35vw}.hub-format-badges span{border:.1vw solid #aaa;border-radius:.18vw;padding:.1vw .28vw;font-size:.9vw;font-weight:800}
+
+.hub-related h2{font-size:1.4vw;margin:0 0 .75vw}
+.hub-related-row{display:flex;align-items:stretch;gap:.85vw;overflow:hidden;padding:.15vw .2vw .45vw}
+.hub-related-tile{flex:0 0 15.2vw;width:15.2vw;aspect-ratio:2/3;border-radius:.5vw;overflow:hidden;padding:0;cursor:pointer;background:#171717}
+.hub-related-tile:first-child{flex-basis:43vw;width:43vw;aspect-ratio:16/9}
+.hub-related-tile img{width:100%;height:100%;object-fit:cover}
+.hub-related-tile.is-focused{box-shadow:0 0 0 .17vw #fff}
+.hub-related-copy{max-width:50vw;margin-top:1vw}.hub-related-copy p{font-size:1.23vw;line-height:1.35;margin:.35vw 0 0}
+.hub-empty{font-size:1.2vw;color:#ccc;margin-top:2vw}
+
+.hub-audio-grid{display:grid;grid-template-columns:1fr 1fr;gap:8vw;padding:1vw 6vw}
+.hub-audio-grid h2{font-size:2vw;margin:0 0 1.5vw}
+.hub-choice{display:flex;align-items:center;gap:.8vw;width:100%;min-height:3vw;text-align:left;font-size:1.28vw;font-weight:750;padding:.35vw .6vw;border-radius:.3vw;cursor:pointer}
+.hub-choice svg,.choice-spacer{width:1.35vw;height:1.35vw;flex:none}
+.hub-choice.is-focused{background:#fff;color:#111}
+
+.hub-extras{display:flex;gap:1vw;overflow:hidden;padding:.8vw .2vw}
+.hub-extra-card{width:42vw;flex:0 0 42vw;text-align:left;cursor:pointer;padding:0}
+.hub-extra-card>img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:.5vw;display:block}
+.hub-extra-card>div{padding-top:.8vw}.hub-extra-card h3{font-size:1.25vw;margin:0 0 .25vw}.hub-extra-card span{font-size:1vw;color:#ddd}
+.hub-extra-card.is-focused>img{box-shadow:0 0 0 .17vw #fff}
+
+@media(max-width:900px){
+ .route-details .details-copy{width:58vw}.route-details .details-description{font-size:1.55vw}.title-hub-shell{padding-left:4vw;padding-right:4vw}
+}
