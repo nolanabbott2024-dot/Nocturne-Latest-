@@ -228,7 +228,7 @@
 .title-hero-btn.play.is-focused{background:#fff;color:#070707;box-shadow:0 0 0 .16vw #fff,0 .4vw 1.2vw #0008}
 .title-hero-btn.icon.is-focused{background:rgba(255,255,255,.18)}
 .tv-row-scroll{scroll-behavior:smooth}
-.reference-card,.reference-card .card-media{transition:width .24s cubic-bezier(.2,.75,.25,1),transform .24s cubic-bezier(.2,.75,.25,1),box-shadow .2s ease}
+.reference-card{transition:transform .22s cubic-bezier(.2,.75,.25,1),box-shadow .2s ease}
 .hub-detail-switch{align-items:center}
 .hub-detail-switch-btn{font-size:1.05vw;font-weight:800;padding:.55vw .85vw;border-radius:.35vw;color:#fff;cursor:pointer}
 .hub-detail-switch-btn.active{background:rgba(255,255,255,.12)}
@@ -237,15 +237,29 @@
 
 /* Smooth portrait -> landscape expansion. */
 .tv-row-slot{
-  transition:
-    left .34s cubic-bezier(.22,.78,.2,1),
-    width .34s cubic-bezier(.22,.78,.2,1);
-  will-change:left,width;
+  overflow:visible;
+  contain:layout style;
 }
+.reference-card{
+  position:relative;
+  z-index:1;
+  width:100%;
+  height:100%;
+  overflow:visible;
+}
+.reference-card.is-focused{z-index:20}
 .reference-card .card-media{
+  width:100%;
   overflow:hidden;
-  transform-origin:center center;
-  transition:border-radius .28s ease,box-shadow .28s ease;
+  transform-origin:left center;
+  transition:
+    width .34s cubic-bezier(.22,.78,.2,1),
+    border-radius .28s ease,
+    box-shadow .28s ease;
+  will-change:width;
+}
+.reference-card.is-expanded .card-media{
+  width:var(--expanded-w);
 }
 .reference-card .card-art{
   position:absolute;
