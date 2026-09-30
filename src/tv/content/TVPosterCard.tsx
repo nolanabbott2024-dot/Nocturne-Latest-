@@ -15,6 +15,7 @@ export const TVPosterCard=memo(function TVPosterCard({item,route,rowId,onOpen,on
  const [landscapeLoaded,setLandscapeLoaded]=useState(false);
  const stopTrailer=usePlaybackStore(s=>s.stopTrailer);
  const previews=useSettingsStore(s=>s.previews);
+ const previewFrame=new URLSearchParams(window.location.search).get("tvframe")==="1";
  const {ref,focused,focusSelf}=useTVFocusable({focusKey:`${route}:${rowId}:${item.type}:${item.id}`,route,rowId,onPress:()=>onOpen(item),followFocus,
   onFocus:layout=>{onFocused?.(item);onSpatialFocus?.(layout)},onArrowPress,
   onBlur:()=>{setTrailerReady(false);stopTrailer()}
@@ -24,9 +25,9 @@ export const TVPosterCard=memo(function TVPosterCard({item,route,rowId,onOpen,on
   if(!focused)return;
   const controller=new AbortController();
   const meta=window.setTimeout(()=>{onSettled?.(item);if(!expanded)loadMetaEnriched(item,controller.signal).then(full=>{if(!controller.signal.aborted)setPreviewItem(full)}).catch(()=>{})},300);
-  const trailer=window.setTimeout(()=>setTrailerReady(previews),5000);
+  const trailer=window.setTimeout(()=>setTrailerReady(previews&&!previewFrame),5000);
   return()=>{controller.abort();window.clearTimeout(meta);window.clearTimeout(trailer)};
- },[focused,item.id,onSettled,previews]);
+ },[focused,item.id,onSettled,previews,previewFrame]);
  return <button ref={ref as any} className={`tv-card reference-card ${focused?"is-focused":""} ${expanded?"is-expanded":""} ${landscapeLoaded?"has-landscape":""}`} aria-label={item.name}
   onMouseEnter={()=>focusSelf()} onClick={()=>onOpen(item)}>
    <div className="card-media">
