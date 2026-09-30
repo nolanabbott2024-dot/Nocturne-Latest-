@@ -338,3 +338,90 @@ button:focus,button:focus-visible{outline:none!important}.app-shell{display:flex
   :root{--nf-card-w:272px;--nf-gutter:46px}
   .netflix-billboard-copy{width:min(620px,53vw)}
 }
+
+
+.netflix-search-shell{
+  min-height:100%;
+  display:grid;
+  grid-template-columns:560px minmax(0,1fr);
+  gap:0;
+  padding-left:0;
+}
+.netflix-search-panel{
+  position:sticky;top:0;height:100vh;
+  padding:86px 34px 54px 54px;
+  background:linear-gradient(90deg,#0b0b0c 0%,#111 82%,rgba(17,17,17,.82) 100%);
+  z-index:4;
+}
+.netflix-search-heading{display:flex;align-items:center;gap:14px;margin-bottom:20px}
+.netflix-search-heading h1{font-size:42px;margin:0;letter-spacing:-.035em}
+.netflix-search-value{
+  margin:0 0 20px;
+  min-height:58px;
+  display:flex;align-items:center;
+  font-size:20px;border-radius:4px;
+  background:#2b2b2b;color:rgba(255,255,255,.48)
+}
+.netflix-search-value.has-query{color:#fff}
+.netflix-keyboard{
+  grid-template-columns:repeat(9,48px);
+  gap:6px;
+  padding:0;
+}
+.netflix-key{
+  height:48px;border-radius:3px;
+  background:#262626;
+  font-size:14px;
+}
+.netflix-key.search-submit{grid-column:span 3;background:#3a3a3a}
+.netflix-search-results{
+  padding:90px 0 110px;
+  min-width:0;
+  overflow:hidden;
+}
+.netflix-search-results .tv-row h2,
+.netflix-search-results .tv-row-scroll{padding-left:42px}
+.netflix-search-results .tv-row-scroll{padding-right:52px}
+.netflix-search-empty{
+  min-height:50vh;
+  display:flex;flex-direction:column;justify-content:center;
+  padding:0 70px;color:rgba(255,255,255,.48)
+}
+.netflix-search-empty b{font-size:30px;color:#fff;margin-bottom:8px}
+.netflix-search-empty span{font-size:17px}
+.continue-scroll,.top10-scroll{
+  padding-left:var(--nf-gutter);
+  padding-right:var(--nf-gutter);
+}
+.continue-card{
+  width:300px;
+  border-radius:5px;
+  box-shadow:0 5px 14px rgba(0,0,0,.42);
+}
+.continue-overlay{
+  background:linear-gradient(0deg,rgba(0,0,0,.74),rgba(0,0,0,.05));
+  font-size:17px;font-weight:750;
+}
+.continue-progress{height:4px;background:rgba(255,255,255,.25)}
+.continue-progress i{background:var(--nf-red)}
+.top10-card{
+  flex:0 0 380px;
+  align-items:flex-end;
+}
+.top10-rank{
+  font-size:168px;
+  line-height:.67;
+  color:#141414;
+  -webkit-text-stroke:3px rgba(255,255,255,.7);
+  text-shadow:0 6px 22px rgba(0,0,0,.55);
+  margin-right:-28px;
+  letter-spacing:-.1em;
+}
+.ranked-row .netflix-card{width:260px}
+.source-sheet,.tv-dialog{
+  border-radius:6px;
+  background:#181818;
+  box-shadow:0 26px 90px rgba(0,0,0,.82);
+}
+.source-button,.setting-row{border-radius:4px;background:#262626}
+.trailer-stage{border-radius:5px}
