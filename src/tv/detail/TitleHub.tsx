@@ -93,7 +93,7 @@ function EpisodeTile({ep,i,route,onPlay,onFocus}:{ep:Episode;i:number;route:stri
  </button>;
 }
 
-function DetailsPanel({item}:{item:MediaItem}){
+export function DetailsPanel({item}:{item:MediaItem}){
  const facts=[item.type==="series"?"Show":"Movie",item.genres?.[0],item.releaseInfo,item.type==="series"&&item.videos?.length?(new Set(item.videos.map(v=>v.season||1)).size+" Seasons"):item.runtime].filter(Boolean);
  return <div className="hub-details">
    {item.logo?<img className="hub-detail-logo" src={item.logo} alt={item.name}/>:<h1>{item.name}</h1>}
@@ -109,7 +109,7 @@ function DetailsPanel({item}:{item:MediaItem}){
  </div>;
 }
 
-function RelatedPanel({items,item,route,onOpen}:{items:MediaItem[];item:MediaItem;route:string;onOpen:(m:MediaItem)=>void}){
+export function RelatedPanel({items,item,route,onOpen}:{items:MediaItem[];item:MediaItem;route:string;onOpen:(m:MediaItem)=>void}){
  const [selected,setSelected]=useState<MediaItem|undefined>(items[0]);
  const rowRef=useRef<HTMLDivElement|null>(null);
  useEffect(()=>setSelected(items[0]),[items]);
@@ -146,7 +146,7 @@ function RelatedTile({item,route,i,onOpen,onFocus}:{item:MediaItem;route:string;
  </button>;
 }
 
-function AudioPanel({route}:{route:string}){
+export function AudioPanel({route}:{route:string}){
  const [audio,setAudio]=useState("English [Original] (5.1)");
  const [sub,setSub]=useState("English (CC)");
  const audios=["English [Original] (5.1)","English [Original]","English - Audio Description (5.1)","English - Audio Description"];
@@ -160,7 +160,7 @@ function Choice({id,route,active,label,onPress}:{id:string;route:string;active:b
  return <FocusButton focusKey={id} route={route} className="hub-choice" onPress={onPress}>{active?<Check/>:<span className="choice-spacer"/>}{label}</FocusButton>;
 }
 
-function ExtrasPanel({item,route,onTrailer}:{item:MediaItem;route:string;onTrailer:()=>void}){
+export function ExtrasPanel({item,route,onTrailer}:{item:MediaItem;route:string;onTrailer:()=>void}){
  const available=!!(item.trailerUrl||item.trailerYtId);
  return <div className="hub-extras">
    {available?<FocusButton focusKey={route+":extra:trailer"} route={route} className="hub-extra-card" onPress={onTrailer}>
