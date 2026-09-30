@@ -460,3 +460,44 @@
 .hub-episode-row{
   scroll-behavior:auto!important;
 }
+
+
+/* Each title tab owns a full viewport section instead of visually bleeding into the next. */
+.continuous-details{
+  display:block;
+}
+.continuous-section{
+  min-height:100vh;
+  height:auto;
+  box-sizing:border-box;
+  padding:6.5vw var(--nf-gutter) 7vw;
+  position:relative;
+  background:#05070b;
+  border-top:1px solid rgba(255,255,255,.08);
+}
+.continuous-section:nth-child(even){
+  background:#080b10;
+}
+.continuous-section.episodes-section{
+  min-height:100vh;
+  padding:0;
+}
+.episodes-section .inline-episodes{
+  min-height:100vh;
+  box-sizing:border-box;
+  padding:6.5vw var(--nf-gutter) 7vw;
+  background:#05070b;
+}
+.continuous-heading{
+  display:inline-block;
+  margin:0 0 2.2vw;
+  padding:.72vw 1.05vw;
+  border-radius:.4vw;
+  background:rgba(255,255,255,.10);
+  font-size:1.65vw;
+  font-weight:800;
+}
+.continuous-section:focus-within .continuous-heading{
+  background:#fff;
+  color:#111;
+}
