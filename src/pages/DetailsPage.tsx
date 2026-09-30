@@ -71,21 +71,14 @@ export function DetailsPage({seed,onBack:_,onPlay,onOpen}:{
  const toggle=useCallback(()=>setWatchlisted(toggleWatchlist(item)),[item]);
 
  const scrollSection=useCallback((panel:TitlePanel)=>{
-   const id=panel==="episodes"?"episodes":panel;
-   const section=document.getElementById(route+":section:"+id);
-   if(!section)return;
-   section.scrollIntoView({behavior:"smooth",block:"start"});
-   const focus=()=>{
-     const firstSeason=item.videos?.[0]?.season||1;
-     const target=panel==="episodes"?(item.videos?.length?route+":season:"+firstSeason:null)
-       :panel==="details"?route+":detail:more"
-       :panel==="audio"?route+":audio:0"
-       :panel==="related"?(related[0]?route+":related:"+related[0].type+":"+related[0].id+":0":null)
-       :panel==="extras"?(item.trailerUrl||item.trailerYtId?route+":extra:trailer":null)
-       :null;
-     if(target)void setFocus(target);
-   };
-   window.setTimeout(focus,260);
+   const firstSeason=item.videos?.[0]?.season||1;
+   const target=panel==="episodes"?(item.videos?.length?route+":season:"+firstSeason:null)
+     :panel==="details"?route+":detail:more"
+     :panel==="audio"?route+":audio:0"
+     :panel==="related"?(related[0]?route+":related:"+related[0].type+":"+related[0].id+":0":null)
+     :panel==="extras"?(item.trailerUrl||item.trailerYtId?route+":extra:trailer":null)
+     :null;
+   if(target)void setFocus(target);
  },[route,item.videos,item.trailerUrl,item.trailerYtId,related]);
 
  return <TVPage route={route} initialFocusKey={route+":action:play"}>
