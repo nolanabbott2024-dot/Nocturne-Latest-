@@ -442,3 +442,10 @@
 }
 .title-overview-tab{transition:background-color .16s ease,color .16s ease,transform .16s ease}
 .title-overview-tab.is-focused{transform:translateY(-1px)}
+
+
+/* Stable rows no longer need paint-skipping; avoiding content-visibility prevents pop-in flicker. */
+.tv-row{
+  content-visibility:visible;
+  contain-intrinsic-size:auto;
+}
