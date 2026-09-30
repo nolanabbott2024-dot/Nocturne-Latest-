@@ -1,4 +1,4 @@
-import { useEffect,useMemo,useRef,useState } from "react";
+import { useCallback,useEffect,useMemo,useRef,useState } from "react";
 import { TVPage } from "../tv/navigation/TVPage";
 import { TVHero } from "../tv/content/TVHero";
 import { TVRow } from "../tv/content/TVRow";
@@ -9,6 +9,7 @@ import { isCinemetaCatalog,loadMetaEnriched } from "../data/stremio";
 import { continueWatching,type LibraryEntry } from "../data/library";
 import type { MediaItem } from "../types/tv";
 import { useContentStore } from "../stores/contentStore";
+import { useNavigationStore } from "../stores/navigationStore";
 import { dedupePlannedRows,type PlannedRow } from "../data/catalogPlans";
 
 export function CollectionPage({
@@ -45,13 +46,49 @@ function Rows({route,rows,onOpen,onPlay,cont,onResume}:{
  cont:LibraryEntry[];onResume?:((e:LibraryEntry)=>void)
 }){
  const hero=useContentStore(s=>s.heroByRoute[route]); const setHero=useContentStore(s=>s.setHero);
+ const focusedKey=useNavigationStore(s=>s.focusedKey);
  const metaAbort=useRef<AbortController|null>(null);
+ const spotlightIndex=useRef(0);
+ const newest=useMemo(()=>{
+   const releaseRow=rows.find(r=>r.id==="new-releases"&&r.items.length);
+   const source=releaseRow?.items.length?releaseRow.items:rows.flatMap(r=>r.items);
+   const seen=new Set<string>();
+   const year=(m:MediaItem)=>{const hit=String(m.releaseInfo||"").match(/(19|20)\d{2}/);return hit?Number(hit[0]):0};
+   return source.filter(m=>{
+     const key=m.type+":"+m.id;
+     if(seen.has(key))return false;
+     seen.add(key);return true;
+   }).sort((a,b)=>year(b)-year(a)).slice(0,10);
+ },[rows]);
+
+ const showSpotlight=useCallback((seed:MediaItem)=>{
+   metaAbort.current?.abort();
+   setHero(route,seed);
+   const controller=new AbortController();
+   metaAbort.current=controller;
+   loadMetaEnriched(seed,controller.signal).then(full=>{
+     if(!controller.signal.aborted)setHero(route,full);
+   }).catch(()=>{});
+ },[route,setHero]);
+
  useEffect(()=>{
-   if(!hero){
-     const first=rows.find(r=>r.kind==="standard"&&r.items.length)?.items[0]||rows.find(r=>r.items.length)?.items[0];
-     if(first){setHero(route,first);const controller=new AbortController();metaAbort.current=controller;loadMetaEnriched(first,controller.signal).then(full=>{if(!controller.signal.aborted)setHero(route,full)}).catch(()=>{});}
-   }
- },[rows,route,hero?.id]);
+   if(!newest.length)return;
+   const currentIndex=newest.findIndex(m=>m.id===hero?.id&&m.type===hero?.type);
+   if(currentIndex>=0){spotlightIndex.current=currentIndex;return}
+   spotlightIndex.current=0;
+   showSpotlight(newest[0]);
+ },[newest,route]);
+
+ useEffect(()=>{
+   if(newest.length<2)return;
+   const timer=window.setInterval(()=>{
+     if(document.hidden||focusedKey?.startsWith(route+":hero:"))return;
+     spotlightIndex.current=(spotlightIndex.current+1)%newest.length;
+     showSpotlight(newest[spotlightIndex.current]);
+   },8000);
+   return()=>window.clearInterval(timer);
+ },[newest,route,focusedKey,showSpotlight]);
+
  useEffect(()=>()=>metaAbort.current?.abort(),[]);
  return <>
    <TVHero item={hero} route={route} onPlay={()=>hero&&(onPlay?onPlay(hero):onOpen(hero))} onMore={()=>hero&&onOpen(hero)}/>
