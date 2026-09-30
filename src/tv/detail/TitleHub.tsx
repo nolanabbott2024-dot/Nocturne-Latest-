@@ -8,8 +8,8 @@ import { mediaFacts } from "../content/TVHero";
 export type TitlePanel="episodes"|"details"|"related"|"audio"|"extras";
 const LABELS:Record<TitlePanel,string>={episodes:"Episodes",details:"Details",related:"More Like This",audio:"Audio & Subtitles",extras:"Previews & Extras"};
 
-function FocusButton({focusKey,route,className="",onPress,children}:{focusKey:string;route:string;className?:string;onPress:()=>void;children:ReactNode}){
- const {ref,focused,focusSelf}=useTVFocusable({focusKey,route,rowId:"title-hub",onPress});
+function FocusButton({focusKey,route,className="",onPress,onArrowPress,children}:{focusKey:string;route:string;className?:string;onPress:()=>void;onArrowPress?:(direction:string)=>boolean|void;children:ReactNode}){
+ const {ref,focused,focusSelf}=useTVFocusable({focusKey,route,rowId:"title-hub",onPress,onArrowPress});
  return <button ref={ref as any} className={className+" "+(focused?"is-focused":"")} onClick={onPress} onMouseEnter={()=>focusSelf()}>{children}</button>;
 }
 
@@ -25,7 +25,19 @@ export function TitleHub({item,route,panel,onPanel,onClose,onPlayEpisode,onOpenR
    <div className="title-hub-shell">
     <div className="title-hub-tabs">
       <FocusButton focusKey={route+":hub-close"} route={route} className="hub-close" onPress={onClose}><ChevronUp/></FocusButton>
-      {tabs.map(t=><FocusButton key={t} focusKey={route+":hub-tab:"+t} route={route} className={"hub-tab "+(panel===t?"active":"")} onPress={()=>onPanel(t)}>{LABELS[t]}</FocusButton>)}
+      {tabs.map(t=><FocusButton key={t} focusKey={route+":hub-tab:"+t} route={route} className={"hub-tab "+(panel===t?"active":"")} onPress={()=>onPanel(t)}
+        onArrowPress={direction=>{
+          if(direction==="down"){
+            const target=t==="episodes"?(item.videos?.length?route+":season:"+(item.videos[0].season||1):route+":hub-close")
+              :t==="audio"?route+":audio:0"
+              :t==="related"?(related[0]?route+":related:"+related[0].type+":"+related[0].id+":0":route+":hub-close")
+              :t==="extras"?(item.trailerUrl||item.trailerYtId?route+":extra:trailer":route+":hub-close")
+              :route+":detail:more";
+            requestAnimationFrame(()=>void setFocus(target));return false;
+          }
+          if(direction==="up"){onClose();return false}
+          return true;
+        }}>{LABELS[t]}</FocusButton>)}
     </div>
     <div className="title-hub-rule"/>
     <div className="title-hub-content">
@@ -77,7 +89,10 @@ function DetailsPanel({item}:{item:MediaItem}){
  const facts=[item.type==="series"?"Show":"Movie",item.genres?.[0],item.releaseInfo,item.type==="series"&&item.videos?.length?(new Set(item.videos.map(v=>v.season||1)).size+" Seasons"):item.runtime].filter(Boolean);
  return <div className="hub-details">
    {item.logo?<img className="hub-detail-logo" src={item.logo} alt={item.name}/>:<h1>{item.name}</h1>}
-   <div className="hub-detail-switch"><span>More Info</span><span>Cast & Credits</span></div>
+   <div className="hub-detail-switch">
+     <FocusButton focusKey={"details:"+item.id+":detail:more"} route={"details:"+item.id} className="hub-detail-switch-btn active" onPress={()=>{}}>More Info</FocusButton>
+     <FocusButton focusKey={"details:"+item.id+":detail:cast"} route={"details:"+item.id} className="hub-detail-switch-btn" onPress={()=>{}}>Cast & Credits</FocusButton>
+   </div>
    <div className="hub-detail-facts">{facts.map((x,i)=><span key={i}>{x}</span>)}</div>
    <p className="hub-detail-description">{item.description}</p>
    {item.imdbRating&&<p className="hub-detail-note">⭐ Rated {item.imdbRating}/10 on IMDb</p>}
