@@ -17,7 +17,7 @@ export function TitleHub({item,route,panel,onPanel,onClose,onPlayEpisode,onOpenR
  item:MediaItem;route:string;panel:TitlePanel;onPanel:(p:TitlePanel)=>void;onClose:()=>void;
  onPlayEpisode:(ep:Episode)=>void;onOpenRelated:(m:MediaItem)=>void;onTrailer:()=>void;related:MediaItem[];
 }){
- const tabs=useMemo<TitlePanel[]>(()=>item.type==="series"?["episodes","details","related","audio","extras"]:["details","audio","related"],[item.type]);
+ const tabs=useMemo<TitlePanel[]>(()=>item.type==="series"?["details","related","audio","extras"]:["details","audio","related"],[item.type]);
  useEffect(()=>{const id=requestAnimationFrame(()=>void setFocus(route+":hub-tab:"+panel));return()=>cancelAnimationFrame(id)},[route,panel]);
  return <section className="title-hub" data-tv-overlay="true">
    <img className="title-hub-bg" src={item.background||item.poster} alt=""/>
@@ -41,7 +41,6 @@ export function TitleHub({item,route,panel,onPanel,onClose,onPlayEpisode,onOpenR
     </div>
     <div className="title-hub-rule"/>
     <div className="title-hub-content">
-      {panel==="episodes"&&<EpisodesPanel item={item} route={route} onPlay={onPlayEpisode}/>}
       {panel==="details"&&<DetailsPanel item={item}/>}
       {panel==="related"&&<RelatedPanel items={related} item={item} route={route} onOpen={onOpenRelated}/>}
       {panel==="audio"&&<AudioPanel route={route}/>}
@@ -51,14 +50,23 @@ export function TitleHub({item,route,panel,onPanel,onClose,onPlayEpisode,onOpenR
  </section>;
 }
 
-function EpisodesPanel({item,route,onPlay}:{item:MediaItem;route:string;onPlay:(ep:Episode)=>void}){
+export function EpisodesPanel({item,route,onPlay,inline=false}:{item:MediaItem;route:string;onPlay:(ep:Episode)=>void;inline?:boolean}){
  const seasons=useMemo(()=>Array.from(new Set((item.videos||[]).map(v=>v.season||1))).sort((a,b)=>a-b),[item.videos]);
  const [season,setSeason]=useState(seasons[0]||1);
  const episodes=(item.videos||[]).filter(v=>(v.season||1)===season);
  const [selected,setSelected]=useState<Episode|undefined>(episodes[0]);
+ const rowRef=useRef<HTMLDivElement|null>(null);
  useEffect(()=>setSelected(episodes[0]),[season,item.id]);
  const avgRuntime=episodes.find(e=>e.runtime)?.runtime||item.runtime;
- return <div className="hub-episodes">
+ const reveal=(index:number)=>{
+   const row=rowRef.current;
+   const card=row?.children[index] as HTMLElement|undefined;
+   if(!row||!card)return;
+   const left=card.offsetLeft,right=left+card.offsetWidth;
+   if(left<row.scrollLeft)row.scrollTo({left:Math.max(0,left-18),behavior:"smooth"});
+   else if(right>row.scrollLeft+row.clientWidth)row.scrollTo({left:right-row.clientWidth+18,behavior:"smooth"});
+ };
+ return <section className={"hub-episodes "+(inline?"inline-episodes":"")}>
    <div className="hub-series-heading">
     {item.logo?<img src={item.logo} alt={item.name}/>:<h1>{item.name}</h1>}
     <div>{seasons.length} Season{seasons.length===1?"":"s"} <span>•</span> {(item.videos||[]).length} Episodes {avgRuntime&&<><span>•</span> {avgRuntime} Avg Ep</>}</div>
@@ -68,15 +76,15 @@ function EpisodesPanel({item,route,onPlay}:{item:MediaItem;route:string;onPlay:(
       Season {s}<small>{(item.videos||[]).filter(v=>(v.season||1)===s).length} Episodes</small>
     </FocusButton>)}
    </div>
-   <div className="hub-episode-row">
-    {episodes.map((ep,i)=><EpisodeTile key={ep.id} ep={ep} i={i} route={route} onPlay={()=>onPlay(ep)} onFocus={()=>setSelected(ep)}/>)}
+   <div className="hub-episode-row" ref={rowRef}>
+    {episodes.map((ep,i)=><EpisodeTile key={ep.id} ep={ep} i={i} route={route} onPlay={()=>onPlay(ep)} onFocus={()=>{setSelected(ep);reveal(i)}}/>)}
    </div>
    {selected&&<div className="hub-episode-copy">
      <h3>{selected.title||("Episode "+(selected.episode||1))}</h3>
      <p>{selected.overview||""}</p>
      <div className="hub-episode-facts">{selected.runtime&&<span><b>Duration</b>{selected.runtime}</span>}{item.contentRating&&<span><b>Maturity Rating</b>{item.contentRating}</span>}</div>
    </div>}
- </div>;
+ </section>;
 }
 function EpisodeTile({ep,i,route,onPlay,onFocus}:{ep:Episode;i:number;route:string;onPlay:()=>void;onFocus:()=>void}){
  const {ref,focused,focusSelf}=useTVFocusable({focusKey:route+":hub-episode:"+ep.id,route,rowId:"hub-episodes",onPress:onPlay,onFocus});
