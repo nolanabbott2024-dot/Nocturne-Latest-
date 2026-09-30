@@ -28,7 +28,6 @@ export function TVSidebar({route,onRoute}:{route:string;onRoute:(r:string)=>void
       {id==="search"?<Search/>:label}
     </NavButton>)}
    </nav>
-   <span className="nocturne-monogram" aria-label="Nocturne">N</span>
    {menu&&<div className="profile-menu" data-tv-overlay="true">
     <NavButton id="settings" label="Settings" onPress={()=>navigate("settings")}><Settings/> Settings</NavButton>
     <NavButton id="discover" label="Discover" onPress={()=>navigate("discover")}><Compass/> Discover</NavButton>
