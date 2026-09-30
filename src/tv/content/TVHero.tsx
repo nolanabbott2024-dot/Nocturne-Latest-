@@ -18,7 +18,8 @@ export function TVHero({item,route,onPlay,onMore,onTrailerEnded}:{item?:MediaIte
 
 function HeroContent({item,route,onPlay,onMore,onTrailerEnded}:{item:MediaItem;route:string;onPlay:()=>void;onMore:()=>void;onTrailerEnded?:()=>void}){
  const [trailerReady,setTrailerReady]=useState(false);
- useEffect(()=>{setTrailerReady(false);if(!(item.trailerUrl||item.trailerYtId))return;const timer=window.setTimeout(()=>setTrailerReady(true),5000);return()=>window.clearTimeout(timer)},[item.id,item.trailerUrl,item.trailerYtId]);
+ const previewFrame=new URLSearchParams(window.location.search).get("tvframe")==="1";
+ useEffect(()=>{setTrailerReady(false);if(previewFrame||!(item.trailerUrl||item.trailerYtId))return;const timer=window.setTimeout(()=>setTrailerReady(true),5000);return()=>window.clearTimeout(timer)},[item.id,item.trailerUrl,item.trailerYtId,previewFrame]);
  const scrollTop=(node:HTMLElement|null)=>node?.closest(".tv-page")?.scrollTo({top:0,behavior:"auto"});
  const play=useTVFocusable({
    focusKey:`${route}:hero:play`,route,rowId:"hero",onPress:onPlay,
