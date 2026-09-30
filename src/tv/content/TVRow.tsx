@@ -17,6 +17,10 @@ export function TVRow({id,title,items,route,onOpen,onFocused,onSettled,leftExitF
  const item=items[selected];
 
  const keyAt=useCallback((index:number)=>`${route}:${id}:${items[index].type}:${items[index].id}`,[route,id,items]);
+ const select=useCallback((media:MediaItem,index:number)=>{
+   setSelected(index);
+   onFocused?.(media);
+ },[onFocused]);
 
  useEffect(()=>{
    if(!hasFocusedChild||!item)return;
