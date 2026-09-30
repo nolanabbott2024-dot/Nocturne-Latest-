@@ -7,14 +7,20 @@ import { useTVFocusable } from "../focus/useTVFocusable";
 
 type Panel="episodes"|"details"|"related"|"audio"|"extras";
 
-function HeroButton({focusKey,route,label,onPress,kind="icon",children}:{focusKey:string;route:string;label:string;onPress:()=>void;kind?:"play"|"icon";children:ReactNode}){
- const {ref,focused,focusSelf}=useTVFocusable({focusKey,route,rowId:"details-hero",onPress});
+function HeroButton({focusKey,route,label,onPress,onDown,kind="icon",children}:{focusKey:string;route:string;label:string;onPress:()=>void;onDown:()=>void;kind?:"play"|"icon";children:ReactNode}){
+ const {ref,focused,focusSelf}=useTVFocusable({focusKey,route,rowId:"details-hero",onPress,onArrowPress:direction=>{
+   if(direction==="down"){onDown();return false}
+   return true;
+ }});
  return <motion.button ref={ref as any} className={`title-hero-btn ${kind} ${focused?"is-focused":""}`}
    aria-label={label} onClick={onPress} onMouseEnter={()=>focusSelf()}
    animate={{scale:focused?1.06:1}} transition={{type:"spring",stiffness:430,damping:31}}>{children}</motion.button>
 }
 function PanelButton({panel,label,route,onPanel}:{panel:Panel;label:string;route:string;onPanel:(p:Panel)=>void}){
- const {ref,focused,focusSelf}=useTVFocusable({focusKey:`${route}:overview-tab:${panel}`,route,rowId:"details-overview-tabs",onPress:()=>onPanel(panel)});
+ const {ref,focused,focusSelf}=useTVFocusable({focusKey:`${route}:overview-tab:${panel}`,route,rowId:"details-overview-tabs",onPress:()=>onPanel(panel),onArrowPress:direction=>{
+   if(direction==="up"){void import("@noriginmedia/norigin-spatial-navigation").then(({setFocus})=>setFocus(`${route}:action:play`));return false}
+   return true;
+ }});
  return <button ref={ref as any} className={`title-overview-tab ${focused?"is-focused":""}`} onClick={()=>onPanel(panel)} onMouseEnter={()=>focusSelf()}>{label}</button>;
 }
 
@@ -22,6 +28,8 @@ export function TVDetailsHero({item,route,onPlay,onWatchlist,onSources,watchlist
  item:MediaItem;route:string;onPlay:()=>void;onWatchlist:()=>void;onSources:()=>void;watchlisted?:boolean;onPanel:(p:Panel)=>void
 }){
  const isSeries=item.type==="series";
+ const firstTab=isSeries?"episodes":"details";
+ const focusTabs=()=>{void import("@noriginmedia/norigin-spatial-navigation").then(({setFocus})=>setFocus(`${route}:overview-tab:${firstTab}`))};
  return <section className="details-hero title-overview">
    <AnimatePresence mode="sync"><motion.img key={item.background||item.poster} className="details-backdrop" src={item.background||item.poster} initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} transition={{duration:.38}}/></AnimatePresence>
    <div className="details-scrim"/>
@@ -29,9 +37,9 @@ export function TVDetailsHero({item,route,onPlay,onWatchlist,onSources,watchlist
     {item.logo?<img className="details-logo" src={item.logo} alt={item.name}/>:<h1>{item.name}</h1>}
     <TVMetadata item={item}/>
     <div className="title-hero-actions">
-      <HeroButton focusKey={`${route}:action:play`} route={route} label="Play" onPress={onPlay} kind="play"><Play fill="currentColor"/><span>Play</span></HeroButton>
-      <HeroButton focusKey={`${route}:action:watchlist`} route={route} label="My List" onPress={onWatchlist}>{watchlisted?<Check/>:<Plus/>}</HeroButton>
-      <HeroButton focusKey={`${route}:action:sources`} route={route} label="Sources" onPress={onSources}><Link2/></HeroButton>
+      <HeroButton focusKey={`${route}:action:play`} route={route} label="Play" onPress={onPlay} onDown={focusTabs} kind="play"><Play fill="currentColor"/><span>Play</span></HeroButton>
+      <HeroButton focusKey={`${route}:action:watchlist`} route={route} label="My List" onPress={onWatchlist} onDown={focusTabs}>{watchlisted?<Check/>:<Plus/>}</HeroButton>
+      <HeroButton focusKey={`${route}:action:sources`} route={route} label="Sources" onPress={onSources} onDown={focusTabs}><Link2/></HeroButton>
     </div>
     <div className="title-overview-tabs">
       <ChevronDown className="title-tabs-caret"/>
