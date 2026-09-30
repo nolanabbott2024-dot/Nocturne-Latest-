@@ -1,4 +1,5 @@
 import { AnimatePresence,motion } from "motion/react";
+import type { ReactNode } from "react";
 import { Check,ChevronDown,Link2,Play,Plus } from "lucide-react";
 import type { MediaItem } from "../../types/tv";
 import { TVMetadata } from "./TVMetadata";
@@ -6,7 +7,7 @@ import { useTVFocusable } from "../focus/useTVFocusable";
 
 type Panel="episodes"|"details"|"related"|"audio"|"extras";
 
-function HeroButton({focusKey,route,label,onPress,kind="icon",children}:{focusKey:string;route:string;label:string;onPress:()=>void;kind?:"play"|"icon";children:React.ReactNode}){
+function HeroButton({focusKey,route,label,onPress,kind="icon",children}:{focusKey:string;route:string;label:string;onPress:()=>void;kind?:"play"|"icon";children:ReactNode}){
  const {ref,focused,focusSelf}=useTVFocusable({focusKey,route,rowId:"details-hero",onPress});
  return <motion.button ref={ref as any} className={`title-hero-btn ${kind} ${focused?"is-focused":""}`}
    aria-label={label} onClick={onPress} onMouseEnter={()=>focusSelf()}
