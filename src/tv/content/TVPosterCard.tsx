@@ -6,16 +6,16 @@ import type { MediaItem } from "../../types/tv";
 import { TrailerPreview } from "../playback/TrailerPreview";
 import { useSettingsStore } from "../../stores/settingsStore";
 
-export const TVPosterCard=memo(function TVPosterCard({item,route,rowId,onOpen,onFocused,onSettled,onSpatialFocus,onArrowPress,expanded=false}:{
+export const TVPosterCard=memo(function TVPosterCard({item,route,rowId,onOpen,onFocused,onSettled,onSpatialFocus,onArrowPress,expanded=false,followFocus=true}:{
  item:MediaItem;route:string;rowId:string;onOpen:(m:MediaItem)=>void;onFocused?:(m:MediaItem)=>void;onSettled?:(m:MediaItem)=>void;
- onSpatialFocus?:(layout:any)=>void;onArrowPress?:(direction:string)=>boolean|void;expanded?:boolean;
+ onSpatialFocus?:(layout:any)=>void;onArrowPress?:(direction:string)=>boolean|void;expanded?:boolean;followFocus?:boolean;
 }){
  const [trailerReady,setTrailerReady]=useState(false);
  const [previewItem,setPreviewItem]=useState(item);
  const [landscapeLoaded,setLandscapeLoaded]=useState(false);
  const stopTrailer=usePlaybackStore(s=>s.stopTrailer);
  const previews=useSettingsStore(s=>s.previews);
- const {ref,focused,focusSelf}=useTVFocusable({focusKey:`${route}:${rowId}:${item.type}:${item.id}`,route,rowId,onPress:()=>onOpen(item),
+ const {ref,focused,focusSelf}=useTVFocusable({focusKey:`${route}:${rowId}:${item.type}:${item.id}`,route,rowId,onPress:()=>onOpen(item),followFocus,
   onFocus:layout=>{onFocused?.(item);onSpatialFocus?.(layout)},onArrowPress,
   onBlur:()=>{setTrailerReady(false);stopTrailer()}
  });
