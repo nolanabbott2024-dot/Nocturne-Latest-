@@ -17,7 +17,9 @@ export function TVRow({id,title,items,route,onOpen,onFocused,onSettled,leftExitF
  const [enriched,setEnriched]=useState<MediaItem|null>(null);
  const [unit,setUnit]=useState(()=>window.innerWidth/1920);
  useEffect(()=>{const resize=()=>setUnit(window.innerWidth/1920);window.addEventListener("resize",resize);return()=>window.removeEventListener("resize",resize)},[]);
- const narrow=270*unit,gap=18*unit,height=438*unit;
+ const narrow=270*unit,gap=30*unit,height=438*unit;
+ const expanded=784*unit;
+ const focusShift=Math.max(0,expanded-narrow+gap);
  const virtual=useVirtualizer({horizontal:true,count:items.length,getScrollElement:()=>scroller.current,
   initialOffset:selected*narrow,estimateSize:()=>narrow+gap,overscan:4});
  const keyAt=useCallback((index:number)=>`${route}:${id}:${items[index].type}:${items[index].id}`,[route,id,items]);
@@ -47,7 +49,12 @@ export function TVRow({id,title,items,route,onOpen,onFocused,onSettled,leftExitF
    <h2>{title}</h2>
    <div className="tv-row-scroll" ref={scroller}>
     <div className="tv-row-inner" style={{width:virtual.getTotalSize(),height,position:"relative"}}>
-     {virtual.getVirtualItems().map(v=><div className="tv-row-slot" key={keyAt(v.index)} style={{position:"absolute",left:v.start,top:0,width:narrow,height,"--expanded-w":`${784*unit}px`} as any}>
+     {virtual.getVirtualItems().map(v=><div className={"tv-row-slot "+(v.index===selected&&hasFocusedChild?"slot-selected":"")} key={keyAt(v.index)} style={{
+      position:"absolute",left:v.start,top:0,width:narrow,height,
+      transform:`translate3d(${hasFocusedChild&&v.index>selected?focusShift:0}px,0,0)`,
+      zIndex:hasFocusedChild&&v.index===selected?20:1,
+      "--expanded-w":`${expanded}px`
+    } as any}>
       <TVPosterCard item={items[v.index]} route={route} rowId={id} onOpen={onOpen} onFocused={select} onSettled={onSettled} expanded={hasFocusedChild&&v.index===selected}
        onArrowPress={direction=>{
         if(direction==="up"&&!(ref.current as HTMLElement)?.previousElementSibling&&route!=="search"){
