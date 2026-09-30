@@ -79,19 +79,21 @@ function Rows({route,rows,onOpen,onPlay,cont,onResume}:{
    showSpotlight(newest[0]);
  },[newest,route]);
 
- useEffect(()=>{
-   if(newest.length<2)return;
-   const timer=window.setInterval(()=>{
-     if(document.hidden||focusedKey?.startsWith(route+":hero:"))return;
-     spotlightIndex.current=(spotlightIndex.current+1)%newest.length;
-     showSpotlight(newest[spotlightIndex.current]);
-   },8000);
-   return()=>window.clearInterval(timer);
+ const advanceSpotlight=useCallback(()=>{
+   if(newest.length<2||document.hidden||focusedKey?.startsWith(route+":hero:"))return;
+   spotlightIndex.current=(spotlightIndex.current+1)%newest.length;
+   showSpotlight(newest[spotlightIndex.current]);
  },[newest,route,focusedKey,showSpotlight]);
+
+ useEffect(()=>{
+   if(!hero||hero.trailerUrl||hero.trailerYtId||newest.length<2)return;
+   const fallback=window.setTimeout(()=>advanceSpotlight(),12000);
+   return()=>window.clearTimeout(fallback);
+ },[hero?.id,hero?.trailerUrl,hero?.trailerYtId,newest.length,advanceSpotlight]);
 
  useEffect(()=>()=>metaAbort.current?.abort(),[]);
  return <>
-   <TVHero item={hero} route={route} onPlay={()=>hero&&(onPlay?onPlay(hero):onOpen(hero))} onMore={()=>hero&&onOpen(hero)}/>
+   <TVHero item={hero} route={route} onPlay={()=>hero&&(onPlay?onPlay(hero):onOpen(hero))} onMore={()=>hero&&onOpen(hero)} onTrailerEnded={advanceSpotlight}/>
    <div className="rows">
      {route==="home"&&onResume&&<TVContinueRow entries={cont} route={route} onResume={onResume}/>}
      {rows.map(row=>row.kind==="top10"
