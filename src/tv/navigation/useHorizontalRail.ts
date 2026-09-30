@@ -20,14 +20,14 @@ export function useHorizontalRail(opts:{
     const center=r.left+r.width/2;
     const left=sr.left+sr.width*SAFE_LEFT,right=sr.left+sr.width*SAFE_RIGHT;
     if(center<left||center>right){
-      s.scrollBy({left:center-(sr.left+sr.width*.5),behavior:"auto"});
+      s.scrollBy({left:center-(sr.left+sr.width*.5),behavior:"smooth"});
     }
     const page=el.closest(".tv-page") as HTMLElement|null;
     if(page){
       const p=page.getBoundingClientRect();
       const safeTop=p.top+p.height*.18,safeBottom=p.top+p.height*.82;
-      if(r.top<safeTop)page.scrollBy({top:r.top-safeTop-24,behavior:"auto"});
-      else if(r.bottom>safeBottom)page.scrollBy({top:r.bottom-safeBottom+24,behavior:"auto"});
+      if(r.top<safeTop)page.scrollBy({top:r.top-safeTop-24,behavior:"smooth"});
+      else if(r.bottom>safeBottom)page.scrollBy({top:r.bottom-safeBottom+24,behavior:"smooth"});
     }
   },[scroller]);
 
