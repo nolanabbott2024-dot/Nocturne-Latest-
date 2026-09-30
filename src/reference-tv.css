@@ -269,3 +269,12 @@
 .reference-card:not(.is-expanded) .reference-card-title{opacity:0;transform:translateY(.5vw)}
 .reference-card.is-expanded .reference-card-title{opacity:1;transform:translateY(0)}
 .reference-card.is-expanded .card-monogram{opacity:0}
+
+
+/* Trailer preview playback polish. */
+.trailer-youtube{border:0;pointer-events:none;background:#000;opacity:0;transition:opacity .22s ease}
+.trailer-youtube.is-playing{opacity:1}
+.reference-card .trailer-preview{z-index:5}
+.reference-card-shade{z-index:6}
+.reference-card-title,.card-monogram{z-index:7}
+.reference-card .focus-ring{z-index:8}
