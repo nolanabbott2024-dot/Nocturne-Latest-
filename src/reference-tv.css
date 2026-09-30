@@ -261,7 +261,8 @@
 .reference-card .card-art-portrait{opacity:1;transform:scale(1)}
 .reference-card .card-art-landscape{opacity:0;transform:scale(1.035)}
 .reference-card.is-expanded .card-art-portrait{opacity:0;transform:scale(1.03)}
-.reference-card.is-expanded .card-art-landscape{opacity:1;transform:scale(1)}
+.reference-card.is-expanded .card-art-landscape{opacity:1;transform:scale(1);animation:landscapeReveal .3s cubic-bezier(.22,.78,.2,1) both}
+@keyframes landscapeReveal{from{opacity:0;transform:scale(1.035)}to{opacity:1;transform:scale(1)}}
 .reference-card-title,.reference-card-shade,.card-monogram{
   transition:opacity .22s ease,transform .28s cubic-bezier(.22,.78,.2,1);
 }
