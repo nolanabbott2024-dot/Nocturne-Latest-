@@ -87,3 +87,36 @@
 .route-home .tv-topbar,.route-movies .tv-topbar,.route-shows .tv-topbar{background:linear-gradient(180deg,#2b1115,#200e11)}
 .route-library .tv-topbar,.route-search .tv-topbar,.route-settings .tv-topbar{background:#000}
 .library-page,.search-page,.settings-page{background:#000}
+
+
+/* September 30 continuation: reference hero controls + full-screen detail treatment. */
+.modern-billboard{cursor:default}
+.modern-billboard .hero-copy{bottom:2.05vw;pointer-events:none}
+.hero-actions{display:flex;align-items:center;gap:.8vw;margin-top:1.15vw;pointer-events:auto}
+.hero-action{height:3.35vw;min-width:8.5vw;border:0;border-radius:.38vw;padding:0 1.35vw;display:inline-flex;align-items:center;justify-content:center;gap:.7vw;font-size:1.22vw;font-weight:800;line-height:1;transition:background-color .16s ease,color .16s ease,box-shadow .16s ease;cursor:pointer}
+.hero-action svg{width:1.55vw;height:1.55vw}
+.hero-play{background:#fff;color:#050505}
+.hero-more{background:rgba(109,109,110,.72);color:#fff}
+.hero-action.is-focused{box-shadow:0 0 0 .14vw #fff,0 .55vw 1.5vw #0008}
+.hero-play.is-focused{background:#f7f7f7;color:#000}
+.hero-more.is-focused{background:#8a8a8c;color:#fff}
+.hero-fact-chip{bottom:2.15vw}
+
+.details-page{background:#000}
+.details-hero{height:45vw;min-height:0;padding:0 var(--nf-gutter);display:flex;align-items:flex-end;position:relative;overflow:hidden}
+.details-backdrop{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 18%}
+.details-scrim{position:absolute;inset:0;background:linear-gradient(90deg,#000 0%,rgba(0,0,0,.84) 28%,rgba(0,0,0,.25) 67%,transparent 86%),linear-gradient(0deg,#000 0%,rgba(0,0,0,.94) 5%,rgba(0,0,0,.18) 42%,transparent 68%)}
+.details-copy{position:relative;z-index:2;width:46vw;padding-bottom:3vw}
+.details-logo{max-width:27vw;max-height:9.2vw;margin-bottom:1.25vw;object-fit:contain;object-position:left bottom}
+.details-copy h1{font-size:4.2vw;line-height:.98;letter-spacing:-.12vw;margin:0 0 1vw}
+.details-meta{font-size:1.12vw;font-weight:700;gap:.55vw;margin-bottom:.8vw}
+.details-description{font-size:1.22vw;line-height:1.42;color:#e2e2e2;max-width:41vw;margin:.75vw 0 1.35vw}
+.detail-actions{display:flex;align-items:flex-start;gap:.95vw;margin-top:1.25vw}
+.detail-action{height:auto;min-width:0;padding:0;border:0;background:transparent!important;color:#fff!important;display:flex;flex-direction:column;gap:.45vw;align-items:center;justify-content:center;font-size:.94vw;font-weight:700;cursor:pointer}
+.detail-action svg{width:2.55vw;height:2.55vw;padding:.62vw;border-radius:50%;border:.12vw solid rgba(255,255,255,.72);background:rgba(34,34,34,.64);box-sizing:border-box}
+.detail-action.primary{height:3.15vw;padding:0 1.55vw;border-radius:.36vw;background:#fff!important;color:#050505!important;flex-direction:row;gap:.65vw;font-size:1.12vw;margin-right:.25vw}
+.detail-action.primary svg{width:1.45vw;height:1.45vw;padding:0;border:0;background:transparent;border-radius:0}
+.detail-action.is-focused{filter:none}
+.detail-action.is-focused svg{background:#fff;color:#000;border-color:#fff;box-shadow:0 0 0 .13vw #fff}
+.detail-action.primary.is-focused{box-shadow:0 0 0 .14vw #fff,0 .55vw 1.3vw #0009}
+.episodes{position:relative;z-index:3;padding:1vw var(--nf-gutter) 6vw;margin-top:-.2vw;background:#000}
