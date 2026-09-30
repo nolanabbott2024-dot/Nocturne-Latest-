@@ -3,7 +3,7 @@ import { AnimatePresence } from "motion/react";
 import { setFocus } from "@noriginmedia/norigin-spatial-navigation";
 import { TVPage } from "../tv/navigation/TVPage";
 import { TVDetailsHero } from "../tv/detail/TVDetailsHero";
-import { TitleHub,type TitlePanel } from "../tv/detail/TitleHub";
+import { EpisodesPanel,TitleHub,type TitlePanel } from "../tv/detail/TitleHub";
 import { SourcePicker } from "../tv/playback/SourcePicker";
 import { DetailsTrailerOverlay } from "../tv/playback/DetailsTrailerOverlay";
 import { useProviderStore } from "../stores/providerStore";
@@ -85,9 +85,13 @@ export function DetailsPage({seed,onBack,onPlay,onOpen}:{
  },[panel,route]);
 
  return <TVPage route={route} initialFocusKey={route+":action:play"}>
-   {!panel&&<TVDetailsHero item={item} route={route}
-     onPlay={()=>play()} onWatchlist={toggle} watchlisted={watchlisted}
-     onSources={()=>chooseSources()} onPanel={openPanel}/>}
+   {!panel&&<>
+     <TVDetailsHero item={item} route={route}
+       onPlay={()=>play()} onWatchlist={toggle} watchlisted={watchlisted}
+       onSources={()=>chooseSources()} onPanel={openPanel}/>
+     {item.type==="series"&&item.videos?.length>0&&
+       <EpisodesPanel item={item} route={route} inline onPlay={(ep:Episode)=>play(ep.id)}/>}
+   </>}
    {panel&&<TitleHub item={item} route={route} panel={panel} onPanel={setPanel} onClose={closePanel}
      onPlayEpisode={(ep:Episode)=>play(ep.id)} onOpenRelated={onOpen}
      onTrailer={()=>setTrailerOpen(true)} related={related}/>}
