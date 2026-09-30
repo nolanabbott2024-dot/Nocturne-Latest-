@@ -1,20 +1,24 @@
 import { AnimatePresence,motion } from "motion/react";
+import { useEffect,useState } from "react";
 import { Info,Play } from "lucide-react";
 import { setFocus } from "@noriginmedia/norigin-spatial-navigation";
 import type { MediaItem } from "../../types/tv";
 import { useTVFocusable } from "../focus/useTVFocusable";
+import { TrailerPreview } from "../playback/TrailerPreview";
 
 export function mediaFacts(item:MediaItem){
  return [item.genres?.[0]||(item.type==="series"?"TV Series":"Movie"),item.releaseInfo,
    item.type==="series"?(item.videos?.length?`${item.videos.length} Episodes`:undefined):item.runtime,item.contentRating].filter(Boolean);
 }
 
-export function TVHero({item,route,onPlay,onMore}:{item?:MediaItem;route:string;onPlay:()=>void;onMore:()=>void}){
+export function TVHero({item,route,onPlay,onMore,onTrailerEnded}:{item?:MediaItem;route:string;onPlay:()=>void;onMore:()=>void;onTrailerEnded?:()=>void}){
  if(!item)return <div className="tv-hero modern-billboard skeleton" aria-label="Loading featured title"/>;
- return <HeroContent item={item} route={route} onPlay={onPlay} onMore={onMore}/>;
+ return <HeroContent item={item} route={route} onPlay={onPlay} onMore={onMore} onTrailerEnded={onTrailerEnded}/>;
 }
 
-function HeroContent({item,route,onPlay,onMore}:{item:MediaItem;route:string;onPlay:()=>void;onMore:()=>void}){
+function HeroContent({item,route,onPlay,onMore,onTrailerEnded}:{item:MediaItem;route:string;onPlay:()=>void;onMore:()=>void;onTrailerEnded?:()=>void}){
+ const [trailerReady,setTrailerReady]=useState(false);
+ useEffect(()=>{setTrailerReady(false);if(!(item.trailerUrl||item.trailerYtId))return;const timer=window.setTimeout(()=>setTrailerReady(true),5000);return()=>window.clearTimeout(timer)},[item.id,item.trailerUrl,item.trailerYtId]);
  const scrollTop=(node:HTMLElement|null)=>node?.closest(".tv-page")?.scrollTo({top:0,behavior:"auto"});
  const play=useTVFocusable({
    focusKey:`${route}:hero:play`,route,rowId:"hero",onPress:onPlay,
@@ -41,6 +45,7 @@ function HeroContent({item,route,onPlay,onMore}:{item:MediaItem;route:string;onP
        src={item.background||item.poster} alt="" initial={{opacity:0,scale:1.015}}
        animate={{opacity:1,scale:1}} exit={{opacity:0}} transition={{duration:.55,ease:"easeOut"}}/>
    </AnimatePresence>
+   {trailerReady&&(item.trailerUrl||item.trailerYtId)&&<TrailerPreview item={item} loop={false} onEnded={onTrailerEnded}/>}
    <div className="hero-scrim"/>
    <div className="hero-copy">
     <div className="hero-eyebrow"><span>N</span> {item.type==="series"?"SERIES":"FILM"}</div>
