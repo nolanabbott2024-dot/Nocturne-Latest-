@@ -1,0 +1,89 @@
+/* Netflix TV reference geometry, measured on the supplied 1920 × 1080 captures. */
+:root{--nf-bg:#000;--bg:#000;--nf-gutter:3.54vw;--tv-header:7.29vw;font-family:Arial,Helvetica,sans-serif}
+.app-shell{background:#000}
+.app-content{padding-top:var(--tv-header)}
+.tv-page{padding-left:0;background:radial-gradient(ellipse at 50% -30%,#33181c 0,transparent 64%),#000;scroll-padding-top:0}
+.tv-topbar{position:fixed;inset:0 0 auto;height:var(--tv-header);z-index:100;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#10090a,#10090af5);padding:0 var(--nf-gutter)}
+.tv-topnav{display:flex;align-items:center;justify-content:center;gap:.72vw}
+.topnav-button{display:flex;align-items:center;justify-content:center;gap:.7vw;white-space:nowrap;height:3.85vw;min-height:0;padding:0 1.8vw;border-radius:3vw;font-size:1.61vw;font-weight:700;cursor:pointer;transition:background-color .16s ease,color .16s ease}
+.topnav-button.active{background:#4b4b4b}
+.topnav-button.is-focused{background:#fff;color:#000}
+.topnav-button svg{width:1.75vw;height:1.75vw}
+.topnav-button.nav-search{padding:0;width:3.7vw}
+.tv-profile{position:absolute;left:var(--nf-gutter);padding:0 .4vw;gap:1vw;border-radius:.4vw}
+.profile-avatar{width:2.5vw;height:2.5vw;border-radius:.32vw;background:linear-gradient(145deg,#4a9b8a,#1c4f64);display:grid;place-items:center;color:#fff}
+.profile-chevron{width:.85vw!important;height:.85vw!important}
+.nocturne-monogram{position:absolute;right:var(--nf-gutter);font-weight:950;font-size:3.9vw;line-height:1;color:#e50914;letter-spacing:-.38vw;transform:scaleX(.78);transform-origin:right}
+.profile-menu{position:absolute;left:var(--nf-gutter);top:6vw;padding:.7vw;background:#222;border:1px solid #555;border-radius:.65vw;box-shadow:0 1vw 3vw #0009;display:flex;flex-direction:column;gap:.3vw;min-width:15vw}
+.profile-menu .topnav-button{justify-content:flex-start;border-radius:.35vw;font-size:1.3vw}
+.modern-billboard{display:block;width:calc(100% - 2 * var(--nf-gutter));height:39.85vw;min-height:0;margin:0 var(--nf-gutter) 3.3vw;padding:0;border-radius:1.8vw;overflow:hidden;text-align:left;position:relative;background:#202020;cursor:pointer}
+.modern-billboard.is-focused{box-shadow:inset 0 0 0 .15vw #fff}
+.modern-billboard .hero-backdrop{z-index:0;object-position:center}
+.modern-billboard .hero-scrim{background:linear-gradient(0deg,rgba(0,0,0,.82),transparent 58%),linear-gradient(90deg,rgba(0,0,0,.42),transparent 62%);z-index:1}
+.modern-billboard .hero-copy{position:absolute;bottom:1.45vw;left:1.6vw;right:1.6vw;width:auto}
+.modern-billboard .hero-eyebrow{display:flex;align-items:center;gap:.5vw;font-size:1vw;letter-spacing:.25vw;font-weight:700;margin-bottom:.35vw}
+.hero-eyebrow>span{color:#e50914;font-size:2vw;letter-spacing:0;font-weight:900}
+.modern-billboard .hero-logo{max-width:29vw;max-height:9.5vw;object-fit:contain;object-position:left bottom;margin:0 0 1.3vw}
+.modern-billboard .hero-copy h1{font-size:4.4vw;line-height:1.02;max-width:48vw;margin:0 0 1.5vw;font-weight:800;letter-spacing:-.12vw;text-shadow:0 .1vw 1vw #0008}
+.modern-billboard .hero-meta{display:flex;gap:0;font-size:1.3vw;font-weight:700;margin:0;line-height:1.6}
+.hero-meta span+span:before,.row-facts span+span:before{content:'•';color:#777;display:inline-block;margin:0 .65vw}
+.hero-fact-chip{position:absolute;right:1.3vw;bottom:1.45vw;padding:1vw;border-radius:.8vw;font-size:1.3vw;font-weight:700;background:#0009;z-index:3}
+.rows{margin-top:0;padding-bottom:7vw;z-index:2}
+.tv-row{margin:0 0 2.6vw}
+.tv-row h2{font-size:1.58vw;font-weight:700;letter-spacing:0;padding:0 var(--nf-gutter);margin:0 0 .85vw;line-height:1.25}
+.tv-row-scroll{padding:.15vw var(--nf-gutter) .35vw;scroll-padding-inline:0;overflow-y:hidden}
+.reference-card{height:100%;width:100%;will-change:auto;cursor:pointer;transform:none}
+.reference-card .card-media{height:100%;width:100%;aspect-ratio:auto;border-radius:.65vw;background:#181818;box-shadow:none}
+.reference-card .card-media>img{object-position:center;transition:opacity .18s ease}
+.reference-card .focus-ring{z-index:6;border:0;border-radius:.65vw;box-shadow:none}
+.reference-card.is-focused .focus-ring{border:.16vw solid #fff;box-shadow:inset 0 0 0 1px #fff2}
+.reference-card-shade{position:absolute;inset:0;z-index:3;background:linear-gradient(0deg,#000b,transparent 44%);pointer-events:none}
+.card-monogram{position:absolute;top:.35vw;left:.55vw;color:#e50914;font-size:2.65vw;font-weight:900;z-index:4;line-height:1}
+.reference-card.is-expanded .card-monogram{display:none}
+.reference-card-title{position:absolute;left:1vw;right:1vw;bottom:1.25vw;z-index:4;line-height:1.03;text-shadow:0 2px 8px #0009}
+.reference-card-title b{font-size:1.7vw;font-weight:800;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.reference-card.is-expanded .reference-card-title b{font-size:3.4vw;max-width:85%}
+.reference-card-title img{max-width:80%;max-height:7vw;object-fit:contain;object-position:left bottom}
+.row-description{padding:1.05vw var(--nf-gutter) 1.1vw;min-height:10.8vw}
+.row-facts{display:flex;align-items:center;font-size:1.28vw;font-weight:700;line-height:1.5}
+.row-description p{font-size:1.5vw;line-height:1.36;letter-spacing:.02vw;color:#b3b3b3;max-width:49vw;margin:.65vw 0 0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.row-selected h2{color:#fff}
+.library-page .page-title{display:none}
+.library-page .reference-row:first-child{padding-top:.2vw}
+.page-title{padding:1vw var(--nf-gutter) 1.8vw}
+.page-title h1{font-size:2.7vw}
+.page-title p{font-size:1.2vw}
+.empty-page{font-size:1.4vw;padding-top:2vw}
+.continue-scroll,.top10-scroll{padding:.2vw var(--nf-gutter) .8vw;gap:1.2vw}
+.continue-card{width:26vw;flex:0 0 26vw;border-radius:.7vw}
+.top10-card{flex:0 0 23vw;align-items:flex-end}
+.ranked-row .reference-card{width:15vw;height:21vw;flex:0 0 15vw}
+.top10-rank{font-size:23vw;line-height:.78;letter-spacing:-1.7vw;margin-right:-1.2vw;color:#000;-webkit-text-stroke:.12vw #777;z-index:0}
+.netflix-search-shell{grid-template-columns:29vw minmax(0,1fr)}
+.netflix-search-panel{height:calc(100vh - var(--tv-header));padding:1.5vw 1.7vw 3vw var(--nf-gutter);background:#000}
+.netflix-search-heading h1{font-size:2.1vw}
+.netflix-search-heading{margin-bottom:1vw}
+.netflix-search-value{min-height:3vw;font-size:1.2vw;margin-bottom:1vw}
+.netflix-keyboard{grid-template-columns:repeat(9,2.2vw);gap:.35vw}
+.netflix-key{height:2.7vw;font-size:1vw}
+.netflix-search-results{padding:1.6vw 0 5vw}
+.netflix-search-results .tv-row h2,.netflix-search-results .tv-row-scroll{padding-left:1vw}
+.netflix-search-results .row-description{padding-left:1vw}
+.netflix-search-results .row-description p{max-width:100%}
+.details-hero{height:37vw;min-height:0;padding:3vw var(--nf-gutter)}
+.details-scrim{background:linear-gradient(90deg,#000 0%,#000b 40%,transparent 75%),linear-gradient(0deg,#000,transparent 50%)}
+.details-copy{width:48vw}
+.details-copy h1{font-size:4vw}
+.details-description{font-size:1.25vw;max-width:42vw}
+.details-meta{font-size:1.1vw}
+.detail-action{height:3.1vw;min-width:7vw;padding:0 1.3vw;border-radius:.35vw;font-size:1.1vw}
+.details-logo{max-width:27vw;max-height:8vw}
+.episodes{padding:1.5vw var(--nf-gutter) 6vw}
+@media(prefers-reduced-motion:reduce){.topnav-button,.reference-card .card-media>img{transition:none}}
+.tv-topnav{position:absolute;left:29.3vw;gap:.72vw}
+.topnav-button{padding-inline:1.4vw}
+.topnav-button.nav-search{width:3vw}
+.tv-profile{padding-inline:.4vw}
+.route-home .tv-topbar,.route-movies .tv-topbar,.route-shows .tv-topbar{background:linear-gradient(180deg,#2b1115,#200e11)}
+.route-library .tv-topbar,.route-search .tv-topbar,.route-settings .tv-topbar{background:#000}
+.library-page,.search-page,.settings-page{background:#000}

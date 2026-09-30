@@ -1,5 +1,5 @@
 import { useCallback,useEffect,useRef,useState } from "react";
-import { doesFocusableExist,setFocus } from "@noriginmedia/norigin-spatial-navigation";
+import { setFocus } from "@noriginmedia/norigin-spatial-navigation";
 import { AnimatePresence } from "motion/react";
 import { TVSidebar } from "./tv/navigation/TVSidebar";
 import { CollectionPage } from "./pages/CollectionPage";
@@ -23,15 +23,6 @@ import { playNative } from "./platform/native";
 type Route={name:string;item?:MediaItem};
 type BrowserPlayer={src:string;title:string;headers?:Record<string,string>};
 
-function focusWhenAvailable(key:string){
- let tries=0;
- const attempt=()=>{
-   if(doesFocusableExist(key)){void setFocus(key);return}
-   if(tries++<60)window.setTimeout(attempt,25);
- };
- requestAnimationFrame(attempt);
-}
-
 export default function App(){
  const [route,setRoute]=useState<Route>({name:"home"});
  const [player,setPlayer]=useState<BrowserPlayer|null>(null);
@@ -47,8 +38,7 @@ export default function App(){
 
  const go=useCallback((name:string)=>{
    BackStack.push(snapshot());setRoute({name});
-   const target=name==="search"?"search-key:A":(name==="home"||name==="movies"||name==="shows")?`${name}:hero:play`:null;
-   if(target)focusWhenAvailable(target);
+
  },[snapshot]);
  const open=useCallback((item:MediaItem)=>{BackStack.push(snapshot());setRoute({name:"details",item})},[snapshot]);
 
@@ -94,7 +84,7 @@ export default function App(){
    }
  },[player,controls]);
 
- return <div className="app-shell">
+ return <div className={`app-shell route-${route.name}`}>
    <TVSidebar route={route.name} onRoute={go}/>
    <div className="app-content">
      <AnimatePresence mode="wait">
@@ -103,7 +93,7 @@ export default function App(){
        {route.name==="shows"&&<CollectionPage key="shows" route="shows" type="series" onOpen={open} onPlay={playItem}/>}
        {route.name==="discover"&&<DiscoverPage key="discover" onOpen={open}/>}
        {route.name==="search"&&<SearchPage key="search" onOpen={open}/>}
-       {route.name==="library"&&<LibraryPage key="library" onOpen={open}/>}
+       {route.name==="library"&&<LibraryPage key="library" onOpen={open} onResume={resume}/>}
        {route.name==="settings"&&<SettingsPage key="settings"/>}
        {route.name==="details"&&route.item&&<DetailsPage key={route.item.id} seed={route.item} onBack={back} onPlay={launchSource}/>}
      </AnimatePresence>

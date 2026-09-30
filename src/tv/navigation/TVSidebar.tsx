@@ -1,43 +1,45 @@
-import { FocusContext,useFocusable,setFocus } from "@noriginmedia/norigin-spatial-navigation";
-import { motion } from "motion/react";
-import { Home,Film,Tv,Compass,Search,Library,Settings } from "lucide-react";
+import { FocusContext,doesFocusableExist,setFocus,useFocusable } from "@noriginmedia/norigin-spatial-navigation";
+import { Search,ChevronDown,Compass,Settings,UserRound } from "lucide-react";
+import { useEffect,useState,type ReactNode } from "react";
 import { useNavigationStore } from "../../stores/navigationStore";
 import { useTVFocusable } from "../focus/useTVFocusable";
 
-const ITEMS=[
-  ["home","Home",Home],["movies","Movies",Film],["shows","TV Shows",Tv],["discover","Discover",Compass],
-  ["search","Search",Search],["library","My List",Library],["settings","Settings",Settings]
-] as const;
+const ITEMS=[["search","Search"],["home","Home"],["shows","Shows"],["movies","Movies"],["library","My Nocturne"]] as const;
 
+// Keep stable focus IDs so saved page and Back-stack focus survive the new layout.
 export function TVSidebar({route,onRoute}:{route:string;onRoute:(r:string)=>void}){
-  const {ref,focusKey,hasFocusedChild}=useFocusable({focusKey:"sidebar",trackChildren:true,saveLastFocusedChild:true});
-  const saveContent=useNavigationStore(s=>s.saveContentFocus);
-  const contentFocus=useNavigationStore(s=>s.contentFocusKey);
-  return <FocusContext.Provider value={focusKey}>
-    <motion.aside ref={ref as any} className={"tv-sidebar netflix-sidebar "+(hasFocusedChild?"open":"")}
-      animate={{width:hasFocusedChild?278:76}} transition={{type:"spring",stiffness:430,damping:38}}>
-      <div className="netflix-sidebar-brand"><span>N</span><b>NOCTURNE</b></div>
-      <div className="netflix-sidebar-items">
-        {ITEMS.map(([id,label,Icon])=><SidebarItem key={id} id={id} label={label} active={route===id} route={route} Icon={Icon}
-          onPress={()=>onRoute(id)}
-          onFocus={()=>{const s=useNavigationStore.getState();const prior=s.previousFocusedKey;if(prior&&!prior.startsWith("sidebar:"))saveContent(prior)}}
-          onRight={()=>{const target=useNavigationStore.getState().contentFocusKey||contentFocus;if(target)requestAnimationFrame(()=>void setFocus(target))}}/>)}
-      </div>
-    </motion.aside>
-  </FocusContext.Provider>
+ const {ref,focusKey}=useFocusable({focusKey:"sidebar",trackChildren:true,saveLastFocusedChild:true});
+ const [menu,setMenu]=useState(false);
+ useEffect(()=>{const close=()=>{setMenu(false);void setFocus("sidebar:profile")};window.addEventListener("nocturne-overlay-back",close);return()=>window.removeEventListener("nocturne-overlay-back",close)},[]);
+ const down=()=>{
+   const state=useNavigationStore.getState();
+   const target=state.pageFocusHistory[route]||`${route}:hero:play`;
+   if(doesFocusableExist(target))void setFocus(target);
+   else void setFocus(`page:${route}`);
+ };
+ const navigate=(id:string)=>{setMenu(false);onRoute(id)};
+ return <FocusContext.Provider value={focusKey}>
+  <header ref={ref as any} className="tv-topbar">
+   <NavButton id="profile" label="Profile and settings" className="tv-profile" onPress={()=>{setMenu(!menu);if(!menu)requestAnimationFrame(()=>setFocus("sidebar:settings"))}} onDown={down}>
+    <span className="profile-avatar"><UserRound/></span><ChevronDown className="profile-chevron"/>
+   </NavButton>
+   <nav className="tv-topnav" aria-label="Main navigation">
+    {ITEMS.map(([id,label])=><NavButton key={id} id={id} label={label} active={route===id} onPress={()=>navigate(id)} onDown={down} className={id==="search"?"nav-search":""}>
+      {id==="search"?<Search/>:label}
+    </NavButton>)}
+   </nav>
+   <span className="nocturne-monogram" aria-label="Nocturne">N</span>
+   {menu&&<div className="profile-menu" data-tv-overlay="true">
+    <NavButton id="settings" label="Settings" onPress={()=>navigate("settings")}><Settings/> Settings</NavButton>
+    <NavButton id="discover" label="Discover" onPress={()=>navigate("discover")}><Compass/> Discover</NavButton>
+   </div>}
+  </header>
+ </FocusContext.Provider>
 }
-function SidebarItem({id,label,active,route,Icon,onPress,onFocus,onRight}:any){
-  const {ref,focused}=useTVFocusable({
-    focusKey:`sidebar:${id}`,route:"sidebar",rowId:"sidebar",onPress,onFocus,
-    onArrowPress:(dir)=>{if(dir==="right"){onRight();return false}return true}
-  });
-  return <motion.button ref={ref as any} className={"sidebar-item netflix-sidebar-item "+(active?"active":"")}
-    animate={{
-      scale:focused?1.025:1,
-      backgroundColor:focused?"rgba(255,255,255,.95)":"rgba(255,255,255,0)",
-      color:focused?"#111":"#fff"
-    }}>
-    <i className="netflix-active-marker"/>
-    <Icon size={23}/><span>{label}</span>
-  </motion.button>
+function NavButton({id,label,active,onPress,onDown,className="",children}:{id:string;label:string;active?:boolean;onPress:()=>void;onDown?:()=>void;className?:string;children:ReactNode}){
+ const {ref,focused,focusSelf}=useTVFocusable({focusKey:`sidebar:${id}`,route:"sidebar",rowId:"sidebar",onPress,
+   onArrowPress:direction=>{if(direction==="down"&&onDown){onDown();return false}return true}
+ });
+ return <button ref={ref as any} aria-label={label} aria-current={active?"page":undefined} className={`topnav-button ${className} ${active?"active":""} ${focused?"is-focused":""}`}
+  onMouseEnter={()=>focusSelf()} onClick={onPress}>{children}</button>
 }

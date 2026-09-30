@@ -5,6 +5,7 @@ import { TVFocusProvider } from "./tv/focus/TVFocusProvider";
 import { MobileTVPreview } from "./preview/MobileTVPreview";
 import App from "./App";
 import "./styles.css";
+import "./reference-tv.css";
 
 const client=new QueryClient({defaultOptions:{queries:{refetchOnWindowFocus:false,staleTime:300000}}});
 

@@ -60,7 +60,7 @@ test("Home rail, sidebar and Back restore exact focus",async({page})=>{
   await expect.poll(()=>focus(page)).toBe(first);
   await page.keyboard.press("ArrowLeft");
   await expect.poll(()=>focus(page)).toBe("sidebar:home");
-  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("ArrowDown");
   await expect.poll(()=>focus(page)).toBe(first);
 
   await page.keyboard.press("Enter");
@@ -73,7 +73,7 @@ test("Search keyboard and results are explicit focus boundaries",async({page})=>
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("ArrowLeft");
   await expect.poll(()=>focus(page)).toBe("sidebar:home");
-  for(let i=0;i<4;i++)await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowLeft");
   await expect.poll(()=>focus(page)).toBe("sidebar:search");
   await page.keyboard.press("Enter");
   await expect.poll(()=>focus(page)).toBe("search-key:A");
@@ -104,12 +104,12 @@ test("Spotlight follows focus and Details actions reflect the active control",as
   await page.keyboard.press("ArrowDown");
   const first=await focus(page);
   await expect.poll(()=>focus(page)).toMatch(/^home:[^:]+:(movie|series):/);
-  const firstName=await page.locator(".hero-copy h1").textContent();
+  const firstName=await page.locator(".row-selected .row-description").textContent();
 
   await page.keyboard.press("ArrowRight");
   const second=await focus(page);
   expect(second).not.toBe(first);
-  await expect.poll(async()=>page.locator(".hero-copy h1").textContent()).not.toBe(firstName);
+  await expect.poll(async()=>page.locator(".row-selected .row-description").textContent()).not.toBe(firstName);
 
   await page.keyboard.press("Enter");
   await expect.poll(()=>focus(page)).toMatch(/^details:.*:action:play$/);
@@ -136,8 +136,7 @@ test("Spotlight follows focus and Details actions reflect the active control",as
 test("TV series episodes are visible and Down from actions reaches the first episode",async({page})=>{
   await page.keyboard.press("ArrowLeft");
   await expect.poll(()=>focus(page)).toBe("sidebar:home");
-  await page.keyboard.press("ArrowDown");
-  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowRight");
   await expect.poll(()=>focus(page)).toBe("sidebar:shows");
   await page.keyboard.press("Enter");
   await expect.poll(()=>focus(page)).toBe("shows:hero:play");
@@ -154,7 +153,7 @@ test("TV series episodes are visible and Down from actions reaches the first epi
 test("Rows remove duplicate titles even when provider IDs differ",async({page})=>{
   await page.keyboard.press("ArrowDown");
   await page.waitForTimeout(300);
-  const names=await page.locator(".tv-row").first().locator(".card-meta b").allTextContents();
+  const names=await page.locator(".tv-row").first().locator(".reference-card").evaluateAll(cards=>cards.map(card=>card.getAttribute("aria-label")||""));
   const normalized=names.map(x=>x.toLowerCase().replace(/[^a-z0-9]+/g," ").trim());
   expect(new Set(normalized).size).toBe(normalized.length);
 });
@@ -166,4 +165,30 @@ test("Large rails remain virtualized",async({page})=>{
   const counts=await page.locator(".tv-row-scroll .tv-row-inner").evaluateAll(rows=>rows.map(r=>r.querySelectorAll(".tv-card").length));
   expect(counts.length).toBeGreaterThan(0);
   for(const count of counts)expect(count).toBeLessThan(30);
+});
+
+test("Reference layout expands the selected poster and survives rapid input",async({page})=>{
+ await page.setViewportSize({width:1920,height:1080});
+ await page.keyboard.press("ArrowDown");
+ const expanded=page.locator('.reference-card.is-expanded');
+ await expect(expanded).toHaveCount(1);
+ await expect.poll(async()=>Math.round((await expanded.boundingBox())?.width||0)).toBe(784);
+ await expect.poll(async()=>Math.round((await expanded.boundingBox())?.height||0)).toBe(438);
+ for(let i=0;i<12;i++)await page.keyboard.press('ArrowRight');
+ const remembered=await focus(page);
+ expect(remembered).toMatch(/^home:/);
+ await page.keyboard.press('Enter');
+ await expect.poll(()=>focus(page)).toMatch(/^details:/);
+ await page.keyboard.press('Escape');
+ await expect.poll(()=>focus(page)).toBe(remembered);
+ await expect(expanded).toBeVisible();
+});
+
+test("Profile exposes Settings and My Nocturne opens saved titles",async({page})=>{
+ await page.getByRole('button',{name:'Profile and settings'}).click();
+ await expect(page.getByRole('button',{name:'Settings',exact:true})).toBeVisible();
+ await page.keyboard.press('Escape');
+ await expect(page.locator('.profile-menu')).toHaveCount(0);
+ await page.getByRole('button',{name:'My Nocturne',exact:true}).click();
+ await expect(page.locator('.library-page')).toContainText('My List');
 });

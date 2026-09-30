@@ -1,4 +1,4 @@
-import { useCallback,useEffect,useMemo,useRef,useState } from "react";
+import { useEffect,useMemo,useRef,useState } from "react";
 import { TVPage } from "../tv/navigation/TVPage";
 import { TVHero } from "../tv/content/TVHero";
 import { TVRow } from "../tv/content/TVRow";
@@ -33,7 +33,7 @@ export function CollectionPage({
  const primary=usePrimaryRows({route,type,catalogs,netflixBase});
  const providers=useProviderRows({route,type,catalogs,enabled:providerReady});
  const curated=useCuratedRows({route,type,catalogs,enabled:curatedReady});
- const rows=useMemo(()=>dedupePlannedRows([...(primary.data||[]),...(providers.data||[]),...(curated.data||[])],20),[primary.data,providers.data,curated.data]);
+ const rows=useMemo(()=>dedupePlannedRows([...(primary.data||[]),...(providers.data||[]),...(curated.data||[])],20).sort((a,b)=>Number(b.id==="trending")-Number(a.id==="trending")),[primary.data,providers.data,curated.data]);
  const cont=useMemo(()=>route==="home"?continueWatching():[],[route,libraryRevision]);
  return <TVPage route={route} initialFocusKey={`${route}:hero:play`}>
    <Rows route={route} rows={rows} onOpen={onOpen} onPlay={onPlay} cont={cont} onResume={onResume}/>
@@ -46,29 +46,20 @@ function Rows({route,rows,onOpen,onPlay,cont,onResume}:{
 }){
  const hero=useContentStore(s=>s.heroByRoute[route]); const setHero=useContentStore(s=>s.setHero);
  const metaAbort=useRef<AbortController|null>(null);
- const focusHero=useCallback((item:MediaItem)=>{
-   const current=useContentStore.getState().heroByRoute[route];
-   setHero(route,{...item,background:current?.background||item.background});
- },[route,setHero]);
- const settleHero=useCallback((item:MediaItem)=>{
-   setHero(route,item);
-   metaAbort.current?.abort();
-   const controller=new AbortController();metaAbort.current=controller;
-   loadMetaEnriched(item,controller.signal).then(full=>setHero(route,full)).catch(()=>{});
- },[route,setHero]);
  useEffect(()=>{
    if(!hero){
-     const first=rows.find(r=>r.items.length)?.items[0];
-     if(first)setHero(route,first);
+     const first=rows.find(r=>r.kind==="standard"&&r.items.length)?.items[0]||rows.find(r=>r.items.length)?.items[0];
+     if(first){setHero(route,first);const controller=new AbortController();metaAbort.current=controller;loadMetaEnriched(first,controller.signal).then(full=>{if(!controller.signal.aborted)setHero(route,full)}).catch(()=>{});}
    }
  },[rows,route,hero?.id]);
+ useEffect(()=>()=>metaAbort.current?.abort(),[]);
  return <>
    <TVHero item={hero} route={route} onPlay={()=>hero&&(onPlay?onPlay(hero):onOpen(hero))} onMore={()=>hero&&onOpen(hero)}/>
    <div className="rows">
      {route==="home"&&onResume&&<TVContinueRow entries={cont} route={route} onResume={onResume}/>}
      {rows.map(row=>row.kind==="top10"
-       ?<TVTop10Row key={row.id} id={row.id} title={row.title} items={row.items} route={route} onOpen={onOpen} onFocused={focusHero} onSettled={settleHero}/>
-       :<TVRow key={row.id} id={row.id} title={row.title} items={row.items} route={route} onOpen={onOpen} onFocused={focusHero} onSettled={settleHero}/>
+       ?<TVTop10Row key={row.id} id={row.id} title={row.title} items={row.items} route={route} onOpen={onOpen}/>
+       :<TVRow key={row.id} id={row.id} title={row.title} items={row.items} route={route} onOpen={onOpen}/>
      )}
    </div>
  </>

@@ -35,7 +35,7 @@ export function useHorizontalRail(opts:{
     if(direction!=="left"&&direction!=="right")return true;
 
     if(direction==="left"&&index===0){
-      requestAnimationFrame(()=>void setFocus(leftExitFocusKey));
+      requestAnimationFrame(()=>void setFocus(doesFocusableExist(leftExitFocusKey)?leftExitFocusKey:"sidebar:profile"));
       return false;
     }
 
