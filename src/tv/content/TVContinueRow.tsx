@@ -13,6 +13,6 @@ export function TVContinueRow({entries,route,onResume}:{entries:LibraryEntry[];r
  const rail=useHorizontalRail({scroller,count:entries.length,keyAt,leftExitFocusKey:`sidebar:${route}`});
  return <FocusContext.Provider value={focusKey}><section ref={ref as any} className="tv-row"><h2>Continue Watching</h2>
   <div className="continue-scroll" ref={scroller}>{entries.map((e,i)=><TVContinueCard key={e.item.id} item={e.item} route={route} rowId={id} progress={e.progress}
-    onResume={()=>onResume(e)} onSpatialFocus={rail.onFocus} onArrowPress={direction=>rail.onArrow(i,direction)}/>)}</div>
+    onResume={()=>onResume(e)} onArrowPress={direction=>rail.onArrow(i,direction)}/>)}</div>
  </section></FocusContext.Provider>
 }
