@@ -89,7 +89,7 @@ export function DetailsPage({seed,onBack,onPlay,onOpen}:{
      <TVDetailsHero item={item} route={route}
        onPlay={()=>play()} onWatchlist={toggle} watchlisted={watchlisted}
        onSources={()=>chooseSources()} onPanel={openPanel}/>
-     {item.type==="series"&&item.videos?.length>0&&
+     {item.type==="series"&&(item.videos?.length??0)>0&&
        <EpisodesPanel item={item} route={route} inline onPlay={(ep:Episode)=>play(ep.id)}/>}
    </>}
    {panel&&<TitleHub item={item} route={route} panel={panel} onPanel={setPanel} onClose={closePanel}
