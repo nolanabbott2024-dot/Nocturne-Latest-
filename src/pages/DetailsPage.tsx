@@ -3,17 +3,17 @@ import { AnimatePresence } from "motion/react";
 import { setFocus } from "@noriginmedia/norigin-spatial-navigation";
 import { TVPage } from "../tv/navigation/TVPage";
 import { TVDetailsHero } from "../tv/detail/TVDetailsHero";
-import { EpisodesPanel,TitleHub,type TitlePanel } from "../tv/detail/TitleHub";
+import { AudioPanel,DetailsPanel,EpisodesPanel,ExtrasPanel,RelatedPanel,type TitlePanel } from "../tv/detail/TitleHub";
 import { SourcePicker } from "../tv/playback/SourcePicker";
 import { DetailsTrailerOverlay } from "../tv/playback/DetailsTrailerOverlay";
 import { useProviderStore } from "../stores/providerStore";
 import { loadMetaEnriched } from "../data/stremio";
 import { useAddons,useCatalog } from "../data/queries";
-import { resolvePlayableStream, resolvePlayableSources, type PlayableSource } from "../data/playback";
+import { resolvePlayableStream,resolvePlayableSources,type PlayableSource } from "../data/playback";
 import { isWatchlisted,toggleWatchlist } from "../data/library";
 import type { MediaItem,Episode } from "../types/tv";
 
-export function DetailsPage({seed,onBack,onPlay,onOpen}:{
+export function DetailsPage({seed,onBack:_,onPlay,onOpen}:{
   seed:MediaItem;onBack:()=>void;onOpen:(item:MediaItem)=>void;
   onPlay:(url:string,title:string,headers:Record<string,string>,item:MediaItem,videoId:string)=>void
 }){
@@ -22,7 +22,6 @@ export function DetailsPage({seed,onBack,onPlay,onOpen}:{
  const [watchlisted,setWatchlisted]=useState(()=>isWatchlisted(seed.id));
  const [sources,setSources]=useState<{items:PlayableSource[];videoId:string;loading:boolean}|null>(null);
  const [trailerOpen,setTrailerOpen]=useState(false);
- const [panel,setPanel]=useState<TitlePanel|null>(null);
  const addons=useProviderStore(s=>s.addons);
  const loadedAddons=useAddons();
  const relatedCatalog=useMemo(()=>loadedAddons.flatMap(a=>a.catalogs).find(c=>c.type===item.type),[loadedAddons,item.type]);
@@ -42,13 +41,6 @@ export function DetailsPage({seed,onBack,onPlay,onOpen}:{
  },[seed.id,seed.sourceBase,seed.type]);
 
  useEffect(()=>setWatchlisted(isWatchlisted(item.id)),[item.id]);
-
- useEffect(()=>{
-   if(!panel||trailerOpen||sources)return;
-   const close=()=>closePanel();
-   window.addEventListener("nocturne-overlay-back",close);
-   return()=>window.removeEventListener("nocturne-overlay-back",close);
- },[panel,trailerOpen,!!sources]);
 
  const playSource=useCallback((source:PlayableSource,videoId:string)=>{
    setSources(null);
@@ -77,24 +69,58 @@ export function DetailsPage({seed,onBack,onPlay,onOpen}:{
  },[busy,item,addons]);
 
  const toggle=useCallback(()=>setWatchlisted(toggleWatchlist(item)),[item]);
- const openPanel=useCallback((next:TitlePanel)=>setPanel(next),[]);
- const closePanel=useCallback(()=>{
-   const restore=panel;
-   setPanel(null);
-   requestAnimationFrame(()=>void setFocus(restore?route+":overview-tab:"+restore:route+":action:play"));
- },[panel,route]);
+
+ const scrollSection=useCallback((panel:TitlePanel)=>{
+   const id=panel==="episodes"?"episodes":panel;
+   const section=document.getElementById(route+":section:"+id);
+   if(!section)return;
+   section.scrollIntoView({behavior:"smooth",block:"start"});
+   const focus=()=>{
+     const firstSeason=item.videos?.[0]?.season||1;
+     const target=panel==="episodes"?(item.videos?.length?route+":season:"+firstSeason:null)
+       :panel==="details"?route+":detail:more"
+       :panel==="audio"?route+":audio:0"
+       :panel==="related"?(related[0]?route+":related:"+related[0].type+":"+related[0].id+":0":null)
+       :panel==="extras"?(item.trailerUrl||item.trailerYtId?route+":extra:trailer":null)
+       :null;
+     if(target)void setFocus(target);
+   };
+   window.setTimeout(focus,260);
+ },[route,item.videos,item.trailerUrl,item.trailerYtId,related]);
 
  return <TVPage route={route} initialFocusKey={route+":action:play"}>
-   {!panel&&<>
-     <TVDetailsHero item={item} route={route}
-       onPlay={()=>play()} onWatchlist={toggle} watchlisted={watchlisted}
-       onSources={()=>chooseSources()} onPanel={openPanel}/>
+   <TVDetailsHero item={item} route={route}
+     onPlay={()=>play()} onWatchlist={toggle} watchlisted={watchlisted}
+     onSources={()=>chooseSources()} onPanel={scrollSection}/>
+
+   <div className="continuous-details">
      {item.type==="series"&&(item.videos?.length??0)>0&&
-       <EpisodesPanel item={item} route={route} inline onPlay={(ep:Episode)=>play(ep.id)}/>}
-   </>}
-   {panel&&<TitleHub item={item} route={route} panel={panel} onPanel={setPanel} onClose={closePanel}
-     onPlayEpisode={(ep:Episode)=>play(ep.id)} onOpenRelated={onOpen}
-     onTrailer={()=>setTrailerOpen(true)} related={related}/>}
+       <section id={route+":section:episodes"} className="continuous-section episodes-section">
+         <EpisodesPanel item={item} route={route} inline onPlay={(ep:Episode)=>play(ep.id)}/>
+       </section>}
+
+     <section id={route+":section:details"} className="continuous-section">
+       <h2 className="continuous-heading">Details</h2>
+       <DetailsPanel item={item}/>
+     </section>
+
+     <section id={route+":section:related"} className="continuous-section">
+       <h2 className="continuous-heading">More Like This</h2>
+       <RelatedPanel items={related} item={item} route={route} onOpen={onOpen}/>
+     </section>
+
+     <section id={route+":section:audio"} className="continuous-section">
+       <h2 className="continuous-heading">Audio & Subtitles</h2>
+       <AudioPanel route={route}/>
+     </section>
+
+     {item.type==="series"&&(item.trailerUrl||item.trailerYtId)&&
+       <section id={route+":section:extras"} className="continuous-section">
+         <h2 className="continuous-heading">Previews & Extras</h2>
+         <ExtrasPanel item={item} route={route} onTrailer={()=>setTrailerOpen(true)}/>
+       </section>}
+   </div>
+
    <AnimatePresence>
      {sources&&<SourcePicker sources={sources.items} loading={sources.loading} route={route} onPick={s=>playSource(s,sources.videoId)} onClose={()=>setSources(null)}/>}
      {trailerOpen&&<DetailsTrailerOverlay item={item} route={route} onClose={()=>setTrailerOpen(false)}/>}
