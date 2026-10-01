@@ -18,7 +18,7 @@ export function TVTop10Row({id,title,items,route,onOpen,onFocused,onSettled}:{
 
     const target=card.offsetLeft-(s.clientWidth-card.offsetWidth)/2;
     const max=Math.max(0,s.scrollWidth-s.clientWidth);
-    s.scrollLeft=Math.max(0,Math.min(max,target));
+    s.scrollTo({left:Math.max(0,Math.min(max,target)),behavior:"smooth"});
 
     // Only correct vertical position when entering the row, never during sideways travel.
     const page=s.closest(".tv-page") as HTMLElement|null;
@@ -26,8 +26,11 @@ export function TVTop10Row({id,title,items,route,onOpen,onFocused,onSettled}:{
       const rr=s.getBoundingClientRect(),pr=page.getBoundingClientRect();
       const safeTop=pr.top+pr.height*.14;
       const safeBottom=pr.bottom-pr.height*.12;
-      if(rr.top<safeTop)page.scrollTop+=rr.top-safeTop;
-      else if(rr.bottom>safeBottom)page.scrollTop+=rr.bottom-safeBottom;
+      const row=s.closest(".tv-row") as HTMLElement|null;
+      const targetRow=row||s;
+      const tr=targetRow.getBoundingClientRect();
+      const delta=(tr.top+tr.height/2)-(pr.top+pr.height/2);
+      if(Math.abs(delta)>16)page.scrollTo({top:Math.max(0,page.scrollTop+delta),behavior:"smooth"});
     }
   },[]);
 
