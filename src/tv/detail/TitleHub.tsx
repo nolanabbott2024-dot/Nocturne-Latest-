@@ -33,7 +33,7 @@ export function TitleHub({item,route,panel,onPanel,onClose,onPlayEpisode,onOpenR
             const target=t==="episodes"?(item.videos?.length?route+":season:"+firstSeason:route+":hub-close")
               :t==="audio"?route+":audio:0"
               :t==="related"?(related[0]?route+":related:"+related[0].type+":"+related[0].id+":0":route+":hub-close")
-              :t==="extras"?(item.trailerUrl||item.trailerYtId?route+":extra:trailer":route+":hub-close")
+              :t==="extras"?(item.trailerUrl?route+":extra:trailer":route+":hub-close")
               :route+":detail:more";
             requestAnimationFrame(()=>void setFocus(target));return false;
           }
@@ -75,7 +75,7 @@ export function EpisodesPanel({item,route,onPlay,inline=false}:{item:MediaItem;r
    <div className="hub-season-tabs">
     {seasons.map(s=><FocusButton key={s} focusKey={route+":season:"+s} route={route} className={"hub-season "+(season===s?"active":"")} onPress={()=>setSeason(s)}
       onArrowPress={direction=>{
-        if(direction==="up"){void setFocus(route+":action:play");return false}
+        if(direction==="up"){void setFocus(route+":hub-tab:episodes");return false}
         if(direction==="down"){
           const first=(item.videos||[]).find(v=>(v.season??1)===s);
           if(first){void setFocus(route+":hub-episode:"+first.id);return false}
@@ -139,7 +139,7 @@ function RelatedTile({item,route,i,onOpen,onFocus}:{item:MediaItem;route:string;
  const {ref,focused,focusSelf}=useTVFocusable({
    focusKey:route+":related:"+item.type+":"+item.id+":"+i,route,rowId:"hub-related",onPress:onOpen,onFocus,
    onArrowPress:direction=>{
-     if(direction==="up"){void setFocus(route+":overview-tab:related");return false}
+     if(direction==="up"){void setFocus(route+":hub-tab:related");return false}
      return true;
    }
  });
