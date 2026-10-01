@@ -1,9 +1,21 @@
-import { useCallback,useEffect,useMemo,useState } from "react";
+ return <TVPage route={route} initialFocusKey={route+":action:play"}>
+   <TVDetailsHero item={item} route={route}
+     onPlay={()=>play()} onWatchlist={toggle} watchlisted={watchlisted}
+     onSources={()=>chooseSources()} onPanel={openPanel}/>
+
+   <AnimatePresence>
+     {panel&&<TitleHub item={item} route={route} panel={panel} onPanel={setPanel} onClose={()=>setPanel(null)}
+       onPlayEpisode={ep=>play(ep.id)} onOpenRelated={onOpen} onTrailer={()=>setTrailerOpen(true)} related={related}/>}
+     {sources&&<SourcePicker sources={sources.items} loading={sources.loading} route={route} onPick={src=>playSource(src,sources.videoId)} onClose={()=>setSources(null)}/>}
+     {trailerOpen&&<DetailsTrailerOverlay item={item} route={route} onClose={()=>setTrailerOpen(false)}/>}
+   </AnimatePresence>
+ </TVPage>
+}import { useCallback,useEffect,useMemo,useState } from "react";
 import { AnimatePresence } from "motion/react";
 import { setFocus } from "@noriginmedia/norigin-spatial-navigation";
 import { TVPage } from "../tv/navigation/TVPage";
 import { TVDetailsHero } from "../tv/detail/TVDetailsHero";
-import { AudioPanel,DetailsPanel,EpisodesPanel,ExtrasPanel,RelatedPanel,type TitlePanel } from "../tv/detail/TitleHub";
+import { TitleHub,type TitlePanel } from "../tv/detail/TitleHub";
 import { SourcePicker } from "../tv/playback/SourcePicker";
 import { DetailsTrailerOverlay } from "../tv/playback/DetailsTrailerOverlay";
 import { useProviderStore } from "../stores/providerStore";
@@ -11,7 +23,7 @@ import { loadMetaEnriched } from "../data/stremio";
 import { useAddons,useCatalog } from "../data/queries";
 import { resolvePlayableStream,resolvePlayableSources,type PlayableSource } from "../data/playback";
 import { isWatchlisted,toggleWatchlist } from "../data/library";
-import type { MediaItem,Episode } from "../types/tv";
+import type { MediaItem } from "../types/tv";
 
 export function DetailsPage({seed,onBack:_,onPlay,onOpen}:{
   seed:MediaItem;onBack:()=>void;onOpen:(item:MediaItem)=>void;
@@ -22,6 +34,7 @@ export function DetailsPage({seed,onBack:_,onPlay,onOpen}:{
  const [watchlisted,setWatchlisted]=useState(()=>isWatchlisted(seed.id));
  const [sources,setSources]=useState<{items:PlayableSource[];videoId:string;loading:boolean}|null>(null);
  const [trailerOpen,setTrailerOpen]=useState(false);
+ const [panel,setPanel]=useState<TitlePanel|null>(null);
  const addons=useProviderStore(s=>s.addons);
  const loadedAddons=useAddons();
  const relatedCatalog=useMemo(()=>loadedAddons.flatMap(a=>a.catalogs).find(c=>c.type===item.type),[loadedAddons,item.type]);
@@ -70,16 +83,8 @@ export function DetailsPage({seed,onBack:_,onPlay,onOpen}:{
 
  const toggle=useCallback(()=>setWatchlisted(toggleWatchlist(item)),[item]);
 
- const scrollSection=useCallback((panel:TitlePanel)=>{
-   const firstSeason=item.videos?.[0]?.season||1;
-   const target=panel==="episodes"?(item.videos?.length?route+":season:"+firstSeason:null)
-     :panel==="details"?route+":detail:more"
-     :panel==="audio"?route+":audio:0"
-     :panel==="related"?(related[0]?route+":related:"+related[0].type+":"+related[0].id+":0":null)
-     :panel==="extras"?(item.trailerUrl||item.trailerYtId?route+":extra:trailer":null)
-     :null;
-   if(target)void setFocus(target);
- },[route,item.videos,item.trailerUrl,item.trailerYtId,related]);
+ const openPanel=useCallback((next:TitlePanel)=>setPanel(next),[]);
+
 
  return <TVPage route={route} initialFocusKey={route+":action:play"}>
    <TVDetailsHero item={item} route={route}
