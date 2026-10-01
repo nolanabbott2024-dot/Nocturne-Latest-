@@ -22,6 +22,8 @@ jobs:
         working-directory: android-apk
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: codex/netflix-reference-design
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
