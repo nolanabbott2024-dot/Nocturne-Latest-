@@ -35,7 +35,6 @@ export const TVPosterCard=memo(function TVPosterCard({item,route,rowId,onOpen,on
     {expanded&&(item.background||item.poster)&&<img className="card-art card-art-landscape" src={item.background||item.poster} decoding="async" alt="" onLoad={()=>setLandscapeLoaded(true)}/>} 
     {trailerReady&&focused&&<TrailerPreview item={expanded?item:previewItem}/>}
     <div className="reference-card-shade"/>
-    <span className="card-monogram" aria-hidden="true">N</span>
     {(expanded||!item.poster)&&<div className="reference-card-title">
       {expanded&&item.logo?<img src={item.logo} alt={item.name}/>:<b>{item.name}</b>}
     </div>}
