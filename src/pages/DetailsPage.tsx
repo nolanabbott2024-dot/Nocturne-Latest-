@@ -6,7 +6,7 @@ import { TitleHub,type TitlePanel } from "../tv/detail/TitleHub";
 import { SourcePicker } from "../tv/playback/SourcePicker";
 import { DetailsTrailerOverlay } from "../tv/playback/DetailsTrailerOverlay";
 import { useProviderStore } from "../stores/providerStore";
-import { loadMetaEnriched } from "../data/stremio";
+import { loadDirectTrailerFromAddons,loadMetaEnriched } from "../data/stremio";
 import { useAddons,useCatalog } from "../data/queries";
 import { resolvePlayableStream,resolvePlayableSources,type PlayableSource } from "../data/playback";
 import { isWatchlisted,toggleWatchlist } from "../data/library";
@@ -36,9 +36,18 @@ export function DetailsPage({seed,onBack:_,onPlay,onOpen}:{
 
  useEffect(()=>{
    const controller=new AbortController();
-   loadMetaEnriched(seed,controller.signal).then(full=>setItem(full)).catch(()=>{});
+   (async()=>{
+     try{
+       let full=await loadMetaEnriched(seed,controller.signal);
+       if(!full.trailerUrl){
+         const trailer=await loadDirectTrailerFromAddons(full,addons,controller.signal);
+         full={...full,...trailer};
+       }
+       if(!controller.signal.aborted)setItem(full);
+     }catch{}
+   })();
    return()=>controller.abort();
- },[seed.id,seed.sourceBase,seed.type]);
+ },[seed.id,seed.sourceBase,seed.type,addons]);
 
  useEffect(()=>setWatchlisted(isWatchlisted(item.id)),[item.id]);
 
