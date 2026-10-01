@@ -8,7 +8,8 @@ function centerFocusedNode(node:HTMLElement|null,focusKey:string){
 
   const horizontal=node.closest(".tv-row-scroll,.top10-scroll,.continue-scroll,.hub-related-row,.hub-episode-row") as HTMLElement|null;
   if(horizontal){
-    const nr=node.getBoundingClientRect(),hr=horizontal.getBoundingClientRect();
+    const visual=(node.querySelector?.(".card-media") as HTMLElement|null)||node;
+    const nr=visual.getBoundingClientRect(),hr=horizontal.getBoundingClientRect();
     const delta=(nr.left+nr.width/2)-(hr.left+hr.width/2);
     if(Math.abs(delta)>6){
       horizontal.scrollTo({left:horizontal.scrollLeft+delta,behavior:"smooth"});
