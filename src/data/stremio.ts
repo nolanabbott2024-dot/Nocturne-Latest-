@@ -4,7 +4,6 @@ import type { AddonDescriptor,Catalog,MediaItem } from "../types/tv";
 export type LoadedAddon={descriptor:AddonDescriptor;manifest:any;baseUrl:string;catalogs:Catalog[]};
 
 export const CINEMETA_BASE="https://v3-cinemeta.strem.io/";
-const TRAILER_ADDON_BASE="https://stremio-trailer-addon.vercel.app/";
 export function isCinemetaCatalog(c:Catalog){return c.baseUrl===CINEMETA_BASE||/cinemeta/i.test(c.addonId)||/cinemeta/i.test(c.addonName);}
 
 function baseOf(url:string){return url.slice(0,url.lastIndexOf("/")+1);}
@@ -52,15 +51,6 @@ function youtubeIdFromUrl(url:string){
   return undefined;
 }
 
-async function loadTrailerFallback(type:string,id:string,signal?:AbortSignal):Promise<Partial<MediaItem>>{
-  if(!/^tt\d+$/i.test(id))return {};
-  try{
-    const o=await fetchJson<any>(TRAILER_ADDON_BASE+"stream/"+encodeURIComponent(type)+"/"+encodeURIComponent(id)+".json",signal,6*60*60_000);
-    const candidate=(o.streams||[]).find((s:any)=>typeof s.url==="string"&&/\.(?:m3u8|mp4)(?:$|\?)/i.test(s.url));
-    return candidate?.url?{trailerUrl:candidate.url}:{};
-  }catch{return {}}
-}
-
 export async function loadMetaEnriched(seed:MediaItem,signal?:AbortSignal):Promise<MediaItem>{
   let source:MediaItem=seed;
   if(seed.sourceBase){
@@ -85,9 +75,7 @@ export async function loadMetaEnriched(seed:MediaItem,signal?:AbortSignal):Promi
     trailerYtId:meta.trailerYtId||source.trailerYtId,
     sourceBase:seed.sourceBase||source.sourceBase
   }:{...source,sourceBase:seed.sourceBase||source.sourceBase};
-  if(merged.trailerUrl||merged.trailerYtId)return merged;
-  const fallback=await loadTrailerFallback(merged.type,merged.id,signal);
-  return {...merged,...fallback};
+  return merged;
 
 }
 export async function loadDirectTrailerFromAddons(seed:MediaItem,descriptors:AddonDescriptor[],signal?:AbortSignal):Promise<Partial<MediaItem>>{
@@ -113,6 +101,14 @@ export async function loadStreams(baseUrl:string,type:string,id:string,signal?:A
   const o=await fetchJson<any>(`${baseUrl}stream/${encodeURIComponent(type)}/${encodeURIComponent(id)}.json`,signal);
   return o.streams||[];
 }
+// Cinemeta metadata (TMDB-sourced) carries the official YouTube trailer id.
+// Used for an external "Watch on YouTube" action; inline previews stay direct-stream only.
+function youtubeTrailerId(m:any):string|undefined{
+  const fromStreams=(m.trailerStreams||[]).find((t:any)=>typeof t?.ytId==="string"&&t.ytId)?.ytId;
+  const fromTrailers=(m.trailers||[]).find((t:any)=>t?.type==="Trailer"&&typeof t?.source==="string"&&t.source)?.source;
+  const id=fromStreams||fromTrailers;
+  return id&&/^[\w-]{6,20}$/.test(id)?id:undefined;
+}
 export function normalizeItem(m:any,type:string,sourceBase?:string):MediaItem{
   const trailers=(m.trailerStreams||m.trailers||[]);
   const trailer=trailers.find((t:any)=>typeof t?.url==="string"&&/\.(?:m3u8|mp4)(?:$|\?)/i.test(t.url))||{};
@@ -121,6 +117,6 @@ export function normalizeItem(m:any,type:string,sourceBase?:string):MediaItem{
     poster:m.poster,background:previewImg(m.background||m.poster),logo:m.logo,description:m.description,
     releaseInfo:m.releaseInfo,runtime:m.runtime,contentRating:m.contentRating,imdbRating:m.imdbRating,
     genres:m.genres||[],videos:m.videos||[],trailerUrl:trailer.url,
-    trailerYtId:undefined,sourceBase
+    trailerYtId:youtubeTrailerId(m),sourceBase
   };
 }

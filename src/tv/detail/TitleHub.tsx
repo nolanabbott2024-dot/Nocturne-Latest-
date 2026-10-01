@@ -5,6 +5,7 @@ import { setFocus } from "@noriginmedia/norigin-spatial-navigation";
 import type { Episode,MediaItem } from "../../types/tv";
 import { useTVFocusable } from "../focus/useTVFocusable";
 import { mediaFacts } from "../content/TVHero";
+import { openExternal } from "../../platform/native";
 
 export type TitlePanel="episodes"|"details"|"related"|"audio"|"extras";
 const LABELS:Record<TitlePanel,string>={episodes:"Episodes",details:"Details",related:"More Like This",audio:"Audio & Subtitles",extras:"Previews & Extras"};
@@ -33,7 +34,7 @@ export function TitleHub({item,route,panel,onPanel,onClose,onPlayEpisode,onOpenR
             const target=t==="episodes"?(item.videos?.length?route+":season:"+firstSeason:route+":hub-close")
               :t==="audio"?route+":audio:0"
               :t==="related"?(related[0]?route+":related:"+related[0].type+":"+related[0].id+":0":route+":hub-close")
-              :t==="extras"?(item.trailerUrl?route+":extra:trailer":route+":hub-close")
+              :t==="extras"?(item.trailerUrl||item.trailerYtId?route+":extra:trailer":route+":hub-close")
               :route+":detail:more";
             requestAnimationFrame(()=>void setFocus(target));return false;
           }
@@ -163,10 +164,12 @@ function Choice({id,route,active,label,onPress}:{id:string;route:string;active:b
 }
 
 export function ExtrasPanel({item,route,onTrailer}:{item:MediaItem;route:string;onTrailer:()=>void}){
- const available=!!item.trailerUrl;
+ const direct=!!item.trailerUrl;
+ const yt=!direct&&item.trailerYtId?item.trailerYtId:undefined;
+ const press=direct?onTrailer:()=>{if(yt)openExternal("https://www.youtube.com/watch?v="+encodeURIComponent(yt))};
  return <div className="hub-extras">
-   {available?<FocusButton focusKey={route+":extra:trailer"} route={route} className="hub-extra-card" onPress={onTrailer}>
-      <img src={item.background||item.poster} alt=""/><div><h3>{item.type==="series"?"Official Preview":"Official Trailer"}: {item.name}</h3><span>Play preview</span></div>
+   {direct||yt?<FocusButton focusKey={route+":extra:trailer"} route={route} className="hub-extra-card" onPress={press}>
+      <img src={item.background||item.poster} alt=""/><div><h3>{item.type==="series"?"Official Preview":"Official Trailer"}: {item.name}</h3><span>{direct?"Play preview":"Watch on YouTube"}</span></div>
    </FocusButton>:<p className="hub-empty">No previews or extras are available for this title yet.</p>}
  </div>;
 }

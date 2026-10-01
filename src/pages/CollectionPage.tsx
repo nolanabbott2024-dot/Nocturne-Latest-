@@ -96,10 +96,10 @@ function Rows({route,rows,onOpen,onPlay,cont,onResume}:{
  },[previewFrame,newest,route,focusedKey,showSpotlight]);
 
  useEffect(()=>{
-   if(previewFrame||!hero||hero.trailerUrl||hero.trailerYtId||newest.length<2)return;
+   if(previewFrame||!hero||hero.trailerUrl||newest.length<2)return;
    const fallback=window.setTimeout(()=>advanceSpotlight(),12000);
    return()=>window.clearTimeout(fallback);
- },[previewFrame,hero?.id,hero?.trailerUrl,hero?.trailerYtId,newest.length,advanceSpotlight]);
+ },[previewFrame,hero?.id,hero?.trailerUrl,newest.length,advanceSpotlight]);
 
  useEffect(()=>{
    setVisibleRowCount(initialRows);
