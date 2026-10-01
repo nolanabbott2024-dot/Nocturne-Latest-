@@ -1,3 +1,4 @@
+import { PREVIEW_LITE } from "../../preview/lite";
 import { memo,useEffect,useState } from "react";
 import { motion } from "motion/react";
 import { Play } from "lucide-react";
@@ -42,7 +43,7 @@ export const TVPosterCard=memo(function TVPosterCard({
     transition={{type:"spring",stiffness:430,damping:33,mass:.68}}>
     <motion.div className="card-media netflix-card-media" layoutId={`media-${item.id}`}>
       {art&&<img src={art} loading="lazy" decoding="async"/>}
-      {trailerReady&&focused&&<TrailerPreview item={item}/>}
+      {trailerReady&&focused&&!PREVIEW_LITE&&<TrailerPreview item={item}/>}
       <div className="netflix-card-shade"/>
       <div className="netflix-card-badge"><Play size={14} fill="currentColor"/></div>
       <div className="focus-ring"/>
