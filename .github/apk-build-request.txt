@@ -1,0 +1,2 @@
+Build request: 2026-09-30 current redesign branch
+Commit target includes latest UI/navigation/preview/stream fixes.
