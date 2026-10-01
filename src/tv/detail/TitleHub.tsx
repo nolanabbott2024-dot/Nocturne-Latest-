@@ -28,7 +28,7 @@ export function TitleHub({item,route,panel,onPanel,onClose,onPlayEpisode,onOpenR
       {tabs.map(t=><FocusButton key={t} focusKey={route+":hub-tab:"+t} route={route} className={"hub-tab "+(panel===t?"active":"")} onPress={()=>onPanel(t)}
         onArrowPress={direction=>{
           if(direction==="down"){
-            const target=t==="episodes"?(item.videos?.length?route+":season:"+(item.videos[0].season||1):route+":hub-close")
+            const firstSeason=(item.videos||[]).map(v=>v.season??1).find(v=>v>0)??0;\n            const target=t==="episodes"?(item.videos?.length?route+":season:"+firstSeason:route+":hub-close")
               :t==="audio"?route+":audio:0"
               :t==="related"?(related[0]?route+":related:"+related[0].type+":"+related[0].id+":0":route+":hub-close")
               :t==="extras"?(item.trailerUrl||item.trailerYtId?route+":extra:trailer":route+":hub-close")
@@ -63,7 +63,7 @@ export function EpisodesPanel({item,route,onPlay,inline=false}:{item:MediaItem;r
  return <section className={"hub-episodes "+(inline?"inline-episodes":"")}>
    <div className="hub-series-heading">
     {item.logo?<img src={item.logo} alt={item.name}/>:<h1>{item.name}</h1>}
-    <div>{seasons.length} Season{seasons.length===1?"":"s"} <span>•</span> {(item.videos||[]).length} Episodes {avgRuntime&&<><span>•</span> {avgRuntime} Avg Ep</>}</div>
+    <div>{seasons.filter(x=>x>0).length} Season{seasons.filter(x=>x>0).length===1?"":"s"} <span>•</span> {(item.videos||[]).filter(v=>(v.season??1)>0).length} Episodes {avgRuntime&&<><span>•</span> {avgRuntime} Avg Ep</>}</div>
    </div>
    <div className="hub-season-tabs">
     {seasons.map(s=><FocusButton key={s} focusKey={route+":season:"+s} route={route} className={"hub-season "+(season===s?"active":"")} onPress={()=>setSeason(s)}
@@ -101,7 +101,7 @@ function EpisodeTile({ep,i,route,onPlay,onFocus}:{ep:Episode;i:number;route:stri
 }
 
 export function DetailsPanel({item}:{item:MediaItem}){
- const facts=[item.type==="series"?"Show":"Movie",item.genres?.[0],item.releaseInfo,item.type==="series"&&item.videos?.length?(new Set(item.videos.map(v=>v.season??1)).size+" Seasons"):item.runtime].filter(Boolean);
+ const facts=[item.type==="series"?"Show":"Movie",item.genres?.[0],item.releaseInfo,item.type==="series"&&item.videos?.length?(new Set(item.videos.map(v=>v.season??1).filter(s=>s>0)).size+" Seasons"):item.runtime].filter(Boolean);
  return <div className="hub-details">
    {item.logo?<img className="hub-detail-logo" src={item.logo} alt={item.name}/>:<h1>{item.name}</h1>}
    <div className="hub-detail-switch">
