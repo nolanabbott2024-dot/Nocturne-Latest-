@@ -1,2 +1,3 @@
-Build current redesign APK: 2026-09-30 20:59 ET
+Build Nocturne TV 4.1.0: 2026-10-01
 Source ref: codex/netflix-reference-design
+Includes trailer, navigation, title tabs, specials, spotlight, branding fixes.
