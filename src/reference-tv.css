@@ -541,3 +541,93 @@
   width:15vw;
   height:21vw;
 }
+
+
+/* October TV polish: separate title pages, centered camera, Nocturne-neutral branding. */
+.card-monogram,.trailer-youtube,.trailer-youtube-button{display:none!important}
+
+.title-hub{
+  position:fixed!important;
+  inset:0!important;
+  z-index:350;
+}
+.title-hub-content{
+  overflow:hidden!important;
+  position:relative;
+}
+.title-panel-page{
+  width:100%;
+  height:100%;
+  overflow:hidden;
+}
+.title-panel-page .hub-episodes,
+.title-panel-page .hub-details,
+.title-panel-page .hub-related,
+.title-panel-page .hub-audio-grid,
+.title-panel-page .hub-extras{
+  height:100%;
+  min-height:0;
+}
+
+.hero-switcher{
+  position:absolute;
+  right:1.5vw;
+  bottom:6.4vw;
+  z-index:8;
+  display:flex;
+  align-items:center;
+  gap:.55vw;
+  padding:.55vw;
+  border-radius:.7vw;
+  background:rgba(0,0,0,.42);
+  backdrop-filter:blur(10px);
+}
+.hero-spot{
+  position:relative;
+  width:5.6vw;
+  aspect-ratio:16/9;
+  flex:none;
+  overflow:hidden;
+  border-radius:.34vw;
+  opacity:.58;
+  transition:opacity .18s ease,transform .18s ease,box-shadow .18s ease;
+}
+.hero-spot img{width:100%;height:100%;object-fit:cover;display:block}
+.hero-spot span{
+  position:absolute;
+  right:.28vw;
+  bottom:.18vw;
+  font-size:.72vw;
+  font-weight:800;
+  text-shadow:0 1px 5px #000;
+}
+.hero-spot.active{opacity:.92;box-shadow:inset 0 0 0 .12vw rgba(255,255,255,.72)}
+.hero-spot.is-focused{opacity:1;box-shadow:0 0 0 .15vw #fff,0 .45vw 1vw #0009}
+
+.tv-page,
+.tv-row-scroll,
+.top10-scroll,
+.continue-scroll,
+.hub-related-row,
+.hub-episode-row{
+  overscroll-behavior:contain;
+}
+.reference-card,
+.top10-card,
+.continue-card,
+.title-overview-tab,
+.hub-tab,
+.hub-season,
+.hub-choice{
+  transition-timing-function:cubic-bezier(.22,.78,.2,1)!important;
+}
+
+.trailer-unavailable{
+  position:absolute;
+  inset:0;
+  display:grid;
+  place-items:center;
+  font-size:1.25vw;
+  color:rgba(255,255,255,.68);
+  background:linear-gradient(180deg,#111,#050505);
+}
