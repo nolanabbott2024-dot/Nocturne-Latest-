@@ -110,7 +110,8 @@ function Rows({route,rows,onOpen,onPlay,cont,onResume}:{
  useEffect(()=>()=>metaAbort.current?.abort(),[]);
  const renderedRows=rows.slice(0,visibleRowCount);
  return <>
-   <TVHero item={hero} route={route} onPlay={()=>hero&&(onPlay?onPlay(hero):onOpen(hero))} onMore={()=>hero&&onOpen(hero)} onTrailerEnded={advanceSpotlight}/>
+   <TVHero item={hero} route={route} onPlay={()=>hero&&(onPlay?onPlay(hero):onOpen(hero))} onMore={()=>hero&&onOpen(hero)}
+     onTrailerEnded={advanceSpotlight} spotlight={newest.slice(0,5)} onSpotlight={showSpotlight}/>
    <div className="rows">
      {route==="home"&&onResume&&<TVContinueRow entries={cont} route={route} onResume={onResume}/>}
      {renderedRows.map(row=>row.kind==="top10"
