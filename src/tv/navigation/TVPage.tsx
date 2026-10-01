@@ -38,10 +38,11 @@ export function TVPage({route,initialFocusKey,children}:PropsWithChildren<{route
       if(timer)window.clearTimeout(timer);
       el.removeEventListener("scroll",onScroll);
     };
-  },[route,remembered,initialFocusKey,focusKey]);
+  // Restore once on page entry; changing focus must not rerun scroll restoration.
+  },[route,initialFocusKey,focusKey]);
 
   return <FocusContext.Provider value={focusKey}>
-    <motion.main ref={(n)=>{(ref as any).current=n;node.current=n}} className="tv-page"
+    <motion.main ref={(n)=>{(ref as any).current=n;node.current=n}} className={`tv-page ${route}-page`}
       initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
       transition={{duration:.16,ease:"easeOut"}}>
       {children}

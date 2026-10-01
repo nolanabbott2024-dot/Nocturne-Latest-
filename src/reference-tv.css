@@ -1,0 +1,633 @@
+/* Netflix TV reference geometry, measured on the supplied 1920 × 1080 captures. */
+:root{--nf-bg:#000;--bg:#000;--nf-gutter:3.54vw;--tv-header:7.29vw;font-family:Arial,Helvetica,sans-serif}
+.app-shell{background:#000}
+.app-content{padding-top:var(--tv-header)}
+.tv-page{padding-left:0;background:radial-gradient(ellipse at 50% -30%,#33181c 0,transparent 64%),#000;scroll-padding-top:0}
+.tv-topbar{position:fixed;inset:0 0 auto;height:var(--tv-header);z-index:100;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#10090a,#10090af5);padding:0 var(--nf-gutter)}
+.tv-topnav{display:flex;align-items:center;justify-content:center;gap:.72vw}
+.topnav-button{display:flex;align-items:center;justify-content:center;gap:.7vw;white-space:nowrap;height:3.85vw;min-height:0;padding:0 1.8vw;border-radius:3vw;font-size:1.61vw;font-weight:700;cursor:pointer;transition:background-color .16s ease,color .16s ease}
+.topnav-button.active{background:#4b4b4b}
+.topnav-button.is-focused{background:#fff;color:#000}
+.topnav-button svg{width:1.75vw;height:1.75vw}
+.topnav-button.nav-search{padding:0;width:3.7vw}
+.tv-profile{position:absolute;left:var(--nf-gutter);padding:0 .4vw;gap:1vw;border-radius:.4vw}
+.profile-avatar{width:2.5vw;height:2.5vw;border-radius:.32vw;background:linear-gradient(145deg,#4a9b8a,#1c4f64);display:grid;place-items:center;color:#fff}
+.profile-chevron{width:.85vw!important;height:.85vw!important}
+.nocturne-monogram{position:absolute;right:var(--nf-gutter);font-weight:950;font-size:3.9vw;line-height:1;color:#e50914;letter-spacing:-.38vw;transform:scaleX(.78);transform-origin:right}
+.profile-menu{position:absolute;left:var(--nf-gutter);top:6vw;padding:.7vw;background:#222;border:1px solid #555;border-radius:.65vw;box-shadow:0 1vw 3vw #0009;display:flex;flex-direction:column;gap:.3vw;min-width:15vw}
+.profile-menu .topnav-button{justify-content:flex-start;border-radius:.35vw;font-size:1.3vw}
+.modern-billboard{display:block;width:calc(100% - 2 * var(--nf-gutter));height:39.85vw;min-height:0;margin:0 var(--nf-gutter) 3.3vw;padding:0;border-radius:1.8vw;overflow:hidden;text-align:left;position:relative;background:#202020;cursor:pointer}
+.modern-billboard.is-focused{box-shadow:inset 0 0 0 .15vw #fff}
+.modern-billboard .hero-backdrop{z-index:0;object-position:center}
+.modern-billboard .hero-scrim{background:linear-gradient(0deg,rgba(0,0,0,.82),transparent 58%),linear-gradient(90deg,rgba(0,0,0,.42),transparent 62%);z-index:1}
+.modern-billboard .hero-copy{position:absolute;bottom:1.45vw;left:1.6vw;right:1.6vw;width:auto}
+.modern-billboard .hero-eyebrow{display:flex;align-items:center;gap:.5vw;font-size:1vw;letter-spacing:.25vw;font-weight:700;margin-bottom:.35vw}
+.hero-eyebrow>span{color:#e50914;font-size:2vw;letter-spacing:0;font-weight:900}
+.modern-billboard .hero-logo{max-width:29vw;max-height:9.5vw;object-fit:contain;object-position:left bottom;margin:0 0 1.3vw}
+.modern-billboard .hero-copy h1{font-size:4.4vw;line-height:1.02;max-width:48vw;margin:0 0 1.5vw;font-weight:800;letter-spacing:-.12vw;text-shadow:0 .1vw 1vw #0008}
+.modern-billboard .hero-meta{display:flex;gap:0;font-size:1.3vw;font-weight:700;margin:0;line-height:1.6}
+.hero-meta span+span:before,.row-facts span+span:before{content:'•';color:#777;display:inline-block;margin:0 .65vw}
+.hero-fact-chip{position:absolute;right:1.3vw;bottom:1.45vw;padding:1vw;border-radius:.8vw;font-size:1.3vw;font-weight:700;background:#0009;z-index:3}
+.rows{margin-top:0;padding-bottom:7vw;z-index:2}
+.tv-row{margin:0 0 2.6vw}
+.tv-row h2{font-size:1.58vw;font-weight:700;letter-spacing:0;padding:0 var(--nf-gutter);margin:0 0 .85vw;line-height:1.25}
+.tv-row-scroll{padding:.15vw var(--nf-gutter) .35vw;scroll-padding-inline:0;overflow-y:hidden}
+.reference-card{height:100%;width:100%;will-change:auto;cursor:pointer;transform:none}
+.reference-card .card-media{height:100%;width:100%;aspect-ratio:auto;border-radius:.65vw;background:#181818;box-shadow:none}
+.reference-card .card-media>img{object-position:center;transition:opacity .18s ease}
+.reference-card .focus-ring{z-index:6;border:0;border-radius:.65vw;box-shadow:none}
+.reference-card.is-focused .focus-ring{border:.16vw solid #fff;box-shadow:inset 0 0 0 1px #fff2}
+.reference-card-shade{position:absolute;inset:0;z-index:3;background:linear-gradient(0deg,#000b,transparent 44%);pointer-events:none}
+.card-monogram{position:absolute;top:.35vw;left:.55vw;color:#e50914;font-size:2.65vw;font-weight:900;z-index:4;line-height:1}
+.reference-card.is-expanded .card-monogram{display:none}
+.reference-card-title{position:absolute;left:1vw;right:1vw;bottom:1.25vw;z-index:4;line-height:1.03;text-shadow:0 2px 8px #0009}
+.reference-card-title b{font-size:1.7vw;font-weight:800;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.reference-card.is-expanded .reference-card-title b{font-size:3.4vw;max-width:85%}
+.reference-card-title img{max-width:80%;max-height:7vw;object-fit:contain;object-position:left bottom}
+.row-description{padding:1.05vw var(--nf-gutter) 1.1vw;min-height:10.8vw}
+.row-facts{display:flex;align-items:center;font-size:1.28vw;font-weight:700;line-height:1.5}
+.row-description p{font-size:1.5vw;line-height:1.36;letter-spacing:.02vw;color:#b3b3b3;max-width:49vw;margin:.65vw 0 0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.row-selected h2{color:#fff}
+.library-page .page-title{display:none}
+.library-page .reference-row:first-child{padding-top:.2vw}
+.page-title{padding:1vw var(--nf-gutter) 1.8vw}
+.page-title h1{font-size:2.7vw}
+.page-title p{font-size:1.2vw}
+.empty-page{font-size:1.4vw;padding-top:2vw}
+.continue-scroll,.top10-scroll{padding:.2vw var(--nf-gutter) .8vw;gap:1.2vw}
+.continue-card{width:26vw;flex:0 0 26vw;border-radius:.7vw}
+.top10-card{flex:0 0 23vw;align-items:flex-end}
+.ranked-row .reference-card{width:15vw;height:21vw;flex:0 0 15vw}
+.top10-rank{font-size:23vw;line-height:.78;letter-spacing:-1.7vw;margin-right:-1.2vw;color:#000;-webkit-text-stroke:.12vw #777;z-index:0}
+.netflix-search-shell{grid-template-columns:29vw minmax(0,1fr)}
+.netflix-search-panel{height:calc(100vh - var(--tv-header));padding:1.5vw 1.7vw 3vw var(--nf-gutter);background:#000}
+.netflix-search-heading h1{font-size:2.1vw}
+.netflix-search-heading{margin-bottom:1vw}
+.netflix-search-value{min-height:3vw;font-size:1.2vw;margin-bottom:1vw}
+.netflix-keyboard{grid-template-columns:repeat(9,2.2vw);gap:.35vw}
+.netflix-key{height:2.7vw;font-size:1vw}
+.netflix-search-results{padding:1.6vw 0 5vw}
+.netflix-search-results .tv-row h2,.netflix-search-results .tv-row-scroll{padding-left:1vw}
+.netflix-search-results .row-description{padding-left:1vw}
+.netflix-search-results .row-description p{max-width:100%}
+.details-hero{height:37vw;min-height:0;padding:3vw var(--nf-gutter)}
+.details-scrim{background:linear-gradient(90deg,#000 0%,#000b 40%,transparent 75%),linear-gradient(0deg,#000,transparent 50%)}
+.details-copy{width:48vw}
+.details-copy h1{font-size:4vw}
+.details-description{font-size:1.25vw;max-width:42vw}
+.details-meta{font-size:1.1vw}
+.detail-action{height:3.1vw;min-width:7vw;padding:0 1.3vw;border-radius:.35vw;font-size:1.1vw}
+.details-logo{max-width:27vw;max-height:8vw}
+.episodes{padding:1.5vw var(--nf-gutter) 6vw}
+@media(prefers-reduced-motion:reduce){.topnav-button,.reference-card .card-media>img{transition:none}}
+.tv-topnav{position:absolute;left:29.3vw;gap:.72vw}
+.topnav-button{padding-inline:1.4vw}
+.topnav-button.nav-search{width:3vw}
+.tv-profile{padding-inline:.4vw}
+.route-home .tv-topbar,.route-movies .tv-topbar,.route-shows .tv-topbar{background:linear-gradient(180deg,#2b1115,#200e11)}
+.route-library .tv-topbar,.route-search .tv-topbar,.route-settings .tv-topbar{background:#000}
+.library-page,.search-page,.settings-page{background:#000}
+
+
+/* September 30 continuation: reference hero controls + full-screen detail treatment. */
+.modern-billboard{cursor:default}
+.modern-billboard .hero-copy{bottom:2.05vw;pointer-events:none}
+.hero-actions{display:flex;align-items:center;gap:.8vw;margin-top:1.15vw;pointer-events:auto}
+.hero-action{height:3.35vw;min-width:8.5vw;border:0;border-radius:.38vw;padding:0 1.35vw;display:inline-flex;align-items:center;justify-content:center;gap:.7vw;font-size:1.22vw;font-weight:800;line-height:1;transition:background-color .16s ease,color .16s ease,box-shadow .16s ease;cursor:pointer}
+.hero-action svg{width:1.55vw;height:1.55vw}
+.hero-play{background:#fff;color:#050505}
+.hero-more{background:rgba(109,109,110,.72);color:#fff}
+.hero-action.is-focused{box-shadow:0 0 0 .14vw #fff,0 .55vw 1.5vw #0008}
+.hero-play.is-focused{background:#f7f7f7;color:#000}
+.hero-more.is-focused{background:#8a8a8c;color:#fff}
+.hero-fact-chip{bottom:2.15vw}
+
+.details-page{background:#000}
+.details-hero{height:45vw;min-height:0;padding:0 var(--nf-gutter);display:flex;align-items:flex-end;position:relative;overflow:hidden}
+.details-backdrop{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 18%}
+.details-scrim{position:absolute;inset:0;background:linear-gradient(90deg,#000 0%,rgba(0,0,0,.84) 28%,rgba(0,0,0,.25) 67%,transparent 86%),linear-gradient(0deg,#000 0%,rgba(0,0,0,.94) 5%,rgba(0,0,0,.18) 42%,transparent 68%)}
+.details-copy{position:relative;z-index:2;width:46vw;padding-bottom:3vw}
+.details-logo{max-width:27vw;max-height:9.2vw;margin-bottom:1.25vw;object-fit:contain;object-position:left bottom}
+.details-copy h1{font-size:4.2vw;line-height:.98;letter-spacing:-.12vw;margin:0 0 1vw}
+.details-meta{font-size:1.12vw;font-weight:700;gap:.55vw;margin-bottom:.8vw}
+.details-description{font-size:1.22vw;line-height:1.42;color:#e2e2e2;max-width:41vw;margin:.75vw 0 1.35vw}
+.detail-actions{display:flex;align-items:flex-start;gap:.95vw;margin-top:1.25vw}
+.detail-action{height:auto;min-width:0;padding:0;border:0;background:transparent!important;color:#fff!important;display:flex;flex-direction:column;gap:.45vw;align-items:center;justify-content:center;font-size:.94vw;font-weight:700;cursor:pointer}
+.detail-action svg{width:2.55vw;height:2.55vw;padding:.62vw;border-radius:50%;border:.12vw solid rgba(255,255,255,.72);background:rgba(34,34,34,.64);box-sizing:border-box}
+.detail-action.primary{height:3.15vw;padding:0 1.55vw;border-radius:.36vw;background:#fff!important;color:#050505!important;flex-direction:row;gap:.65vw;font-size:1.12vw;margin-right:.25vw}
+.detail-action.primary svg{width:1.45vw;height:1.45vw;padding:0;border:0;background:transparent;border-radius:0}
+.detail-action.is-focused{filter:none}
+.detail-action.is-focused svg{background:#fff;color:#000;border-color:#fff;box-shadow:0 0 0 .13vw #fff}
+.detail-action.primary.is-focused{box-shadow:0 0 0 .14vw #fff,0 .55vw 1.3vw #0009}
+.episodes{position:relative;z-index:3;padding:1vw var(--nf-gutter) 6vw;margin-top:-.2vw;background:#000}
+
+
+/* Title hub: matches the supplied Netflix TV title-info references. */
+.route-details .tv-topbar{display:none}
+.route-details .app-content{padding-top:0}
+.route-details .tv-page{background:#000;padding-left:0;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth}
+.route-details .details-hero{height:100vh;min-height:0;padding:0 var(--nf-gutter);align-items:flex-end}
+.route-details .details-backdrop{object-position:center}
+.route-details .details-scrim{background:linear-gradient(90deg,rgba(0,0,0,.94) 0%,rgba(0,0,0,.75) 28%,rgba(0,0,0,.12) 64%,transparent 84%),linear-gradient(0deg,rgba(0,0,0,.84) 0%,rgba(0,0,0,.18) 42%,transparent 68%)}
+.route-details .details-copy{width:48vw;padding-bottom:3.2vw}
+.route-details .details-logo{max-width:29vw;max-height:9vw;margin-bottom:1.35vw}
+.route-details .details-copy h1{font-size:4.15vw;max-width:42vw}
+.route-details .details-meta{display:flex;align-items:center;gap:0;font-size:1.17vw;margin:.55vw 0 1vw}
+.route-details .details-meta span+span:before{content:"•";color:#c8c8c8;margin:0 .62vw}
+.route-details .details-description{font-size:1.35vw;line-height:1.42;max-width:46vw;color:#f0f0f0;margin:0 0 1.45vw}
+
+.title-hero-actions{display:flex;align-items:center;gap:1.05vw;margin:1.2vw 0 2vw}
+.title-hero-btn{border:0;color:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-weight:800}
+.title-hero-btn.play{height:3.5vw;min-width:8.3vw;border-radius:2vw;padding:0 1.4vw;gap:.65vw;background:#fff;color:#070707;font-size:1.25vw}
+.title-hero-btn.play svg{width:1.55vw;height:1.55vw}
+.title-hero-btn.icon{width:3.4vw;height:3.4vw;border-radius:50%;background:transparent}
+.title-hero-btn.icon svg{width:2.15vw;height:2.15vw;stroke-width:2.3}
+.title-hero-btn.is-focused{box-shadow:0 0 0 .16vw #fff}
+
+.title-overview-tabs{display:flex;align-items:center;gap:2.5vw;margin-top:.5vw}
+.title-tabs-caret{width:1.5vw;height:1.5vw;stroke-width:3}
+.title-overview-tab{font-size:1.1vw;font-weight:750;color:#fff;padding:.65vw .25vw;border-radius:.38vw;cursor:pointer}
+.title-overview-tab.is-focused{background:#fff;color:#111;padding:.65vw 1vw}
+
+.title-hub{position:absolute;inset:0;z-index:35;background:#090b10;overflow:hidden}
+.title-hub-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.42}
+.title-hub-scrim{position:absolute;inset:0;background:linear-gradient(90deg,rgba(8,11,17,.96),rgba(8,11,17,.78) 48%,rgba(8,11,17,.42)),linear-gradient(0deg,rgba(8,11,17,.94),rgba(8,11,17,.42) 62%,rgba(8,11,17,.72))}
+.title-hub-shell{position:relative;z-index:2;height:100%;padding:3.1vw var(--nf-gutter) 3vw}
+.title-hub-tabs{height:4.6vw;display:flex;align-items:center;gap:2.55vw}
+.hub-close,.hub-tab{height:2.9vw;display:flex;align-items:center;justify-content:center;border-radius:.42vw;font-size:1.15vw;font-weight:800;color:#fff;cursor:pointer;padding:0 .75vw;white-space:nowrap}
+.hub-close{width:2.2vw;padding:0;background:transparent}
+.hub-close svg{width:1.35vw;height:1.35vw;stroke-width:3.4}
+.hub-tab.active{background:rgba(255,255,255,.22)}
+.hub-tab.is-focused,.hub-close.is-focused{background:#fff;color:#17191d}
+.title-hub-rule{height:1px;background:rgba(255,255,255,.58);margin-top:.35vw}
+.title-hub-content{height:calc(100% - 5.3vw);padding-top:2.2vw;overflow:hidden}
+
+.hub-series-heading{margin-bottom:2vw}
+.hub-series-heading img{max-width:28vw;max-height:6.3vw;object-fit:contain;object-position:left bottom;margin-bottom:.75vw}
+.hub-series-heading h1{font-size:3.6vw;letter-spacing:.16vw;margin:0 0 .7vw}
+.hub-series-heading>div{display:flex;gap:.65vw;font-size:1.2vw;font-weight:700}
+.hub-season-tabs{display:flex;gap:2.2vw;align-items:center;margin:0 0 .85vw}
+.hub-season{font-size:1.15vw;font-weight:800;padding:.65vw .9vw;border-radius:.4vw;text-align:left;cursor:pointer}
+.hub-season small{display:block;font-size:.82vw;margin-top:.12vw}
+.hub-season.active{background:rgba(255,255,255,.2)}
+.hub-season.is-focused{background:#fff;color:#111}
+.hub-episode-row{display:flex;gap:.75vw;overflow:hidden;padding:.15vw .2vw .45vw}
+.hub-episode-tile{width:21.3vw;flex:0 0 21.3vw;padding:0;cursor:pointer}
+.hub-episode-tile>div{position:relative;width:100%;aspect-ratio:16/9;border-radius:.45vw;overflow:hidden;background:#1b2130}
+.hub-episode-tile img,.hub-thumb-placeholder{width:100%;height:100%;object-fit:cover;display:block}
+.hub-episode-tile b{position:absolute;top:.7vw;left:.8vw;font-size:1.28vw;text-shadow:0 2px 5px #000}
+.hub-episode-tile.is-focused>div{box-shadow:0 0 0 .17vw #fff}
+.hub-episode-copy{margin-top:.9vw;max-width:53vw}
+.hub-episode-copy h3{font-size:1.35vw;margin:0 0 .25vw}
+.hub-episode-copy p{font-size:1.24vw;line-height:1.34;margin:0;color:#f2f2f2}
+.hub-episode-facts{display:flex;gap:6vw;margin-top:1vw;font-size:1vw}
+.hub-episode-facts span{display:flex;flex-direction:column;gap:.35vw}.hub-episode-facts b{font-size:.92vw}
+
+.hub-details{max-width:51vw}
+.hub-detail-logo{max-width:29vw;max-height:7vw;object-fit:contain;object-position:left bottom;margin:0 0 1.4vw}
+.hub-details h1{font-size:4vw;margin:0 0 1.3vw}
+.hub-detail-switch{display:flex;gap:2vw;margin-bottom:1.55vw;font-size:1.05vw;font-weight:800}
+.hub-detail-switch span:first-child{padding:.55vw .85vw;border-radius:.35vw;background:rgba(255,255,255,.22)}
+.hub-detail-facts{display:flex;align-items:center;font-size:1.16vw;font-weight:750;margin-bottom:.8vw}
+.hub-detail-facts span+span:before{content:"•";margin:0 .65vw;color:#d0d0d0}
+.hub-detail-description{font-size:1.34vw;line-height:1.38;margin:0 0 1.25vw;max-width:50vw}
+.hub-detail-note{font-size:1.05vw;font-weight:700;margin:.65vw 0}
+.hub-rating{display:flex;align-items:center;gap:.7vw;margin-top:1.5vw;font-size:.95vw}
+.hub-rating b{font-size:1.2vw;border:.12vw solid #fff;padding:.12vw .35vw;border-radius:.22vw}
+.hub-format-badges{display:flex;gap:.7vw;margin-top:1.35vw}.hub-format-badges span{border:.1vw solid #aaa;border-radius:.18vw;padding:.1vw .28vw;font-size:.9vw;font-weight:800}
+
+.hub-related h2{font-size:1.4vw;margin:0 0 .75vw}
+.hub-related-row{display:flex;align-items:stretch;gap:.85vw;overflow:hidden;padding:.15vw .2vw .45vw}
+.hub-related-tile{flex:0 0 15.2vw;width:15.2vw;aspect-ratio:2/3;border-radius:.5vw;overflow:hidden;padding:0;cursor:pointer;background:#171717}
+.hub-related-tile:first-child{flex-basis:43vw;width:43vw;aspect-ratio:16/9}
+.hub-related-tile img{width:100%;height:100%;object-fit:cover}
+.hub-related-tile.is-focused{box-shadow:0 0 0 .17vw #fff}
+.hub-related-copy{max-width:50vw;margin-top:1vw}.hub-related-copy p{font-size:1.23vw;line-height:1.35;margin:.35vw 0 0}
+.hub-empty{font-size:1.2vw;color:#ccc;margin-top:2vw}
+
+.hub-audio-grid{display:grid;grid-template-columns:1fr 1fr;gap:8vw;padding:1vw 6vw}
+.hub-audio-grid h2{font-size:2vw;margin:0 0 1.5vw}
+.hub-choice{display:flex;align-items:center;gap:.8vw;width:100%;min-height:3vw;text-align:left;font-size:1.28vw;font-weight:750;padding:.35vw .6vw;border-radius:.3vw;cursor:pointer}
+.hub-choice svg,.choice-spacer{width:1.35vw;height:1.35vw;flex:none}
+.hub-choice.is-focused{background:#fff;color:#111}
+
+.hub-extras{display:flex;gap:1vw;overflow:hidden;padding:.8vw .2vw}
+.hub-extra-card{width:42vw;flex:0 0 42vw;text-align:left;cursor:pointer;padding:0}
+.hub-extra-card>img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:.5vw;display:block}
+.hub-extra-card>div{padding-top:.8vw}.hub-extra-card h3{font-size:1.25vw;margin:0 0 .25vw}.hub-extra-card span{font-size:1vw;color:#ddd}
+.hub-extra-card.is-focused>img{box-shadow:0 0 0 .17vw #fff}
+
+@media(max-width:900px){
+ .route-details .details-copy{width:58vw}.route-details .details-description{font-size:1.55vw}.title-hub-shell{padding-left:4vw;padding-right:4vw}
+}
+
+
+/* Remote focus/scroll polish. */
+.title-hero-btn{transition:background-color .18s ease,color .18s ease,box-shadow .18s ease,transform .18s ease}
+.title-hero-btn.play{background:rgba(255,255,255,.22);color:#fff}
+.title-hero-btn.play.is-focused{background:#fff;color:#070707;box-shadow:0 0 0 .16vw #fff,0 .4vw 1.2vw #0008}
+.title-hero-btn.icon.is-focused{background:rgba(255,255,255,.18)}
+.tv-row-scroll{scroll-behavior:smooth}
+.reference-card{transition:transform .22s cubic-bezier(.2,.75,.25,1),box-shadow .2s ease}
+.hub-detail-switch{align-items:center}
+.hub-detail-switch-btn{font-size:1.05vw;font-weight:800;padding:.55vw .85vw;border-radius:.35vw;color:#fff;cursor:pointer}
+.hub-detail-switch-btn.active{background:rgba(255,255,255,.12)}
+.hub-detail-switch-btn.is-focused{background:#fff;color:#111}
+
+
+/* Smooth portrait -> landscape expansion. */
+.tv-row-slot{
+  overflow:visible;
+  contain:layout style;
+}
+.reference-card{
+  position:relative;
+  z-index:1;
+  width:100%;
+  height:100%;
+  overflow:visible;
+}
+.reference-card.is-focused{z-index:20}
+.reference-card .card-media{
+  width:100%;
+  overflow:hidden;
+  transform-origin:left center;
+  transition:
+    width .34s cubic-bezier(.22,.78,.2,1),
+    border-radius .28s ease,
+    box-shadow .28s ease;
+  will-change:width;
+}
+.reference-card.is-expanded .card-media{
+  width:var(--expanded-w);
+}
+.reference-card .card-art{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  transition:
+    opacity .32s cubic-bezier(.22,.78,.2,1),
+    transform .38s cubic-bezier(.22,.78,.2,1);
+  will-change:opacity,transform;
+}
+.reference-card .card-art-portrait{opacity:1;transform:scale(1)}
+.reference-card .card-art-landscape{opacity:0;transform:scale(1.035)}
+.reference-card.is-expanded .card-art-portrait{opacity:0;transform:scale(1.03)}
+.reference-card.is-expanded .card-art-landscape{opacity:1;transform:scale(1);animation:landscapeReveal .3s cubic-bezier(.22,.78,.2,1) both}
+@keyframes landscapeReveal{from{opacity:0;transform:scale(1.035)}to{opacity:1;transform:scale(1)}}
+.reference-card-title,.reference-card-shade,.card-monogram{
+  transition:opacity .22s ease,transform .28s cubic-bezier(.22,.78,.2,1);
+}
+.reference-card:not(.is-expanded) .reference-card-title{opacity:0;transform:translateY(.5vw)}
+.reference-card.is-expanded .reference-card-title{opacity:1;transform:translateY(0)}
+.reference-card.is-expanded .card-monogram{opacity:0}
+
+
+/* Trailer preview playback polish. */
+.trailer-youtube{border:0;pointer-events:none;background:#000;opacity:0;transition:opacity .22s ease}
+.trailer-youtube.is-playing{opacity:1}
+.reference-card .trailer-preview{z-index:5}
+.reference-card-shade{z-index:6}
+.reference-card-title,.card-monogram{z-index:7}
+.reference-card .focus-ring{z-index:8}
+
+
+/* Restore breathing room without reflowing the virtual rail. */
+.tv-row-slot{
+  transition:transform .34s cubic-bezier(.22,.78,.2,1);
+  will-change:transform;
+}
+.tv-row-slot.slot-selected{z-index:20}
+.tv-row-scroll{padding-left:var(--nf-gutter);padding-right:var(--nf-gutter)}
+.reference-card .card-media{box-shadow:0 .35vw 1vw #0006}
+.reference-card.is-focused .card-media{box-shadow:0 .65vw 1.8vw #000b}
+
+
+/* Keep off-screen shelves cheap, especially inside the mobile TV-preview iframe. */
+.tv-row{
+  content-visibility:auto;
+  contain-intrinsic-size:0 34vw;
+}
+
+
+/* More Like This rail should travel with remote focus. */
+.hub-related-row{
+  overflow-x:auto;
+  overflow-y:hidden;
+  scroll-behavior:smooth;
+  scrollbar-width:none;
+  padding-bottom:.55vw;
+}
+.hub-related-row::-webkit-scrollbar{display:none}
+.hub-related-tile{transition:transform .22s cubic-bezier(.2,.75,.25,1),box-shadow .2s ease}
+.hub-related-tile.is-focused{transform:scale(1.025)}
+
+
+/* Series episodes are a natural continuation of the details page. */
+.inline-episodes{
+  min-height:56vw;
+  padding:2.2vw var(--nf-gutter) 5vw;
+  background:linear-gradient(180deg,#000 0%,#090b10 100%);
+  scroll-margin-top:1vw;
+}
+.inline-episodes .hub-series-heading{margin-bottom:1.6vw}
+.inline-episodes .hub-episode-row{
+  overflow-x:auto;
+  overflow-y:hidden;
+  scroll-behavior:smooth;
+  scrollbar-width:none;
+  padding:.2vw .2vw .7vw;
+}
+.inline-episodes .hub-episode-row::-webkit-scrollbar{display:none}
+.inline-episodes .hub-episode-tile{flex:0 0 22vw;width:22vw}
+.inline-episodes .hub-episode-copy{max-width:56vw;margin-top:1.1vw}
+
+
+/* Unified stable rail + continuous details navigation pass. */
+.stable-rail{
+  overflow-x:auto;
+  overflow-y:visible;
+  scroll-behavior:smooth;
+  scrollbar-width:none;
+}
+.stable-rail::-webkit-scrollbar{display:none}
+.stable-rail-inner{
+  display:flex;
+  align-items:stretch;
+  gap:1.55vw;
+  width:max-content;
+  min-width:100%;
+  position:relative;
+}
+.stable-slot{
+  flex:0 0 14.1vw;
+  width:14.1vw;
+  height:22.8vw;
+  overflow:visible;
+  contain:none;
+  transform:none!important;
+  transition:margin-right .30s cubic-bezier(.22,.78,.2,1);
+}
+.stable-slot.slot-selected{
+  margin-right:26.7vw;
+  z-index:20;
+}
+.stable-slot .reference-card.is-expanded .card-media{
+  width:40.8vw;
+}
+.stable-slot .reference-card .card-art-portrait{opacity:1}
+.stable-slot .reference-card.is-expanded:not(.has-landscape) .card-art-portrait{
+  opacity:1;
+  transform:scale(1);
+}
+.stable-slot .reference-card.is-expanded:not(.has-landscape) .card-art-landscape{opacity:0}
+.stable-slot .reference-card.is-expanded.has-landscape .card-art-portrait{opacity:0;transform:scale(1.025)}
+.stable-slot .reference-card.is-expanded.has-landscape .card-art-landscape{opacity:1;transform:scale(1)}
+.stable-slot .reference-card.is-focused{z-index:30}
+
+.route-details .tv-page{
+  overflow-y:auto;
+  overflow-x:hidden;
+  scroll-behavior:smooth;
+  scroll-snap-type:none;
+}
+.route-details .details-hero{
+  min-height:100vh;
+  height:100vh;
+  flex:none;
+}
+.continuous-details{
+  position:relative;
+  z-index:3;
+  background:#000;
+}
+.continuous-section{
+  min-height:58vh;
+  padding:3vw var(--nf-gutter) 5vw;
+  scroll-margin-top:2vw;
+  background:linear-gradient(180deg,#000 0%,#080a0f 100%);
+}
+.continuous-section+.continuous-section{border-top:1px solid rgba(255,255,255,.06)}
+.continuous-heading{
+  font-size:1.8vw;
+  line-height:1.15;
+  margin:0 0 1.4vw;
+  font-weight:800;
+}
+.episodes-section{
+  padding:0;
+  min-height:68vh;
+}
+.episodes-section .inline-episodes{
+  min-height:68vh;
+  padding-top:2.4vw;
+}
+.continuous-section .hub-details,
+.continuous-section .hub-related,
+.continuous-section .hub-audio-grid,
+.continuous-section .hub-extras{
+  max-width:none;
+}
+.continuous-section .hub-audio-grid{padding:1vw 2vw 0}
+.continuous-section .hub-related-row,
+.continuous-section .hub-episode-row{
+  overscroll-behavior-x:contain;
+  scroll-behavior:smooth;
+}
+.title-overview-tabs{
+  flex-wrap:wrap;
+  max-width:75vw;
+}
+.title-overview-tab{transition:background-color .16s ease,color .16s ease,transform .16s ease}
+.title-overview-tab.is-focused{transform:translateY(-1px)}
+
+
+/* Stable rows no longer need paint-skipping; avoiding content-visibility prevents pop-in flicker. */
+.tv-row{
+  content-visibility:visible;
+  contain-intrinsic-size:auto;
+}
+
+
+/* Focus movement is synchronous; never let CSS smooth-scrolling trail the cursor. */
+.tv-page,
+.route-details .tv-page,
+.stable-rail,
+.tv-row-scroll,
+.hub-related-row,
+.hub-episode-row{
+  scroll-behavior:auto!important;
+}
+
+
+/* Each title tab owns a full viewport section instead of visually bleeding into the next. */
+.continuous-details{
+  display:block;
+}
+.continuous-section{
+  min-height:100vh;
+  height:auto;
+  box-sizing:border-box;
+  padding:6.5vw var(--nf-gutter) 7vw;
+  position:relative;
+  background:#05070b;
+  border-top:1px solid rgba(255,255,255,.08);
+}
+.continuous-section:nth-child(even){
+  background:#080b10;
+}
+.continuous-section.episodes-section{
+  min-height:100vh;
+  padding:0;
+}
+.episodes-section .inline-episodes{
+  min-height:100vh;
+  box-sizing:border-box;
+  padding:6.5vw var(--nf-gutter) 7vw;
+  background:#05070b;
+}
+.continuous-heading{
+  display:inline-block;
+  margin:0 0 2.2vw;
+  padding:.72vw 1.05vw;
+  border-radius:.4vw;
+  background:rgba(255,255,255,.10);
+  font-size:1.65vw;
+  font-weight:800;
+}
+.continuous-section:focus-within .continuous-heading{
+  background:#fff;
+  color:#111;
+}
+
+
+/* Top 10 and Continue Watching must track focus synchronously. */
+.top10-scroll,
+.continue-scroll{
+  scroll-behavior:auto!important;
+  overscroll-behavior-x:contain;
+  scrollbar-width:none;
+}
+.top10-scroll::-webkit-scrollbar,
+.continue-scroll::-webkit-scrollbar{display:none}
+
+
+/* Dedicated Top 10 geometry: rank number + poster behave as one fixed navigation item. */
+.top10-scroll{
+  display:flex;
+  align-items:flex-end;
+  gap:1.2vw;
+  overflow-x:auto;
+  overflow-y:hidden;
+  padding:.4vw var(--nf-gutter) 1vw;
+}
+.top10-nav-slot{
+  flex:0 0 23vw;
+  width:23vw;
+  display:flex;
+  align-items:flex-end;
+  overflow:visible;
+}
+.top10-nav-slot .top10-card{
+  flex:none;
+  width:100%;
+  display:flex;
+  align-items:flex-end;
+}
+.top10-nav-slot .reference-card{
+  flex:0 0 15vw;
+  width:15vw;
+  height:21vw;
+}
+
+
+/* October TV polish: separate title pages, centered camera, Nocturne-neutral branding. */
+.card-monogram,.trailer-youtube,.trailer-youtube-button{display:none!important}
+
+.title-hub{
+  position:fixed!important;
+  inset:0!important;
+  z-index:350;
+}
+.title-hub-content{
+  overflow:hidden!important;
+  position:relative;
+}
+.title-panel-page{
+  width:100%;
+  height:100%;
+  overflow:hidden;
+}
+.title-panel-page .hub-episodes,
+.title-panel-page .hub-details,
+.title-panel-page .hub-related,
+.title-panel-page .hub-audio-grid,
+.title-panel-page .hub-extras{
+  height:100%;
+  min-height:0;
+}
+
+.hero-switcher{
+  position:absolute;
+  right:1.5vw;
+  bottom:6.4vw;
+  z-index:8;
+  display:flex;
+  align-items:center;
+  gap:.55vw;
+  padding:.55vw;
+  border-radius:.7vw;
+  background:rgba(0,0,0,.42);
+  backdrop-filter:blur(10px);
+}
+.hero-spot{
+  position:relative;
+  width:5.6vw;
+  aspect-ratio:16/9;
+  flex:none;
+  overflow:hidden;
+  border-radius:.34vw;
+  opacity:.58;
+  transition:opacity .18s ease,transform .18s ease,box-shadow .18s ease;
+}
+.hero-spot img{width:100%;height:100%;object-fit:cover;display:block}
+.hero-spot span{
+  position:absolute;
+  right:.28vw;
+  bottom:.18vw;
+  font-size:.72vw;
+  font-weight:800;
+  text-shadow:0 1px 5px #000;
+}
+.hero-spot.active{opacity:.92;box-shadow:inset 0 0 0 .12vw rgba(255,255,255,.72)}
+.hero-spot.is-focused{opacity:1;box-shadow:0 0 0 .15vw #fff,0 .45vw 1vw #0009}
+
+.tv-page,
+.tv-row-scroll,
+.top10-scroll,
+.continue-scroll,
+.hub-related-row,
+.hub-episode-row{
+  overscroll-behavior:contain;
+}
+.reference-card,
+.top10-card,
+.continue-card,
+.title-overview-tab,
+.hub-tab,
+.hub-season,
+.hub-choice{
+  transition-timing-function:cubic-bezier(.22,.78,.2,1)!important;
+}
+
+.trailer-unavailable{
+  position:absolute;
+  inset:0;
+  display:grid;
+  place-items:center;
+  font-size:1.25vw;
+  color:rgba(255,255,255,.68);
+  background:linear-gradient(180deg,#111,#050505);
+}

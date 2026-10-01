@@ -14,7 +14,7 @@ export function TVContinueCard({
     onArrowPress,onFocus:(layout)=>onSpatialFocus?.(layout)
   });
   return <motion.button ref={ref as any} className="continue-card" animate={{scale:focused?1.06:1,y:focused?-6:0}}>
-    <img src={item.background||item.poster}/>
+    <img src={item.background||item.poster} loading="lazy" decoding="async" alt=""/>
     <div className="continue-progress"><i style={{width:`${Math.max(0,Math.min(100,progress*100))}%`}}/></div>
     {focused&&<div className="continue-overlay"><Play/> Resume</div>}
   </motion.button>

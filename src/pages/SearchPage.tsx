@@ -52,18 +52,7 @@ function KeyButton({k,onPress,onFocus,onRight,autoFocus}:any){
    focusKey:"search-key:"+k,route:"search",rowId:"search-keyboard",onPress,onFocus,
    onArrowPress:(direction:any)=>direction==="right"?onRight():true
  });
- useEffect(()=>{
-   if(!autoFocus)return;
-   let cancelled=false,tries=0,timer:number|undefined;
-   const claim=()=>{
-     if(cancelled)return;
-     focusSelf();
-     if(tries++<5)timer=window.setTimeout(claim,50);
-   };
-   requestAnimationFrame(claim);
-   return()=>{cancelled=true;if(timer)window.clearTimeout(timer)};
- },[autoFocus,focusSelf]);
- return <motion.button ref={ref as any} className={"key-button netflix-key "+(k==="Search"?"search-submit":"")}
+ return <motion.button onClick={onPress} onMouseEnter={()=>focusSelf()} ref={ref as any} className={"key-button netflix-key "+(k==="Search"?"search-submit":"")}
   animate={{scale:focused?1.075:1,backgroundColor:focused?"#fff":"rgba(255,255,255,.08)",color:focused?"#111":"#fff"}}
   transition={{type:"spring",stiffness:450,damping:34}}>{k}</motion.button>
 }

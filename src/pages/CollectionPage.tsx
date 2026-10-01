@@ -5,11 +5,13 @@ import { TVRow } from "../tv/content/TVRow";
 import { TVTop10Row } from "../tv/content/TVTop10Row";
 import { TVContinueRow } from "../tv/content/TVContinueRow";
 import { useAddons,usePrimaryRows,useProviderRows,useCuratedRows } from "../data/queries";
-import { isCinemetaCatalog,loadMetaEnriched } from "../data/stremio";
+import { isCinemetaCatalog,loadDirectTrailerFromAddons,loadMetaEnriched } from "../data/stremio";
 import { continueWatching,type LibraryEntry } from "../data/library";
 import type { MediaItem } from "../types/tv";
 import { useContentStore } from "../stores/contentStore";
+import { useNavigationStore } from "../stores/navigationStore";
 import { dedupePlannedRows,type PlannedRow } from "../data/catalogPlans";
+import { useProviderStore } from "../stores/providerStore";
 
 export function CollectionPage({
   route,type,onOpen,onPlay,onResume
@@ -33,7 +35,7 @@ export function CollectionPage({
  const primary=usePrimaryRows({route,type,catalogs,netflixBase});
  const providers=useProviderRows({route,type,catalogs,enabled:providerReady});
  const curated=useCuratedRows({route,type,catalogs,enabled:curatedReady});
- const rows=useMemo(()=>dedupePlannedRows([...(primary.data||[]),...(providers.data||[]),...(curated.data||[])],20),[primary.data,providers.data,curated.data]);
+ const rows=useMemo(()=>dedupePlannedRows([...(primary.data||[]),...(providers.data||[]),...(curated.data||[])],20).sort((a,b)=>Number(b.id==="trending")-Number(a.id==="trending")),[primary.data,providers.data,curated.data]);
  const cont=useMemo(()=>route==="home"?continueWatching():[],[route,libraryRevision]);
  return <TVPage route={route} initialFocusKey={`${route}:hero:play`}>
    <Rows route={route} rows={rows} onOpen={onOpen} onPlay={onPlay} cont={cont} onResume={onResume}/>
@@ -45,30 +47,83 @@ function Rows({route,rows,onOpen,onPlay,cont,onResume}:{
  cont:LibraryEntry[];onResume?:((e:LibraryEntry)=>void)
 }){
  const hero=useContentStore(s=>s.heroByRoute[route]); const setHero=useContentStore(s=>s.setHero);
+ const trailerProviders=useProviderStore(s=>s.addons);
+ const focusedKey=useNavigationStore(s=>s.focusedKey);
  const metaAbort=useRef<AbortController|null>(null);
- const focusHero=useCallback((item:MediaItem)=>{
-   const current=useContentStore.getState().heroByRoute[route];
-   setHero(route,{...item,background:current?.background||item.background});
- },[route,setHero]);
- const settleHero=useCallback((item:MediaItem)=>{
-   setHero(route,item);
+ const spotlightIndex=useRef(0);
+ const previewFrame=new URLSearchParams(window.location.search).get("tvframe")==="1";
+ const initialRows=previewFrame?3:5;
+ const [visibleRowCount,setVisibleRowCount]=useState(initialRows);
+ const newest=useMemo(()=>{
+   const releaseRow=rows.find(r=>r.id==="new-releases"&&r.items.length);
+   const source=releaseRow?.items.length?releaseRow.items:rows.flatMap(r=>r.items);
+   const seen=new Set<string>();
+   const year=(m:MediaItem)=>{const hit=String(m.releaseInfo||"").match(/(19|20)\d{2}/);return hit?Number(hit[0]):0};
+   return source.filter(m=>{
+     const key=m.type+":"+m.id;
+     if(seen.has(key))return false;
+     seen.add(key);return true;
+   }).sort((a,b)=>year(b)-year(a)).slice(0,10);
+ },[rows]);
+
+ const showSpotlight=useCallback((seed:MediaItem)=>{
    metaAbort.current?.abort();
-   const controller=new AbortController();metaAbort.current=controller;
-   loadMetaEnriched(item,controller.signal).then(full=>setHero(route,full)).catch(()=>{});
- },[route,setHero]);
+   setHero(route,seed);
+   const controller=new AbortController();
+   metaAbort.current=controller;
+   loadMetaEnriched(seed,controller.signal).then(async full=>{
+     let resolved=full;
+     if(!full.trailerUrl){
+       const trailer=await loadDirectTrailerFromAddons(full,trailerProviders,controller.signal).catch(()=>({}));
+       resolved={...full,...trailer};
+     }
+     if(!controller.signal.aborted)setHero(route,resolved);
+   }).catch(()=>{});
+ },[route,setHero,trailerProviders]);
+
  useEffect(()=>{
-   if(!hero){
-     const first=rows.find(r=>r.items.length)?.items[0];
-     if(first)setHero(route,first);
-   }
- },[rows,route,hero?.id]);
+   if(!newest.length)return;
+   const currentIndex=newest.findIndex(m=>m.id===hero?.id&&m.type===hero?.type);
+   if(currentIndex>=0){spotlightIndex.current=currentIndex;return}
+   spotlightIndex.current=0;
+   showSpotlight(newest[0]);
+ },[newest,route]);
+
+ const advanceSpotlight=useCallback(()=>{
+   if(previewFrame||newest.length<2||document.hidden||focusedKey?.startsWith(route+":hero:"))return;
+   spotlightIndex.current=(spotlightIndex.current+1)%newest.length;
+   showSpotlight(newest[spotlightIndex.current]);
+ },[previewFrame,newest,route,focusedKey,showSpotlight]);
+
+ useEffect(()=>{
+   if(previewFrame||!hero||hero.trailerUrl||hero.trailerYtId||newest.length<2)return;
+   const fallback=window.setTimeout(()=>advanceSpotlight(),12000);
+   return()=>window.clearTimeout(fallback);
+ },[previewFrame,hero?.id,hero?.trailerUrl,hero?.trailerYtId,newest.length,advanceSpotlight]);
+
+ useEffect(()=>{
+   setVisibleRowCount(initialRows);
+   const page=document.querySelector("."+route+"-page") as HTMLElement|null;
+   if(!page)return;
+   const reveal=()=>{
+     const nearBottom=page.scrollTop+page.clientHeight>=page.scrollHeight-900;
+     if(nearBottom)setVisibleRowCount(n=>Math.min(rows.length,n+(previewFrame?1:3)));
+   };
+   page.addEventListener("scroll",reveal,{passive:true});
+   const warm=previewFrame?0:window.setTimeout(()=>setVisibleRowCount(n=>Math.min(rows.length,n+1)),1500);
+   return()=>{page.removeEventListener("scroll",reveal);if(warm)window.clearTimeout(warm)};
+ },[route,rows.length,previewFrame,initialRows]);
+
+ useEffect(()=>()=>metaAbort.current?.abort(),[]);
+ const renderedRows=rows.slice(0,visibleRowCount);
  return <>
-   <TVHero item={hero} route={route} onPlay={()=>hero&&(onPlay?onPlay(hero):onOpen(hero))} onMore={()=>hero&&onOpen(hero)}/>
+   <TVHero item={hero} route={route} onPlay={()=>hero&&(onPlay?onPlay(hero):onOpen(hero))} onMore={()=>hero&&onOpen(hero)}
+     onTrailerEnded={advanceSpotlight} spotlight={newest.slice(0,5)} onSpotlight={showSpotlight}/>
    <div className="rows">
      {route==="home"&&onResume&&<TVContinueRow entries={cont} route={route} onResume={onResume}/>}
-     {rows.map(row=>row.kind==="top10"
-       ?<TVTop10Row key={row.id} id={row.id} title={row.title} items={row.items} route={route} onOpen={onOpen} onFocused={focusHero} onSettled={settleHero}/>
-       :<TVRow key={row.id} id={row.id} title={row.title} items={row.items} route={route} onOpen={onOpen} onFocused={focusHero} onSettled={settleHero}/>
+     {renderedRows.map(row=>row.kind==="top10"
+       ?<TVTop10Row key={row.id} id={row.id} title={row.title} items={row.items} route={route} onOpen={onOpen}/>
+       :<TVRow key={row.id} id={row.id} title={row.title} items={row.items} route={route} onOpen={onOpen}/>
      )}
    </div>
  </>

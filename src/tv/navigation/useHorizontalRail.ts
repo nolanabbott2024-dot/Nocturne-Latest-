@@ -35,7 +35,7 @@ export function useHorizontalRail(opts:{
     if(direction!=="left"&&direction!=="right")return true;
 
     if(direction==="left"&&index===0){
-      requestAnimationFrame(()=>void setFocus(leftExitFocusKey));
+      requestAnimationFrame(()=>void setFocus(doesFocusableExist(leftExitFocusKey)?leftExitFocusKey:"sidebar:profile"));
       return false;
     }
 
@@ -43,10 +43,13 @@ export function useHorizontalRail(opts:{
     if(target<0||target>=count)return false;
 
     const key=keyAt(target);
-    // If the adjacent target already exists, let Norigin's geometry move there.
-    if(doesFocusableExist(key))return true;
+    if(doesFocusableExist(key)){
+      // Never delegate horizontal movement to geometry: explicit adjacent focus
+      // prevents Top 10 / Continue Watching from jumping to another row.
+      void setFocus(key);
+      return false;
+    }
 
-    // Only bridge the focus manually when virtualization has not mounted it yet.
     ensureIndexVisible?.(target);
     let cancelled=false,tries=0;
     const focusWhenMounted=()=>{

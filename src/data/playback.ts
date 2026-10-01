@@ -16,7 +16,7 @@ function withTimeout<T>(promise:Promise<T>,ms:number):Promise<T>{
   });
 }
 async function rawFromAddon(d:AddonDescriptor,item:MediaItem,id:string,signal?:AbortSignal):Promise<RawStream[]>{
-  if(/cinemeta|netflix-catalog/i.test(d.transportUrl))return [];
+  if(/cinemeta|netflix-catalog|stremio-trailer-addon|trailers/i.test(d.transportUrl))return [];
   const a=await loadAddon(d,signal);
   const resources=a.manifest.resources||[];
   if(!resources.some((r:any)=>(typeof r==="string"?r:r.name)==="stream"))return [];
@@ -44,7 +44,7 @@ export async function resolvePlayableStream(item:MediaItem,id:string,addons:Addo
   const key=cacheKey(item,id,addons),hit=sourceCache.get(key);
   if(hit&&hit.expires>Date.now())return hit.items[0]||null;
 
-  const enabled=addons.filter(x=>x.enabled!==false&&!/cinemeta|netflix-catalog/i.test(x.transportUrl));
+  const enabled=addons.filter(x=>x.enabled!==false&&!/cinemeta|netflix-catalog|stremio-trailer-addon|trailers/i.test(x.transportUrl));
   return new Promise(resolve=>{
     if(!enabled.length){resolve(null);return}
     let remaining=enabled.length,settled=false;

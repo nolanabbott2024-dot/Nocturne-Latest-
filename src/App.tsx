@@ -1,5 +1,5 @@
 import { useCallback,useEffect,useRef,useState } from "react";
-import { doesFocusableExist,setFocus } from "@noriginmedia/norigin-spatial-navigation";
+import { setFocus } from "@noriginmedia/norigin-spatial-navigation";
 import { AnimatePresence } from "motion/react";
 import { TVSidebar } from "./tv/navigation/TVSidebar";
 import { CollectionPage } from "./pages/CollectionPage";
@@ -17,20 +17,12 @@ import { installRemoteAdapter } from "./tv/navigation/remote";
 import type { MediaItem } from "./types/tv";
 import type { LibraryEntry } from "./data/library";
 import { resolvePlayableStream } from "./data/playback";
+import { loadMetaEnriched } from "./data/stremio";
 import { useProviderStore } from "./stores/providerStore";
 import { playNative } from "./platform/native";
 
 type Route={name:string;item?:MediaItem};
 type BrowserPlayer={src:string;title:string;headers?:Record<string,string>};
-
-function focusWhenAvailable(key:string){
- let tries=0;
- const attempt=()=>{
-   if(doesFocusableExist(key)){void setFocus(key);return}
-   if(tries++<60)window.setTimeout(attempt,25);
- };
- requestAnimationFrame(attempt);
-}
 
 export default function App(){
  const [route,setRoute]=useState<Route>({name:"home"});
@@ -47,8 +39,7 @@ export default function App(){
 
  const go=useCallback((name:string)=>{
    BackStack.push(snapshot());setRoute({name});
-   const target=name==="search"?"search-key:A":(name==="home"||name==="movies"||name==="shows")?`${name}:hero:play`:null;
-   if(target)focusWhenAvailable(target);
+
  },[snapshot]);
  const open=useCallback((item:MediaItem)=>{BackStack.push(snapshot());setRoute({name:"details",item})},[snapshot]);
 
@@ -56,9 +47,22 @@ export default function App(){
    if(!playNative(url,title,headers,item,videoId))setPlayer({src:url,title,headers});
  },[]);
 
- const playItem=useCallback(async(item:MediaItem,videoId=item.id)=>{
-   const source=await resolvePlayableStream(item,videoId,addons);
-   if(source?.url)launchSource(source.url,item.name,source.headers||{},item,videoId);
+ const playItem=useCallback(async(item:MediaItem,videoId?:string)=>{
+   let playableItem=item;
+   let resolvedId=videoId||item.id;
+
+   if(item.type==="series"&&!videoId){
+     try{
+       playableItem=await loadMetaEnriched(item);
+       const episodes=[...(playableItem.videos||[])].sort((a,b)=>
+         (a.season||0)-(b.season||0)||(a.episode||0)-(b.episode||0)
+       );
+       if(episodes[0]?.id)resolvedId=episodes[0].id;
+     }catch{}
+   }
+
+   const source=await resolvePlayableStream(playableItem,resolvedId,addons);
+   if(source?.url)launchSource(source.url,playableItem.name,source.headers||{},playableItem,resolvedId);
  },[addons,launchSource]);
 
  const resume=useCallback((entry:LibraryEntry)=>playItem(entry.item,entry.videoId||entry.item.id),[playItem]);
@@ -94,7 +98,7 @@ export default function App(){
    }
  },[player,controls]);
 
- return <div className="app-shell">
+ return <div className={`app-shell route-${route.name}`}>
    <TVSidebar route={route.name} onRoute={go}/>
    <div className="app-content">
      <AnimatePresence mode="wait">
@@ -103,9 +107,9 @@ export default function App(){
        {route.name==="shows"&&<CollectionPage key="shows" route="shows" type="series" onOpen={open} onPlay={playItem}/>}
        {route.name==="discover"&&<DiscoverPage key="discover" onOpen={open}/>}
        {route.name==="search"&&<SearchPage key="search" onOpen={open}/>}
-       {route.name==="library"&&<LibraryPage key="library" onOpen={open}/>}
+       {route.name==="library"&&<LibraryPage key="library" onOpen={open} onResume={resume}/>}
        {route.name==="settings"&&<SettingsPage key="settings"/>}
-       {route.name==="details"&&route.item&&<DetailsPage key={route.item.id} seed={route.item} onBack={back} onPlay={launchSource}/>}
+       {route.name==="details"&&route.item&&<DetailsPage key={route.item.id} seed={route.item} onBack={back} onPlay={launchSource} onOpen={open}/>}
      </AnimatePresence>
    </div>
    {player&&<div className="player-layer" onMouseMove={()=>setControls(true)}>
