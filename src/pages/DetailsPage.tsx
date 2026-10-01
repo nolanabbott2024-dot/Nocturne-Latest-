@@ -1,18 +1,5 @@
- return <TVPage route={route} initialFocusKey={route+":action:play"}>
-   <TVDetailsHero item={item} route={route}
-     onPlay={()=>play()} onWatchlist={toggle} watchlisted={watchlisted}
-     onSources={()=>chooseSources()} onPanel={openPanel}/>
-
-   <AnimatePresence>
-     {panel&&<TitleHub item={item} route={route} panel={panel} onPanel={setPanel} onClose={()=>setPanel(null)}
-       onPlayEpisode={ep=>play(ep.id)} onOpenRelated={onOpen} onTrailer={()=>setTrailerOpen(true)} related={related}/>}
-     {sources&&<SourcePicker sources={sources.items} loading={sources.loading} route={route} onPick={src=>playSource(src,sources.videoId)} onClose={()=>setSources(null)}/>}
-     {trailerOpen&&<DetailsTrailerOverlay item={item} route={route} onClose={()=>setTrailerOpen(false)}/>}
-   </AnimatePresence>
- </TVPage>
-}import { useCallback,useEffect,useMemo,useState } from "react";
+import { useCallback,useEffect,useMemo,useState } from "react";
 import { AnimatePresence } from "motion/react";
-import { setFocus } from "@noriginmedia/norigin-spatial-navigation";
 import { TVPage } from "../tv/navigation/TVPage";
 import { TVDetailsHero } from "../tv/detail/TVDetailsHero";
 import { TitleHub,type TitlePanel } from "../tv/detail/TitleHub";
@@ -61,7 +48,8 @@ export function DetailsPage({seed,onBack:_,onPlay,onOpen}:{
  },[item,onPlay]);
 
  const play=useCallback(async(id=item.id)=>{
-   if(busy)return;setBusy(true);
+   if(busy)return;
+   setBusy(true);
    const controller=new AbortController();
    try{
      const source=await resolvePlayableStream(item,id,addons,controller.signal);
@@ -83,45 +71,16 @@ export function DetailsPage({seed,onBack:_,onPlay,onOpen}:{
 
  const toggle=useCallback(()=>setWatchlisted(toggleWatchlist(item)),[item]);
 
- const openPanel=useCallback((next:TitlePanel)=>setPanel(next),[]);
-
-
  return <TVPage route={route} initialFocusKey={route+":action:play"}>
    <TVDetailsHero item={item} route={route}
      onPlay={()=>play()} onWatchlist={toggle} watchlisted={watchlisted}
-     onSources={()=>chooseSources()} onPanel={scrollSection}/>
-
-   <div className="continuous-details">
-     {item.type==="series"&&(item.videos?.length??0)>0&&
-       <section id={route+":section:episodes"} className="continuous-section episodes-section">
-         <EpisodesPanel item={item} route={route} inline onPlay={(ep:Episode)=>play(ep.id)}/>
-       </section>}
-
-     <section id={route+":section:details"} className="continuous-section">
-       <h2 className="continuous-heading">Details</h2>
-       <DetailsPanel item={item}/>
-     </section>
-
-     <section id={route+":section:audio"} className="continuous-section">
-       <h2 className="continuous-heading">Audio & Subtitles</h2>
-       <AudioPanel route={route}/>
-     </section>
-
-     <section id={route+":section:related"} className="continuous-section">
-       <h2 className="continuous-heading">More Like This</h2>
-       <RelatedPanel items={related} item={item} route={route} onOpen={onOpen}/>
-     </section>
-
-     {item.type==="series"&&(item.trailerUrl||item.trailerYtId)&&
-       <section id={route+":section:extras"} className="continuous-section">
-         <h2 className="continuous-heading">Previews & Extras</h2>
-         <ExtrasPanel item={item} route={route} onTrailer={()=>setTrailerOpen(true)}/>
-       </section>}
-   </div>
+     onSources={()=>chooseSources()} onPanel={setPanel}/>
 
    <AnimatePresence>
-     {sources&&<SourcePicker sources={sources.items} loading={sources.loading} route={route} onPick={s=>playSource(s,sources.videoId)} onClose={()=>setSources(null)}/>}
+     {panel&&<TitleHub item={item} route={route} panel={panel} onPanel={setPanel} onClose={()=>setPanel(null)}
+       onPlayEpisode={ep=>play(ep.id)} onOpenRelated={onOpen} onTrailer={()=>setTrailerOpen(true)} related={related}/>}
+     {sources&&<SourcePicker sources={sources.items} loading={sources.loading} route={route} onPick={src=>playSource(src,sources.videoId)} onClose={()=>setSources(null)}/>}
      {trailerOpen&&<DetailsTrailerOverlay item={item} route={route} onClose={()=>setTrailerOpen(false)}/>}
    </AnimatePresence>
- </TVPage>
+ </TVPage>;
 }
