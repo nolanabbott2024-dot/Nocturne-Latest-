@@ -89,6 +89,25 @@ export async function loadMetaEnriched(seed:MediaItem,signal?:AbortSignal):Promi
   return {...merged,...fallback};
 
 }
+export async function loadDirectTrailerFromAddons(seed:MediaItem,descriptors:AddonDescriptor[],signal?:AbortSignal):Promise<Partial<MediaItem>>{
+  const candidates=descriptors.filter(d=>{
+    if(d.enabled===false)return false;
+    const meta=[d.transportUrl,d.manifest?.name,d.manifest?.description].filter(Boolean).join(" ");
+    return /trailer|preview|streailer/i.test(meta);
+  });
+  if(!candidates.length)return {};
+  const results=await Promise.allSettled(candidates.map(async d=>{
+    const addon=await loadAddon(d,signal);
+    const resources=addon.manifest.resources||[];
+    if(!resources.some((r:any)=>(typeof r==="string"?r:r.name)==="stream"))return undefined;
+    const streams=await loadStreams(addon.baseUrl,seed.type,seed.id,signal);
+    const direct=streams.find((x:any)=>typeof x.url==="string"&&/^https?:\/\//i.test(x.url)&&/\.(?:m3u8|mp4)(?:$|\?)/i.test(x.url));
+    return direct?.url as string|undefined;
+  }));
+  const url=results.find((r):r is PromiseFulfilledResult<string|undefined>=>r.status==="fulfilled"&&!!r.value)?.value;
+  return url?{trailerUrl:url}:{};
+}
+
 export async function loadStreams(baseUrl:string,type:string,id:string,signal?:AbortSignal){
   const o=await fetchJson<any>(`${baseUrl}stream/${encodeURIComponent(type)}/${encodeURIComponent(id)}.json`,signal);
   return o.streams||[];
