@@ -1,66 +1,39 @@
-import { useState } from "react";
+import { useRef,useState } from "react";
 import { useFocusable } from "@noriginmedia/norigin-spatial-navigation";
 import { useNavigationStore } from "../../stores/navigationStore";
 
-function fullyVisibleWithin(node:HTMLElement,container:HTMLElement,padX=0,padY=0){
-  const nr=node.getBoundingClientRect(),cr=container.getBoundingClientRect();
-  return nr.left>=cr.left+padX&&nr.right<=cr.right-padX&&nr.top>=cr.top+padY&&nr.bottom<=cr.bottom-padY;
-}
-
-function lockFocusedNode(node:HTMLElement|null,focusKey:string){
-  if(!node)return;
+function centerFocusedNode(node:HTMLElement|null,focusKey:string){
+  if(!node)return 0;
+  let moved=false;
 
   const horizontal=node.closest(".tv-row-scroll,.top10-scroll,.continue-scroll,.hub-related-row,.hub-episode-row") as HTMLElement|null;
   if(horizontal){
-    let nr=node.getBoundingClientRect(),hr=horizontal.getBoundingClientRect();
-    const pad=Math.min(36,hr.width*.06);
-    let dx=0;
-    if(nr.left<hr.left+pad)dx=nr.left-(hr.left+pad);
-    else if(nr.right>hr.right-pad)dx=nr.right-(hr.right-pad);
-    if(Math.abs(dx)>1)horizontal.scrollLeft+=dx;
+    const nr=node.getBoundingClientRect(),hr=horizontal.getBoundingClientRect();
+    const delta=(nr.left+nr.width/2)-(hr.left+hr.width/2);
+    if(Math.abs(delta)>6){
+      horizontal.scrollTo({left:horizontal.scrollLeft+delta,behavior:"smooth"});
+      moved=true;
+    }
   }
 
   const page=node.closest(".tv-page") as HTMLElement|null;
-  if(!page)return;
-
-  const isDetails=page.className.includes("details:");
-  const isHeroFocus=focusKey.includes(":action:")||focusKey.includes(":overview-tab:");
-
-  if(isDetails&&isHeroFocus){
-    page.scrollTop=0;
-  }else{
-    let nr=node.getBoundingClientRect(),pr=page.getBoundingClientRect();
-
-    if(isDetails){
-      const targetTop=pr.top+pr.height*.20;
-      page.scrollTop+=nr.top-targetTop;
+  if(page&&!node.closest(".title-hub")){
+    const isDetails=page.className.includes("details:");
+    const isHero=focusKey.includes(":action:")||focusKey.includes(":overview-tab:");
+    if(isDetails&&isHero){
+      if(page.scrollTop!==0){page.scrollTo({top:0,behavior:"smooth"});moved=true}
     }else{
-      const top=pr.top+Math.min(64,pr.height*.10);
-      const bottom=pr.bottom-Math.min(96,pr.height*.14);
-      let dy=0;
-      if(nr.top<top)dy=nr.top-top;
-      else if(nr.bottom>bottom)dy=nr.bottom-bottom;
-      if(Math.abs(dy)>1)page.scrollTop+=dy;
+      const row=node.closest(".tv-row") as HTMLElement|null;
+      const target=row||node;
+      const rr=target.getBoundingClientRect(),pr=page.getBoundingClientRect();
+      const delta=(rr.top+rr.height/2)-(pr.top+pr.height/2);
+      if(Math.abs(delta)>16){
+        page.scrollTo({top:Math.max(0,page.scrollTop+delta),behavior:"smooth"});
+        moved=true;
+      }
     }
   }
-
-  // One frame later, correct any residual clipping caused by layout/image changes.
-  requestAnimationFrame(()=>{
-    if(!node.isConnected)return;
-
-    const h=node.closest(".tv-row-scroll,.top10-scroll,.continue-scroll,.hub-related-row,.hub-episode-row") as HTMLElement|null;
-    if(h&&!fullyVisibleWithin(node,h,12,0)){
-      const nr=node.getBoundingClientRect(),hr=h.getBoundingClientRect();
-      if(nr.left<hr.left+12)h.scrollLeft+=nr.left-(hr.left+12);
-      else if(nr.right>hr.right-12)h.scrollLeft+=nr.right-(hr.right-12);
-    }
-
-    const p=node.closest(".tv-page") as HTMLElement|null;
-    if(!p)return;
-    const nr=node.getBoundingClientRect(),pr=p.getBoundingClientRect();
-    if(nr.top<pr.top)p.scrollTop+=nr.top-pr.top-8;
-    else if(nr.bottom>pr.bottom)p.scrollTop+=nr.bottom-pr.bottom+8;
-  });
+  return moved?140:0;
 }
 
 export function useTVFocusable(opts:{
@@ -75,6 +48,7 @@ export function useTVFocusable(opts:{
 }){
   const setFocusState=useNavigationStore(s=>s.setFocus);
   const [visibleFocus,setVisibleFocus]=useState(false);
+  const token=useRef(0);
 
   const focusable=useFocusable({
     focusKey:opts.focusKey,
@@ -84,21 +58,21 @@ export function useTVFocusable(opts:{
       return result===undefined?true:result;
     },
     onFocus:(layout:any,details:any)=>{
+      const my=++token.current;
       setVisibleFocus(false);
       const node=(layout?.node||layout?.layout?.node||null) as HTMLElement|null;
-
-      if(opts.followFocus!==false&&opts.rowId!=="sidebar")lockFocusedNode(node,opts.focusKey);
-
-      // Commit the app-level focus and visible highlight after the viewport has
-      // been synchronously corrected. This prevents off-screen "ghost" focus.
-      requestAnimationFrame(()=>{
+      const delay=opts.followFocus!==false&&opts.rowId!=="sidebar"?centerFocusedNode(node,opts.focusKey):0;
+      const commit=()=>{
+        if(my!==token.current)return;
         const memoryRoute=opts.rowId==="sidebar"?undefined:opts.route;
         setFocusState(opts.focusKey,memoryRoute,opts.rowId);
         setVisibleFocus(true);
         opts.onFocus?.(layout,details);
-      });
+      };
+      delay?window.setTimeout(commit,delay):requestAnimationFrame(commit);
     },
     onBlur:()=>{
+      token.current++;
       setVisibleFocus(false);
       opts.onBlur?.();
     }
