@@ -28,7 +28,8 @@ export function TitleHub({item,route,panel,onPanel,onClose,onPlayEpisode,onOpenR
       {tabs.map(t=><FocusButton key={t} focusKey={route+":hub-tab:"+t} route={route} className={"hub-tab "+(panel===t?"active":"")} onPress={()=>onPanel(t)}
         onArrowPress={direction=>{
           if(direction==="down"){
-            const firstSeason=(item.videos||[]).map(v=>v.season??1).find(v=>v>0)??0;\n            const target=t==="episodes"?(item.videos?.length?route+":season:"+firstSeason:route+":hub-close")
+            const firstSeason=(item.videos||[]).map(v=>v.season??1).find(v=>v>0)??0;
+            const target=t==="episodes"?(item.videos?.length?route+":season:"+firstSeason:route+":hub-close")
               :t==="audio"?route+":audio:0"
               :t==="related"?(related[0]?route+":related:"+related[0].type+":"+related[0].id+":0":route+":hub-close")
               :t==="extras"?(item.trailerUrl||item.trailerYtId?route+":extra:trailer":route+":hub-close")
@@ -41,7 +42,8 @@ export function TitleHub({item,route,panel,onPanel,onClose,onPlayEpisode,onOpenR
     </div>
     <div className="title-hub-rule"/>
     <div className="title-hub-content">
-      {panel==="episodes"&&<EpisodesPanel item={item} route={route} onPlay={onPlayEpisode}/>}\n      {panel==="details"&&<DetailsPanel item={item}/>}
+      {panel==="episodes"&&<EpisodesPanel item={item} route={route} onPlay={onPlayEpisode}/>}
+      {panel==="details"&&<DetailsPanel item={item}/>}
       {panel==="related"&&<RelatedPanel items={related} item={item} route={route} onOpen={onOpenRelated}/>}
       {panel==="audio"&&<AudioPanel route={route}/>}
       {panel==="extras"&&<ExtrasPanel item={item} route={route} onTrailer={onTrailer}/>}
