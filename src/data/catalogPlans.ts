@@ -158,12 +158,12 @@ export async function buildPrimaryRows(args:{
   if(netflixBase){
     const topTypes:(("movie"|"series"))[]=type?[type]:["movie","series"];
     for(const t of topTypes){
-      const globalCat:Catalog={addonId:"pw.ers.netflix-catalog",addonName:"Streaming Catalogs",baseUrl:netflixBase,id:"netflix-top10-global",type:t,name:"Netflix Top 10 Global"};
-      const usCat:Catalog={...globalCat,id:"netflix-top10-US",name:"Netflix Top 10 U.S."};
+      const globalCat:Catalog={addonId:"pw.ers.netflix-catalog",addonName:"Streaming Catalogs",baseUrl:netflixBase,id:"netflix-top10-global",type:t,name:"Top 10 Global"};
+      const usCat:Catalog={...globalCat,id:"netflix-top10-US",name:"Top 10 U.S."};
       const [g,u]=await Promise.all([loadCatalog(globalCat,{},signal).catch(()=>[]),loadCatalog(usCat,{},signal).catch(()=>[])]);
       rows.push(
-        {id:`netflix-global-${t}`,title:t==="movie"?"Netflix Top 10 Movies — Global":"Netflix Top 10 Shows — Global",kind:"top10",type:t,items:g},
-        {id:`netflix-us-${t}`,title:t==="movie"?"Netflix Top 10 Movies — U.S.":"Netflix Top 10 Shows — U.S.",kind:"top10",type:t,items:u}
+        {id:`netflix-global-${t}`,title:t==="movie"?"Top 10 Movies — Global":"Top 10 Shows — Global",kind:"top10",type:t,items:g},
+        {id:`netflix-us-${t}`,title:t==="movie"?"Top 10 Movies — U.S.":"Top 10 Shows — U.S.",kind:"top10",type:t,items:u}
       );
     }
   }
