@@ -5,12 +5,13 @@ import { TVRow } from "../tv/content/TVRow";
 import { TVTop10Row } from "../tv/content/TVTop10Row";
 import { TVContinueRow } from "../tv/content/TVContinueRow";
 import { useAddons,usePrimaryRows,useProviderRows,useCuratedRows } from "../data/queries";
-import { isCinemetaCatalog,loadMetaEnriched } from "../data/stremio";
+import { isCinemetaCatalog,loadDirectTrailerFromAddons,loadMetaEnriched } from "../data/stremio";
 import { continueWatching,type LibraryEntry } from "../data/library";
 import type { MediaItem } from "../types/tv";
 import { useContentStore } from "../stores/contentStore";
 import { useNavigationStore } from "../stores/navigationStore";
 import { dedupePlannedRows,type PlannedRow } from "../data/catalogPlans";
+import { useProviderStore } from "../stores/providerStore";
 
 export function CollectionPage({
   route,type,onOpen,onPlay,onResume
@@ -46,6 +47,7 @@ function Rows({route,rows,onOpen,onPlay,cont,onResume}:{
  cont:LibraryEntry[];onResume?:((e:LibraryEntry)=>void)
 }){
  const hero=useContentStore(s=>s.heroByRoute[route]); const setHero=useContentStore(s=>s.setHero);
+ const trailerProviders=useProviderStore(s=>s.addons);
  const focusedKey=useNavigationStore(s=>s.focusedKey);
  const metaAbort=useRef<AbortController|null>(null);
  const spotlightIndex=useRef(0);
@@ -69,10 +71,15 @@ function Rows({route,rows,onOpen,onPlay,cont,onResume}:{
    setHero(route,seed);
    const controller=new AbortController();
    metaAbort.current=controller;
-   loadMetaEnriched(seed,controller.signal).then(full=>{
-     if(!controller.signal.aborted)setHero(route,full);
+   loadMetaEnriched(seed,controller.signal).then(async full=>{
+     let resolved=full;
+     if(!full.trailerUrl){
+       const trailer=await loadDirectTrailerFromAddons(full,trailerProviders,controller.signal).catch(()=>({}));
+       resolved={...full,...trailer};
+     }
+     if(!controller.signal.aborted)setHero(route,resolved);
    }).catch(()=>{});
- },[route,setHero]);
+ },[route,setHero,trailerProviders]);
 
  useEffect(()=>{
    if(!newest.length)return;
