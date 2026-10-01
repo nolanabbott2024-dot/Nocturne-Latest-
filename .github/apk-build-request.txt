@@ -1,0 +1,2 @@
+Build current redesign APK: 2026-09-30 20:59 ET
+Source ref: codex/netflix-reference-design
