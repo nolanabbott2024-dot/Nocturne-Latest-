@@ -1,4 +1,5 @@
 import { useEffect,useMemo,useState,type ReactNode } from "react";
+import { motion } from "motion/react";
 import { ChevronUp,Check } from "lucide-react";
 import { setFocus } from "@noriginmedia/norigin-spatial-navigation";
 import type { Episode,MediaItem } from "../../types/tv";
@@ -42,11 +43,15 @@ export function TitleHub({item,route,panel,onPanel,onClose,onPlayEpisode,onOpenR
     </div>
     <div className="title-hub-rule"/>
     <div className="title-hub-content">
-      {panel==="episodes"&&<EpisodesPanel item={item} route={route} onPlay={onPlayEpisode}/>}
-      {panel==="details"&&<DetailsPanel item={item}/>}
-      {panel==="related"&&<RelatedPanel items={related} item={item} route={route} onOpen={onOpenRelated}/>}
-      {panel==="audio"&&<AudioPanel route={route}/>}
-      {panel==="extras"&&<ExtrasPanel item={item} route={route} onTrailer={onTrailer}/>}
+      <motion.div key={panel} className="title-panel-page"
+        initial={{opacity:0,x:28}} animate={{opacity:1,x:0}} exit={{opacity:0,x:-20}}
+        transition={{duration:.22,ease:"easeOut"}}>
+        {panel==="episodes"&&<EpisodesPanel item={item} route={route} onPlay={onPlayEpisode}/>}
+        {panel==="details"&&<DetailsPanel item={item}/>}
+        {panel==="related"&&<RelatedPanel items={related} item={item} route={route} onOpen={onOpenRelated}/>}
+        {panel==="audio"&&<AudioPanel route={route}/>}
+        {panel==="extras"&&<ExtrasPanel item={item} route={route} onTrailer={onTrailer}/>}
+      </motion.div>
     </div>
    </div>
  </section>;
