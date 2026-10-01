@@ -55,14 +55,8 @@ async function loadTrailerFallback(type:string,id:string,signal?:AbortSignal):Pr
   if(!/^tt\d+$/i.test(id))return {};
   try{
     const o=await fetchJson<any>(TRAILER_ADDON_BASE+"stream/"+encodeURIComponent(type)+"/"+encodeURIComponent(id)+".json",signal,6*60*60_000);
-    const candidate=(o.streams||[]).find((s:any)=>typeof s.externalUrl==="string"&&/youtu(?:\.be|be\.com)/i.test(s.externalUrl))
-      ||(o.streams||[]).find((s:any)=>typeof s.url==="string"&&/\.(?:m3u8|mp4)(?:$|\?)/i.test(s.url));
-    if(!candidate)return {};
-    if(candidate.externalUrl){
-      const yt=youtubeIdFromUrl(candidate.externalUrl);
-      return yt?{trailerYtId:yt}:{};
-    }
-    return candidate.url?{trailerUrl:candidate.url}:{};
+    const candidate=(o.streams||[]).find((s:any)=>typeof s.url==="string"&&/\.(?:m3u8|mp4)(?:$|\?)/i.test(s.url));
+    return candidate?.url?{trailerUrl:candidate.url}:{};
   }catch{return {}}
 }
 
@@ -100,12 +94,13 @@ export async function loadStreams(baseUrl:string,type:string,id:string,signal?:A
   return o.streams||[];
 }
 export function normalizeItem(m:any,type:string,sourceBase?:string):MediaItem{
-  const trailer=(m.trailerStreams||m.trailers||[])[0]||{};
+  const trailers=(m.trailerStreams||m.trailers||[]);
+  const trailer=trailers.find((t:any)=>typeof t?.url==="string"&&/\.(?:m3u8|mp4)(?:$|\?)/i.test(t.url))||{};
   return {
     id:String(m.id||""),type:String(m.type||type),name:m.name||"Untitled",
     poster:m.poster,background:m.background||m.poster,logo:m.logo,description:m.description,
     releaseInfo:m.releaseInfo,runtime:m.runtime,contentRating:m.contentRating,imdbRating:m.imdbRating,
     genres:m.genres||[],videos:m.videos||[],trailerUrl:trailer.url,
-    trailerYtId:trailer.ytId||trailer.source,sourceBase
+    trailerYtId:undefined,sourceBase
   };
 }
