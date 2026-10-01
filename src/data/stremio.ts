@@ -1,3 +1,4 @@
+import { previewImg } from "../preview/lite";
 import type { AddonDescriptor,Catalog,MediaItem } from "../types/tv";
 
 export type LoadedAddon={descriptor:AddonDescriptor;manifest:any;baseUrl:string;catalogs:Catalog[]};
@@ -71,7 +72,7 @@ export async function loadMetaEnriched(seed:MediaItem,signal?:AbortSignal):Promi
   const merged:MediaItem=meta?{
     ...source,
     poster:meta.poster||source.poster,
-    background:meta.background||source.background||meta.poster,
+    background:previewImg(meta.background||source.background||meta.poster),
     logo:meta.logo||source.logo,
     description:meta.description||source.description,
     releaseInfo:meta.releaseInfo||source.releaseInfo,
@@ -117,7 +118,7 @@ export function normalizeItem(m:any,type:string,sourceBase?:string):MediaItem{
   const trailer=trailers.find((t:any)=>typeof t?.url==="string"&&/\.(?:m3u8|mp4)(?:$|\?)/i.test(t.url))||{};
   return {
     id:String(m.id||""),type:String(m.type||type),name:m.name||"Untitled",
-    poster:m.poster,background:m.background||m.poster,logo:m.logo,description:m.description,
+    poster:m.poster,background:previewImg(m.background||m.poster),logo:m.logo,description:m.description,
     releaseInfo:m.releaseInfo,runtime:m.runtime,contentRating:m.contentRating,imdbRating:m.imdbRating,
     genres:m.genres||[],videos:m.videos||[],trailerUrl:trailer.url,
     trailerYtId:undefined,sourceBase
