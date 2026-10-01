@@ -156,7 +156,7 @@ function Choice({id,route,active,label,onPress}:{id:string;route:string;active:b
 }
 
 export function ExtrasPanel({item,route,onTrailer}:{item:MediaItem;route:string;onTrailer:()=>void}){
- const available=!!(item.trailerUrl||item.trailerYtId);
+ const available=!!item.trailerUrl;
  return <div className="hub-extras">
    {available?<FocusButton focusKey={route+":extra:trailer"} route={route} className="hub-extra-card" onPress={onTrailer}>
       <img src={item.background||item.poster} alt=""/><div><h3>{item.type==="series"?"Official Preview":"Official Trailer"}: {item.name}</h3><span>Play preview</span></div>
