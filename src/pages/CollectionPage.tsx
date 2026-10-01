@@ -49,7 +49,9 @@ function Rows({route,rows,onOpen,onPlay,cont,onResume}:{
  const focusedKey=useNavigationStore(s=>s.focusedKey);
  const metaAbort=useRef<AbortController|null>(null);
  const spotlightIndex=useRef(0);
- const [visibleRowCount,setVisibleRowCount]=useState(5);
+ const previewFrame=new URLSearchParams(window.location.search).get("tvframe")==="1";
+ const initialRows=previewFrame?3:5;
+ const [visibleRowCount,setVisibleRowCount]=useState(initialRows);
  const newest=useMemo(()=>{
    const releaseRow=rows.find(r=>r.id==="new-releases"&&r.items.length);
    const source=releaseRow?.items.length?releaseRow.items:rows.flatMap(r=>r.items);
@@ -81,29 +83,29 @@ function Rows({route,rows,onOpen,onPlay,cont,onResume}:{
  },[newest,route]);
 
  const advanceSpotlight=useCallback(()=>{
-   if(newest.length<2||document.hidden||focusedKey?.startsWith(route+":hero:"))return;
+   if(previewFrame||newest.length<2||document.hidden||focusedKey?.startsWith(route+":hero:"))return;
    spotlightIndex.current=(spotlightIndex.current+1)%newest.length;
    showSpotlight(newest[spotlightIndex.current]);
- },[newest,route,focusedKey,showSpotlight]);
+ },[previewFrame,newest,route,focusedKey,showSpotlight]);
 
  useEffect(()=>{
-   if(!hero||hero.trailerUrl||hero.trailerYtId||newest.length<2)return;
+   if(previewFrame||!hero||hero.trailerUrl||hero.trailerYtId||newest.length<2)return;
    const fallback=window.setTimeout(()=>advanceSpotlight(),12000);
    return()=>window.clearTimeout(fallback);
- },[hero?.id,hero?.trailerUrl,hero?.trailerYtId,newest.length,advanceSpotlight]);
+ },[previewFrame,hero?.id,hero?.trailerUrl,hero?.trailerYtId,newest.length,advanceSpotlight]);
 
  useEffect(()=>{
-   setVisibleRowCount(5);
+   setVisibleRowCount(initialRows);
    const page=document.querySelector("."+route+"-page") as HTMLElement|null;
    if(!page)return;
    const reveal=()=>{
      const nearBottom=page.scrollTop+page.clientHeight>=page.scrollHeight-900;
-     if(nearBottom)setVisibleRowCount(n=>Math.min(rows.length,n+3));
+     if(nearBottom)setVisibleRowCount(n=>Math.min(rows.length,n+(previewFrame?1:3)));
    };
    page.addEventListener("scroll",reveal,{passive:true});
-   const warm=window.setTimeout(()=>setVisibleRowCount(n=>Math.min(rows.length,n+1)),1500);
-   return()=>{page.removeEventListener("scroll",reveal);window.clearTimeout(warm)};
- },[route,rows.length]);
+   const warm=previewFrame?0:window.setTimeout(()=>setVisibleRowCount(n=>Math.min(rows.length,n+1)),1500);
+   return()=>{page.removeEventListener("scroll",reveal);if(warm)window.clearTimeout(warm)};
+ },[route,rows.length,previewFrame,initialRows]);
 
  useEffect(()=>()=>metaAbort.current?.abort(),[]);
  const renderedRows=rows.slice(0,visibleRowCount);
