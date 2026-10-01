@@ -19,7 +19,7 @@ export function TVHero({item,route,onPlay,onMore,onTrailerEnded}:{item?:MediaIte
 function HeroContent({item,route,onPlay,onMore,onTrailerEnded}:{item:MediaItem;route:string;onPlay:()=>void;onMore:()=>void;onTrailerEnded?:()=>void}){
  const [trailerReady,setTrailerReady]=useState(false);
  const previewFrame=new URLSearchParams(window.location.search).get("tvframe")==="1";
- useEffect(()=>{setTrailerReady(false);if(previewFrame||!(item.trailerUrl||item.trailerYtId))return;const timer=window.setTimeout(()=>setTrailerReady(true),5000);return()=>window.clearTimeout(timer)},[item.id,item.trailerUrl,item.trailerYtId,previewFrame]);
+ useEffect(()=>{setTrailerReady(false);if(previewFrame||!item.trailerUrl)return;const timer=window.setTimeout(()=>setTrailerReady(true),5000);return()=>window.clearTimeout(timer)},[item.id,item.trailerUrl,previewFrame]);
  const scrollTop=(node:HTMLElement|null)=>node?.closest(".tv-page")?.scrollTo({top:0,behavior:"auto"});
  const play=useTVFocusable({
    focusKey:`${route}:hero:play`,route,rowId:"hero",onPress:onPlay,
@@ -46,7 +46,7 @@ function HeroContent({item,route,onPlay,onMore,onTrailerEnded}:{item:MediaItem;r
        src={item.background||item.poster} alt="" initial={{opacity:0,scale:1.015}}
        animate={{opacity:1,scale:1}} exit={{opacity:0}} transition={{duration:.55,ease:"easeOut"}}/>
    </AnimatePresence>
-   {trailerReady&&(item.trailerUrl||item.trailerYtId)&&<TrailerPreview item={item} loop={false} onEnded={onTrailerEnded}/>}
+   {trailerReady&&item.trailerUrl&&<TrailerPreview item={item} loop={false} onEnded={onTrailerEnded}/>}
    <div className="hero-scrim"/>
    <div className="hero-copy">
     <div className="hero-eyebrow"><span>N</span> {item.type==="series"?"SERIES":"FILM"}</div>
